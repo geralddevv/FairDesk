@@ -151,26 +151,26 @@
           </div>
 
           <div class="nav-labels-opt">
-            <div title="Labels" class="<%= title === 'Labels' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/labels'" style="border-top: 2px solid #ffffff9d;" >
+            <!-- <div title="Labels" class="<%= title === 'Labels' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/labels'" style="border-top: 2px solid #ffffff9d;" >
               <i class="fa-solid fa-address-card" style="color: #ffffff"></i>
               <p class="nav-items-para">Labels</p>
-            </div>
-            <div title="TTR" class="<%= title === 'TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr'" >
+            </div> -->
+            <!-- <div title="TTR" class="<%= title === 'TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr'" >
               <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
               <p class="nav-items-para">TTR</p>
-            </div>
-            <div title="Tape Master" class="<%= title === 'Tape Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-master'" >
+            </div> -->
+            <div title="Tape Master" class="<%= title === 'Tape Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-master'" style="border-top: 2px solid #ffffff9d; border-bottom: 2px solid #ffffff9d" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
             </div>
-            <div title="Block" class="<%= title === 'Block' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/block'" >
+            <!-- <div title="Block" class="<%= title === 'Block' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/block'" >
               <i class="fa-solid fa-cube" style="color: #ffffff"></i>
               <p class="nav-items-para">Block</p>
-            </div>
-            <div title="Die" class="<%= title === 'Die' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/die'" style="border-bottom: 2px solid #ffffff9d" >
+            </div> -->
+            <!-- <div title="Die" class="<%= title === 'Die' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/die'" style="border-bottom: 2px solid #ffffff9d" >
               <i class="fa-solid fa-brush" style="color: #ffffff"></i>
               <p class="nav-items-para">Die</p>
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -290,7 +290,7 @@
           </div>
         </div>
 
-        <div class="nav-opt-wrap">
+        <!-- <div class="nav-opt-wrap">
           <div title="View" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
             <p class="nav-items-para">Production</p>
@@ -302,12 +302,12 @@
               <p class="nav-items-para">Production Calculator</p>
             </div>
           </div>
-        </div>
+        </div> -->
 
         <div class="nav-opt-wrap">
-          <div title="Stock" class="view-toggle nav-items">
+          <div title="Orders" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Stock</p>
+            <p class="nav-items-para">Stocks</p>
           </div>
 
           <div class="nav-labels-opt">
@@ -317,14 +317,26 @@
             </div>
           </div>
         </div>
-        <div title="Sales Order" class="<%= title === 'Sales Order' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/order'" >
-          <i class="fa-solid fa-cart-plus" style="color: #ffffff"></i>
-          <p class="nav-items-para">Sales Order</p>
-        </div>
-        <div title="Pending Orders" class="<%= title === 'Pending Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/pending'" >
-          <i class="fa-solid fa-clock-rotate-left" style="color: #ffffff"></i>
+        
+
+        <div class="nav-opt-wrap">
+          <div title="Orders" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Orders</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Sales Order" class="<%= title === 'Sales Order' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/order'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-cart-plus" style="color: #ffffff"></i>
+              <p class="nav-items-para">Sales Order</p>
+            </div>
+            <div title="Pending Orders" class="<%= title === 'Pending Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/pending'" style="border-bottom: 2px solid #ffffff9d">
+              <i class="fa-solid fa-clock-rotate-left" style="color: #ffffff"></i>
           <p class="nav-items-para">Pending Orders</p>
-        </div>            
+        </div>  
+          </div>
+        </div>
+                  
       </div>
 
       <!--- Loading Content --->

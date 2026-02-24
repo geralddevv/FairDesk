@@ -103,6 +103,7 @@
       <input type="number" id="confirm-quantity" name="confirmQuantity" class="form-control" min="1" required />
     </div>
     
+    <div id="logs-wrapper" style="grid-column: 1 / -1;">
     <% if (typeof logs !== 'undefined' && logs.length > 0) { %>
       <div class="span-full" style="padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 0.5rem; color: #0369a1; font-size: 14px; margin-top: 10px;">
         <% 
@@ -113,21 +114,35 @@
             <span><strong>Partial Dispatch:</strong> <%= orderToEdit.dispatchedQuantity %> sent / <%= orderToEdit.quantity - orderToEdit.dispatchedQuantity %> remaining</span>
         </div>
 
-        <div class="logs-scroll" style="max-height: 72px; overflow-y: auto; padding-right: 5px; width: 100%;">
+        <div class="logs-scroll" style="max-height: 120px; overflow-y: auto; padding-right: 5px; width: 100%;">
             <% logs.forEach((log, index) => { %>
-            <div style="padding: 6px 0; border-bottom: 1px dashed #e0f2fe; font-size: 13px; display: flex; justify-content: space-between;">
+            <div style="padding: 6px 0; border-bottom: 1px dashed #e0f2fe; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                 <span>
                     <span style="color: #64748b; font-size: 12px; margin-right: 5px;">
                         <%= new Date(log.performedAt).toLocaleString('en-IN', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %>
                     </span>
-                    <strong><%= log.quantity %></strong> sent 
-                    <span style="color: #64748b;">(Remaining: <%= runningRemaining %>)</span>
+                    <% if (log.invoiceNumber) { %>
+                    <span style="font-family: monospace; background: #e0f2fe; padding: 1px 6px; border-radius: 4px; font-size: 12px;">
+                        <%= log.invoiceNumber %>
+                    </span>
+                    <% } %>
+                <strong><%= log.quantity %></strong> sent 
+                <span style="color: #64748b;">(Remaining: <%= runningRemaining %>)</span>
                 </span>
-                <% if (log.invoiceNumber) { %>
-                <span style="font-family: monospace; background: #e0f2fe; padding: 1px 6px; border-radius: 4px; font-size: 12px;">
-                    <%= log.invoiceNumber %>
+                <span style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+                    <button type="button" onclick="openEditDialog('<%= log._id %>', <%= log.quantity %>, '<%= log.invoiceNumber || '' %>', '<%= new Date(log.performedAt).toISOString().split('T')[0] %>')"
+                        style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 2px 4px; font-size: 13px; border-radius: 4px; transition: background 0.2s;"
+                        onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='none'"
+                        title="Edit Log">
+                        <i class="fa-solid fa-pencil"></i>
+                    </button>
+                    <button type="button" onclick="confirmDeleteLog('<%= log._id %>')"
+                        style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px 4px; font-size: 13px; border-radius: 4px; transition: background 0.2s;"
+                        onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'"
+                        title="Delete Log">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
                 </span>
-                <% } %>
                 
                 <% 
                 // For the next iteration (older log), the remaining amount was higher by this dispatched amount
@@ -159,7 +174,63 @@
         <strong>Partial Dispatch:</strong> <%= orderToEdit.dispatchedQuantity %> sent. Remaining: <%= orderToEdit.quantity - orderToEdit.dispatchedQuantity %>
       </div>
     <% } %>
+    </div>
     <% } %>
+
+<!-- ================= EDIT LOG DIALOG ================= -->
+<div id="edit-log-dialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; transition:opacity 0.3s;">
+  <div style="background:white; border-radius:8px; width:440px; max-width:90%; box-shadow:0 4px 15px rgba(0,0,0,0.2); overflow:hidden; animation:logDialogPopIn 0.2s ease-out;">
+    <div style="padding:20px 20px 0; border-bottom: 1px solid #e5e7eb;">
+      <h3 style="margin:0 0 15px; color:#1a1a2e; font-size:17px;"><i class="fa-solid fa-pencil" style="margin-right:6px;"></i>Edit Dispatch Log</h3>
+    </div>
+    <div style="padding:20px;">
+      <input type="hidden" id="edit-log-id" />
+      <div style="margin-bottom:14px;">
+        <label style="font-size:13px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Quantity <span style="color:#ef4444">*</span></label>
+        <input type="number" id="edit-log-qty" min="1" style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; box-sizing:border-box; transition:border-color 0.2s;" />
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:13px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Invoice Number</label>
+        <input type="text" id="edit-log-invoice" style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; box-sizing:border-box; transition:border-color 0.2s;" />
+      </div>
+      <div style="margin-bottom:4px;">
+        <label style="font-size:13px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Date</label>
+        <input type="date" id="edit-log-date" style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:14px; box-sizing:border-box; transition:border-color 0.2s;" />
+      </div>
+    </div>
+    <div style="padding:15px 20px; background:#f9fafb; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e5e7eb;">
+      <button type="button" onclick="closeEditDialog()" style="padding:8px 16px; border:1px solid #d1d5db; background:white; color:#374151; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">Cancel</button>
+      <button type="button" onclick="submitEditLog()" style="padding:8px 16px; border:none; background:#1a1a2e; color:white; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DELETE LOG DIALOG ================= -->
+<div id="delete-log-dialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; transition:opacity 0.3s;">
+  <div style="background:white; border-radius:8px; width:400px; max-width:90%; box-shadow:0 4px 15px rgba(0,0,0,0.2); overflow:hidden; animation:logDialogPopIn 0.2s ease-out;">
+    <div style="padding:25px 20px; text-align:center;">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size:28px; color:#ef4444; margin-bottom:12px;"></i>
+      <p style="margin:0; color:#333; font-size:16px; line-height:1.5;">Are you sure you want to <strong>delete</strong> this dispatch log? Stock will be reversed.</p>
+      <input type="hidden" id="delete-log-id" />
+    </div>
+    <div style="padding:15px 20px; background:#f9fafb; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e5e7eb;">
+      <button type="button" onclick="closeDeleteDialog()" style="padding:8px 16px; border:1px solid #d1d5db; background:white; color:#374151; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">Go Back</button>
+      <button type="button" onclick="submitDeleteLog()" style="padding:8px 16px; border:none; background:#ef4444; color:white; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes logDialogPopIn {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #edit-log-qty:focus, #edit-log-invoice:focus, #edit-log-date:focus {
+    outline: none;
+    border-color: #1a1a2e;
+    box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1);
+  }
+</style>
 
     <!-- ================= SUBMIT ================= -->
     <div class="span-full btn-grp">
@@ -525,6 +596,12 @@
 
   // Pre-fill form from URL params or Order Data
   window.addEventListener("DOMContentLoaded", async () => {
+    // Restore scroll position after log edit/delete reload
+    const savedScroll = sessionStorage.getItem('logEditScrollY');
+    if (savedScroll !== null) {
+      sessionStorage.removeItem('logEditScrollY');
+      requestAnimationFrame(() => window.scrollTo(0, parseInt(savedScroll)));
+    }
     const params = new URLSearchParams(window.location.search);
     let type = params.get("type");
     let client = params.get("client");
@@ -613,12 +690,6 @@
          estimatedDateInput.readOnly = true;
          remarksInput.readOnly = true;
 
-         // 7. Scroll to Confirmation Details
-         setTimeout(() => {
-            const section = document.getElementById("confirmation-section");
-            if (section) section.scrollIntoView({ behavior: "smooth", block: "center" });
-         }, 300);
-
          // EXIT early - do not run standard load logic
          return;
       }
@@ -654,4 +725,121 @@
 
 
   });
+
+  // ================= LOG EDIT / DELETE HANDLERS =================
+  function openEditDialog(logId, qty, invoice, date) {
+    document.getElementById('edit-log-id').value = logId;
+    document.getElementById('edit-log-qty').value = qty;
+    document.getElementById('edit-log-invoice').value = invoice;
+    document.getElementById('edit-log-date').value = date;
+    document.getElementById('edit-log-dialog').style.display = 'flex';
+  }
+
+  function closeEditDialog() {
+    document.getElementById('edit-log-dialog').style.display = 'none';
+  }
+
+  function confirmDeleteLog(logId) {
+    document.getElementById('delete-log-id').value = logId;
+    document.getElementById('delete-log-dialog').style.display = 'flex';
+  }
+
+  function closeDeleteDialog() {
+    document.getElementById('delete-log-dialog').style.display = 'none';
+  }
+  
+  async function refreshLogsSection() {
+    try {
+      const res = await fetch(window.location.href);
+      const html = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      
+      const currentLogs = document.getElementById('logs-wrapper');
+      const newLogs = doc.getElementById('logs-wrapper');
+      if (currentLogs && newLogs) {
+        currentLogs.innerHTML = newLogs.innerHTML;
+      }
+
+      const currentConfirmQty = document.getElementById('confirm-quantity');
+      const newConfirmQty = doc.getElementById('confirm-quantity');
+      if (currentConfirmQty && newConfirmQty) {
+        currentConfirmQty.value = newConfirmQty.value;
+      }
+
+      // Extract new stockInfo from the HTML script tags 
+      const scripts = doc.getElementsByTagName('script');
+      for (let s of scripts) {
+        if (s.textContent.includes('const stockInfo =')) {
+          const match = s.textContent.match(/const stockInfo = (.*?);/);
+          if (match && match[1] && match[1] !== 'null') {
+            try {
+               const newStockData = JSON.parse(match[1]);
+               const itemOpt = document.querySelector('#item-select option');
+               if (itemOpt) {
+                 itemOpt.dataset.stock = JSON.stringify(newStockData);
+                 updateStockDisplay();
+               }
+            } catch(e) { console.error("Error parsing new stock info", e); }
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to refresh logs smoothly", err);
+      window.location.reload(); // Fallback
+    }
+  }
+
+  async function submitEditLog() {
+    const logId = document.getElementById('edit-log-id').value;
+    const qty = parseInt(document.getElementById('edit-log-qty').value);
+    const invoiceNumber = document.getElementById('edit-log-invoice').value.trim();
+    const date = document.getElementById('edit-log-date').value;
+
+    if (!qty || qty < 1) {
+      showToast('Quantity must be at least 1.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/fairdesk/sales/order/log/${logId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: qty, invoiceNumber, date })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Log updated successfully!');
+        await refreshLogsSection();
+      } else {
+        showToast(data.message || 'Failed to update log.', 'error');
+      }
+    } catch (err) {
+      console.error('Edit log error:', err);
+      showToast('Something went wrong.', 'error');
+    }
+    closeEditDialog();
+  }
+
+  async function submitDeleteLog() {
+    const logId = document.getElementById('delete-log-id').value;
+
+    try {
+      const res = await fetch(`/fairdesk/sales/order/log/${logId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Log deleted successfully!');
+        await refreshLogsSection();
+      } else {
+        showToast(data.message || 'Failed to delete log.', 'error');
+      }
+    } catch (err) {
+      console.error('Delete log error:', err);
+      showToast('Something went wrong.', 'error');
+    }
+    closeDeleteDialog();
+  }
 </script>

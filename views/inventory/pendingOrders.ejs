@@ -91,6 +91,17 @@
     });
 
     dialogNo.addEventListener('click', closeCustomDialog);
+
+    // Enter key support for confirmation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && customDialog.style.display === 'flex') {
+        // Prevent triggering if typing in the textarea
+        if (e.target !== cancelReasonInput) {
+          e.preventDefault();
+          dialogYes.click();
+        }
+      }
+    });
   });
 
   function showCustomConfirm(message, onConfirm, showReason = false) {
@@ -100,6 +111,15 @@
     cancelReasonInput.value = '';
     cancelReasonInput.style.borderColor = '#d1d5db';
     customDialog.style.display = 'flex';
+
+    // Auto-focus appropriate element
+    setTimeout(() => {
+      if (showReason) {
+        cancelReasonInput.focus();
+      } else {
+        dialogYes.focus();
+      }
+    }, 10);
   }
 
   function closeCustomDialog() {

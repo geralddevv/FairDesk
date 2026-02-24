@@ -532,9 +532,8 @@ router.post("/sales/order", async (req, res) => {
 
         req.flash("notification", "Sales order created successfully!");
 
-        // Redirect back to form for rapid entry
-        const redirectUrl = `/fairdesk/sales/order?type=${itemType}&client=${encodeURIComponent(req.body.clientName)}&user=${userId}&item=${itemId}`;
-        res.redirect(redirectUrl);
+        // Redirect to pending orders
+        res.redirect("/fairdesk/sales/pending");
       }
     } else {
       // Placeholder for non-TAPE items (if any logic exists)
@@ -897,6 +896,180 @@ router.post("/sales/order/status", async (req, res) => {
     console.error("STATUS UPDATE ERROR:", err);
     req.flash("notification", "Failed to update status");
     res.redirect("back");
+  }
+});
+
+// ========== EDIT a Dispatch Log (JSON API) ==========
+router.put("/sales/order/log/:logId", async (req, res) => {
+  try {
+    const { logId } = req.params;
+    const { quantity: newQty, invoiceNumber, date } = req.body;
+
+    const log = await SalesOrderLog.findById(logId);
+    if (!log) return res.json({ success: false, message: "Log not found" });
+
+    const order = await TapeSalesOrder.findById(log.orderId).populate("tapeId");
+    if (!order) return res.json({ success: false, message: "Order not found" });
+
+    const oldQty = log.quantity;
+    const qtyDiff = Number(newQty) - oldQty;
+    const tapeObjectId = new mongoose.Types.ObjectId(order.tapeId._id);
+    const location = order.sourceLocation;
+    const tape = order.tapeId;
+
+    if (location && tape && qtyDiff !== 0) {
+      // Get current stock at location
+      const bal = await TapeStock.aggregate([
+        { $match: { tape: tapeObjectId, location } },
+        { $group: { _id: null, qty: { $sum: "$quantity" } } },
+      ]);
+      const currentStock = bal[0]?.qty || 0;
+
+      if (qtyDiff > 0) {
+        // Need to deduct MORE stock
+        if (currentStock < qtyDiff) {
+          return res.json({
+            success: false,
+            message: `Insufficient stock at ${location}. Available: ${currentStock}, Additional needed: ${qtyDiff}`,
+          });
+        }
+
+        await TapeStock.create({
+          tape: tapeObjectId,
+          tapeFinish: tape.tapeFinish,
+          location,
+          quantity: -qtyDiff,
+          remarks: `Log Edit (additional deduction): ${log.orderId}`,
+        });
+
+        await TapeStockLog.create({
+          tape: tapeObjectId,
+          location,
+          openingStock: currentStock,
+          quantity: qtyDiff,
+          closingStock: currentStock - qtyDiff,
+          type: "OUTWARD",
+          source: "SYSTEM",
+          remarks: `Log Edit (additional deduction): ${log.orderId}`,
+          createdBy: req.user?.username || "SYSTEM",
+        });
+      } else {
+        // Reverse some stock (qtyDiff is negative, so -qtyDiff is positive)
+        const reverseQty = -qtyDiff;
+
+        await TapeStock.create({
+          tape: tapeObjectId,
+          tapeFinish: tape.tapeFinish,
+          location,
+          quantity: reverseQty,
+          remarks: `Log Edit (partial reversal): ${log.orderId}`,
+        });
+
+        await TapeStockLog.create({
+          tape: tapeObjectId,
+          location,
+          openingStock: currentStock,
+          quantity: reverseQty,
+          closingStock: currentStock + reverseQty,
+          type: "INWARD",
+          source: "SYSTEM",
+          remarks: `Log Edit (partial reversal): ${log.orderId}`,
+          createdBy: req.user?.username || "SYSTEM",
+        });
+      }
+    }
+
+    // Update dispatched quantity on the order
+    const newDispatched = (order.dispatchedQuantity || 0) + qtyDiff;
+    const newStatus = newDispatched >= order.quantity ? "CONFIRMED" : "PENDING";
+
+    await TapeSalesOrder.findByIdAndUpdate(order._id, {
+      dispatchedQuantity: newDispatched,
+      status: newStatus,
+    });
+
+    // Calculate action time using the provided date + current time
+    const now = new Date();
+    let actionTime = now;
+    if (date) {
+      const [y, m, d] = date.split("-").map(Number);
+      actionTime = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+    }
+
+    // Update the log entry
+    log.quantity = Number(newQty);
+    log.invoiceNumber = invoiceNumber || "";
+    log.performedAt = actionTime;
+    await log.save();
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("EDIT LOG ERROR:", err);
+    return res.json({ success: false, message: "Server error" });
+  }
+});
+
+// ========== DELETE a Dispatch Log (JSON API) ==========
+router.delete("/sales/order/log/:logId", async (req, res) => {
+  try {
+    const { logId } = req.params;
+
+    const log = await SalesOrderLog.findById(logId);
+    if (!log) return res.json({ success: false, message: "Log not found" });
+
+    const order = await TapeSalesOrder.findById(log.orderId).populate("tapeId");
+    if (!order) return res.json({ success: false, message: "Order not found" });
+
+    const tapeObjectId = new mongoose.Types.ObjectId(order.tapeId._id);
+    const location = order.sourceLocation;
+    const tape = order.tapeId;
+    const qty = log.quantity;
+
+    // Reverse stock deduction (add stock back)
+    if (location && tape && qty > 0) {
+      const bal = await TapeStock.aggregate([
+        { $match: { tape: tapeObjectId, location } },
+        { $group: { _id: null, qty: { $sum: "$quantity" } } },
+      ]);
+      const currentStock = bal[0]?.qty || 0;
+
+      await TapeStock.create({
+        tape: tapeObjectId,
+        tapeFinish: tape.tapeFinish,
+        location,
+        quantity: qty,
+        remarks: `Log Deleted (reversed): ${log.orderId}`,
+      });
+
+      await TapeStockLog.create({
+        tape: tapeObjectId,
+        location,
+        openingStock: currentStock,
+        quantity: qty,
+        closingStock: currentStock + qty,
+        type: "INWARD",
+        source: "SYSTEM",
+        remarks: `Log Deleted (reversed): ${log.orderId}`,
+        createdBy: req.user?.username || "SYSTEM",
+      });
+    }
+
+    // Update dispatched quantity on the order
+    const newDispatched = Math.max(0, (order.dispatchedQuantity || 0) - qty);
+    const newStatus = newDispatched >= order.quantity ? "CONFIRMED" : "PENDING";
+
+    await TapeSalesOrder.findByIdAndUpdate(order._id, {
+      dispatchedQuantity: newDispatched,
+      status: newStatus,
+    });
+
+    // Delete the log entry
+    await SalesOrderLog.findByIdAndDelete(logId);
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE LOG ERROR:", err);
+    return res.json({ success: false, message: "Server error" });
   }
 });
 
