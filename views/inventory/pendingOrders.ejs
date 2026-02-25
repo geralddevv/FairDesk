@@ -62,26 +62,26 @@
 
 <script>
   /* Safe JSON injection without double-parsing */
-  const orderData = <%- JSON.stringify(orders) %>;
+  const orderData = JSON.parse('<%- JSON.stringify(orders || []).replace(/\\/g, "\\\\").replace(/\'/g, "\\\'") %>');
 
   /* Dialog references */
   let customDialog, dialogMessage, dialogYes, dialogNo, cancelReasonWrap, cancelReasonInput;
   let currentConfirmCallback = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    customDialog = document.getElementById('custom-confirm-dialog');
-    dialogMessage = document.getElementById('custom-dialog-message');
-    dialogYes = document.getElementById('custom-dialog-yes');
-    dialogNo = document.getElementById('custom-dialog-no');
-    cancelReasonWrap = document.getElementById('cancel-reason-wrap');
-    cancelReasonInput = document.getElementById('cancel-reason-input');
+  document.addEventListener("DOMContentLoaded", () => {
+    customDialog = document.getElementById("custom-confirm-dialog");
+    dialogMessage = document.getElementById("custom-dialog-message");
+    dialogYes = document.getElementById("custom-dialog-yes");
+    dialogNo = document.getElementById("custom-dialog-no");
+    cancelReasonWrap = document.getElementById("cancel-reason-wrap");
+    cancelReasonInput = document.getElementById("cancel-reason-input");
 
-    dialogYes.addEventListener('click', () => {
+    dialogYes.addEventListener("click", () => {
       // Validate reason if cancelling
-      if (cancelReasonWrap.style.display !== 'none') {
+      if (cancelReasonWrap.style.display !== "none") {
         if (!cancelReasonInput.value.trim()) {
-          cancelReasonInput.style.borderColor = '#ef4444';
-          cancelReasonInput.placeholder = 'Please provide a reason...';
+          cancelReasonInput.style.borderColor = "#ef4444";
+          cancelReasonInput.placeholder = "Please provide a reason...";
           cancelReasonInput.focus();
           return;
         }
@@ -90,11 +90,11 @@
       closeCustomDialog();
     });
 
-    dialogNo.addEventListener('click', closeCustomDialog);
+    dialogNo.addEventListener("click", closeCustomDialog);
 
     // Enter key support for confirmation
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && customDialog.style.display === 'flex') {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && customDialog.style.display === "flex") {
         // Prevent triggering if typing in the textarea
         if (e.target !== cancelReasonInput) {
           e.preventDefault();
@@ -107,10 +107,10 @@
   function showCustomConfirm(message, onConfirm, showReason = false) {
     dialogMessage.textContent = message;
     currentConfirmCallback = onConfirm;
-    cancelReasonWrap.style.display = showReason ? 'block' : 'none';
-    cancelReasonInput.value = '';
-    cancelReasonInput.style.borderColor = '#d1d5db';
-    customDialog.style.display = 'flex';
+    cancelReasonWrap.style.display = showReason ? "block" : "none";
+    cancelReasonInput.value = "";
+    cancelReasonInput.style.borderColor = "#d1d5db";
+    customDialog.style.display = "flex";
 
     // Auto-focus appropriate element
     setTimeout(() => {
@@ -123,50 +123,50 @@
   }
 
   function closeCustomDialog() {
-    customDialog.style.display = 'none';
+    customDialog.style.display = "none";
     currentConfirmCallback = null;
-    cancelReasonInput.value = '';
+    cancelReasonInput.value = "";
   }
 
   // Handler for cancel request
-  window.requestCancel = function(orderId) {
-    dialogYes.style.background = '#ef4444';
+  window.requestCancel = function (orderId) {
+    dialogYes.style.background = "#ef4444";
     dialogYes.textContent = "Yes, Cancel Order";
 
     showCustomConfirm(
       "Are you sure you want to CANCEL this order? This cannot be undone.",
       () => {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/fairdesk/sales/order/status';
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "/fairdesk/sales/order/status";
 
-        const idInput = document.createElement('input');
-        idInput.type = 'hidden';
-        idInput.name = 'orderId';
+        const idInput = document.createElement("input");
+        idInput.type = "hidden";
+        idInput.name = "orderId";
         idInput.value = orderId;
         form.appendChild(idInput);
 
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'status';
-        statusInput.value = 'CANCELLED';
+        const statusInput = document.createElement("input");
+        statusInput.type = "hidden";
+        statusInput.name = "status";
+        statusInput.value = "CANCELLED";
         form.appendChild(statusInput);
 
-        const reasonInput = document.createElement('input');
-        reasonInput.type = 'hidden';
-        reasonInput.name = 'cancelReason';
+        const reasonInput = document.createElement("input");
+        reasonInput.type = "hidden";
+        reasonInput.name = "cancelReason";
         reasonInput.value = cancelReasonInput.value.trim();
         form.appendChild(reasonInput);
 
         document.body.appendChild(form);
         form.submit();
       },
-      true
+      true,
     );
   };
   // Handler for create order request
-  window.checkCreateOrder = function(url) {
-    dialogYes.style.background = '#10b981'; // Green for create
+  window.checkCreateOrder = function (url) {
+    dialogYes.style.background = "#10b981"; // Green for create
     dialogYes.textContent = "Yes, Proceed Order";
 
     showCustomConfirm(
@@ -174,7 +174,7 @@
       () => {
         window.location.href = url;
       },
-      false // No reason needed
+      false, // No reason needed
     );
   };
 

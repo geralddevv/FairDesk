@@ -130,7 +130,8 @@
                 <span style="color: #64748b;">(Remaining: <%= runningRemaining %>)</span>
                 </span>
                 <span style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                    <button type="button" onclick="openEditDialog('<%= log._id %>', <%= log.quantity %>, '<%= log.invoiceNumber || '' %>', '<%= new Date(log.performedAt).toISOString().split('T')[0] %>')"
+                    <button type="button" data-log-id="<%= log._id %>" data-log-qty="<%= log.quantity %>" data-log-invoice="<%= log.invoiceNumber || '' %>" data-log-date="<%= new Date(log.performedAt).toISOString().split('T')[0] %>"
+                        onclick="openEditDialog(this.getAttribute('data-log-id'), parseInt(this.getAttribute('data-log-qty')), this.getAttribute('data-log-invoice'), this.getAttribute('data-log-date'))"
                         style="background: none; border: none; color: #3b82f6; cursor: pointer; padding: 2px 4px; font-size: 13px; border-radius: 4px; transition: background 0.2s;"
                         onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='none'"
                         title="Edit Log">
@@ -290,10 +291,17 @@
 </style>
 
 <script>
-  // Inject data safely
-  const orderToEdit = <%- typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>;
-  const stockInfo = <%- typeof stockInfo !== 'undefined' && stockInfo ? JSON.stringify(stockInfo) : 'null' %>;
-  const confirmMode = <%= typeof confirmMode !== 'undefined' && confirmMode ? 'true' : 'false' %>;
+  // Inject data safely using DOM elements for valid IDE linting
+  const orderDataEl = document.createElement('span');
+  orderDataEl.innerHTML = `<%= typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>`;
+  const orderToEdit = JSON.parse(orderDataEl.textContent || 'null');
+
+  const stockDataEl = document.createElement('span');
+  stockDataEl.innerHTML = `<%= typeof stockInfo !== 'undefined' && stockInfo ? JSON.stringify(stockInfo) : 'null' %>`;
+  const stockInfo = JSON.parse(stockDataEl.textContent || 'null');
+
+  const confirmModeStr = `<%= typeof confirmMode !== 'undefined' && confirmMode ? 'true' : 'false' %>`;
+  const confirmMode = confirmModeStr === 'true';
 
   const clientSelect = document.getElementById("client-name");
   const userSelect = document.getElementById("user-name");

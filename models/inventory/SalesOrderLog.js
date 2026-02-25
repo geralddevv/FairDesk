@@ -44,4 +44,8 @@ const salesOrderLogSchema = new mongoose.Schema(
   },
 );
 
+// Fast retrieval for recent actions per order
+salesOrderLogSchema.index({ orderId: 1, performedAt: -1 });
+salesOrderLogSchema.index({ action: 1, performedAt: -1 });
+
 export default mongoose.models.SalesOrderLog || mongoose.model("SalesOrderLog", salesOrderLogSchema);

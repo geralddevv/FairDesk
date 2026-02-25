@@ -345,20 +345,20 @@ router.post("/tape/edit/:id", async (req, res) => {
 // ----------------------------------Sales Order---------------------------------->
 // Centralized Sales Order Form
 router.get("/sales/order", async (req, res) => {
-  const clients = await Client.distinct("clientName");
-  let orderToEdit = null;
-  let logs = [];
+  const { orderId } = req.query;
+  const clientsPromise = Client.distinct("clientName");
 
-  if (req.query.orderId) {
-    try {
-      orderToEdit = await TapeSalesOrder.findById(req.query.orderId).lean();
-      logs = await SalesOrderLog.find({ orderId: req.query.orderId, action: "DELIVERED" })
-        .sort({ performedAt: -1 })
-        .lean();
-    } catch (err) {
-      console.error("Error fetching order to edit:", err);
-    }
-  }
+  const orderPromise = orderId
+    ? TapeSalesOrder.findById(orderId)
+        .lean()
+        .select("tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate status remarks sourceLocation")
+    : Promise.resolve(null);
+
+  const logsPromise = orderId
+    ? SalesOrderLog.find({ orderId, action: "DELIVERED" }).sort({ performedAt: -1 }).lean()
+    : Promise.resolve([]);
+
+  const [clients, orderToEdit, logs] = await Promise.all([clientsPromise, orderPromise, logsPromise]);
 
   res.render("inventory/salesOrderForm.ejs", {
     clients,
@@ -378,51 +378,56 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
     let items = [];
 
     if (type === "TAPE") {
-      const user = await Username.findById(userId).populate({
-        path: "tape",
-        populate: { path: "tapeId" },
-      });
+      const user = await Username.findById(userId)
+        .populate({
+          path: "tape",
+          populate: { path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish" },
+          select: "tapeMinQty tapeId",
+        })
+        .lean();
 
       // Get all tape IDs for this user
       const tapeBindings = user?.tape || [];
 
       // Fetch stock for all these tapes in one go
       const tapeIds = tapeBindings.map((b) => b.tapeId?._id).filter(Boolean);
+      if (!tapeIds.length) {
+        return res.json([]);
+      }
 
-      // 1. Get Physical Stock
-      const stockAggregation = await TapeStock.aggregate([
-        { $match: { tape: { $in: tapeIds } } },
-        {
-          $group: {
-            _id: { tape: "$tape", location: "$location" },
-            totalQty: { $sum: "$quantity" },
+      const [stockAggregation, bookedAggregation] = await Promise.all([
+        TapeStock.aggregate([
+          { $match: { tape: { $in: tapeIds } } },
+          {
+            $group: {
+              _id: { tape: "$tape", location: "$location" },
+              totalQty: { $sum: "$quantity" },
+            },
           },
-        },
-        {
-          $group: {
-            _id: "$_id.tape",
-            locations: {
-              $push: {
-                location: "$_id.location",
-                qty: "$totalQty",
+          {
+            $group: {
+              _id: "$_id.tape",
+              locations: {
+                $push: {
+                  location: "$_id.location",
+                  qty: "$totalQty",
+                },
+              },
+              totalStock: { $sum: "$totalQty" },
+            },
+          },
+        ]),
+        TapeSalesOrder.aggregate([
+          { $match: { tapeId: { $in: tapeIds }, status: "PENDING" } },
+          {
+            $group: {
+              _id: { tapeId: "$tapeId", location: "$sourceLocation" },
+              bookedQty: {
+                $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
               },
             },
-            totalStock: { $sum: "$totalQty" },
           },
-        },
-      ]);
-
-      // 2. Get Booked Stock (Pending Orders) — overall AND per-location
-      const bookedAggregation = await TapeSalesOrder.aggregate([
-        { $match: { tapeId: { $in: tapeIds }, status: "PENDING" } },
-        {
-          $group: {
-            _id: { tapeId: "$tapeId", location: "$sourceLocation" },
-            bookedQty: {
-              $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
-            },
-          },
-        },
+        ]),
       ]);
 
       // Map stock back to bindings
@@ -552,9 +557,10 @@ router.get("/sales/pending", async (req, res) => {
   try {
     // For now we only have TapeSalesOrder
     const pendingOrders = await TapeSalesOrder.find({ status: "PENDING" })
-      .populate("userId")
-      .populate("tapeId")
-      .populate("tapeBinding")
+      .select("tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate createdAt sourceLocation remarks status")
+      .populate({ path: "userId", select: "clientName userName" })
+      .populate({ path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish" })
+      .populate({ path: "tapeBinding", select: "tapeRatePerRoll tapeOdrQty tapeMinQty" })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -581,9 +587,9 @@ router.get("/sales/order/confirm", async (req, res) => {
     }
 
     const order = await TapeSalesOrder.findById(orderId)
-      .populate("userId")
-      .populate("tapeId")
-      .populate("tapeBinding")
+      .populate({ path: "userId", select: "clientName userName" })
+      .populate({ path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish" })
+      .populate({ path: "tapeBinding", select: "tapeMinQty tapeOdrQty tapeRatePerRoll" })
       .lean();
 
     if (!order) {
@@ -598,28 +604,27 @@ router.get("/sales/order/confirm", async (req, res) => {
     if (order.tapeId) {
       const tapeObjectId = order.tapeId._id;
 
-      // 1. Get Physical Stock
-      const stockAgg = await TapeStock.aggregate([
-        { $match: { tape: tapeObjectId } },
-        {
-          $group: {
-            _id: "$location",
-            qty: { $sum: "$quantity" },
-          },
-        },
-      ]);
-
-      // 2. Get Booked Stock (Pending Orders) — overall AND per-location
-      const bookedAgg = await TapeSalesOrder.aggregate([
-        { $match: { tapeId: tapeObjectId, status: "PENDING" } },
-        {
-          $group: {
-            _id: "$sourceLocation",
-            bookedQty: {
-              $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+      const [stockAgg, bookedAgg] = await Promise.all([
+        TapeStock.aggregate([
+          { $match: { tape: tapeObjectId } },
+          {
+            $group: {
+              _id: "$location",
+              qty: { $sum: "$quantity" },
             },
           },
-        },
+        ]),
+        TapeSalesOrder.aggregate([
+          { $match: { tapeId: tapeObjectId, status: "PENDING" } },
+          {
+            $group: {
+              _id: "$sourceLocation",
+              bookedQty: {
+                $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+              },
+            },
+          },
+        ]),
       ]);
 
       // Map/Combine
@@ -683,7 +688,8 @@ router.get("/sales/order/logs", async (req, res) => {
           { path: "tapeId", select: "tapePaperCode tapeGsm" },
         ],
       })
-      .sort({ performedAt: -1 });
+      .sort({ performedAt: -1 })
+      .lean();
 
     res.render("inventory/orderLogs.ejs", {
       logs,
@@ -703,7 +709,9 @@ router.get("/sales/order/logs", async (req, res) => {
 router.post("/sales/order/status", async (req, res) => {
   try {
     const { orderId, status, cancelReason, invoiceNumber, confirmDate, confirmQuantity } = req.body;
-    const order = await TapeSalesOrder.findById(orderId).populate("tapeId");
+    const order = await TapeSalesOrder.findById(orderId)
+      .populate({ path: "tapeId", select: "tapeFinish tapePaperCode tapeGsm" })
+      .lean();
 
     if (!order) {
       req.flash("notification", "Order not found");
@@ -905,10 +913,12 @@ router.put("/sales/order/log/:logId", async (req, res) => {
     const { logId } = req.params;
     const { quantity: newQty, invoiceNumber, date } = req.body;
 
-    const log = await SalesOrderLog.findById(logId);
+    const log = await SalesOrderLog.findById(logId).lean();
     if (!log) return res.json({ success: false, message: "Log not found" });
 
-    const order = await TapeSalesOrder.findById(log.orderId).populate("tapeId");
+    const order = await TapeSalesOrder.findById(log.orderId)
+      .populate({ path: "tapeId", select: "tapeFinish" })
+      .lean();
     if (!order) return res.json({ success: false, message: "Order not found" });
 
     const oldQty = log.quantity;
@@ -997,10 +1007,11 @@ router.put("/sales/order/log/:logId", async (req, res) => {
     }
 
     // Update the log entry
-    log.quantity = Number(newQty);
-    log.invoiceNumber = invoiceNumber || "";
-    log.performedAt = actionTime;
-    await log.save();
+    await SalesOrderLog.findByIdAndUpdate(logId, {
+      quantity: Number(newQty),
+      invoiceNumber: invoiceNumber || "",
+      performedAt: actionTime,
+    });
 
     return res.json({ success: true });
   } catch (err) {
@@ -1014,10 +1025,12 @@ router.delete("/sales/order/log/:logId", async (req, res) => {
   try {
     const { logId } = req.params;
 
-    const log = await SalesOrderLog.findById(logId);
+    const log = await SalesOrderLog.findById(logId).lean();
     if (!log) return res.json({ success: false, message: "Log not found" });
 
-    const order = await TapeSalesOrder.findById(log.orderId).populate("tapeId");
+    const order = await TapeSalesOrder.findById(log.orderId)
+      .populate({ path: "tapeId", select: "tapeFinish" })
+      .lean();
     if (!order) return res.json({ success: false, message: "Order not found" });
 
     const tapeObjectId = new mongoose.Types.ObjectId(order.tapeId._id);
@@ -1070,34 +1083,6 @@ router.delete("/sales/order/log/:logId", async (req, res) => {
   } catch (err) {
     console.error("DELETE LOG ERROR:", err);
     return res.json({ success: false, message: "Server error" });
-  }
-});
-
-// View Order Action Logs
-router.get("/sales/order/logs", async (req, res) => {
-  try {
-    const logs = await SalesOrderLog.find()
-      .populate({
-        path: "orderId",
-        populate: [
-          { path: "userId", model: "Username" },
-          { path: "tapeId", model: "Tape" },
-        ],
-      })
-      .sort({ performedAt: -1 })
-      .lean();
-
-    res.render("inventory/orderLogs.ejs", {
-      logs,
-      title: "Order Logs",
-      CSS: "tableDisp.css",
-      JS: false,
-      notification: req.flash("notification"),
-    });
-  } catch (err) {
-    console.error("ORDER LOGS ERROR:", err);
-    req.flash("notification", "Failed to load order logs");
-    res.redirect("back");
   }
 });
 

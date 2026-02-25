@@ -1,5 +1,4 @@
 import express from "express";
-import mongoose from "mongoose";
 import Tape from "../../models/inventory/tape.js";
 import TapeBinding from "../../models/inventory/tapeBinding.js";
 import TapeStock from "../../models/inventory/TapeStock.js";
@@ -11,16 +10,16 @@ const router = express.Router();
 /* GET : Load Tape Binding Form */
 router.get("/form/tape-binding", async (req, res) => {
   try {
-    const clients = await Client.distinct("clientName");
-
-    // Specs from Tape Master (single source of truth)
-    const paperCodes = await Tape.distinct("tapePaperCode");
-    const paperTypes = await Tape.distinct("tapePaperType");
-    const gsms = await Tape.distinct("tapeGsm");
-    const widths = await Tape.distinct("tapeWidth");
-    const mtrsList = await Tape.distinct("tapeMtrs");
-    const coreIds = await Tape.distinct("tapeCoreId");
-    const finishes = await Tape.distinct("tapeFinish");
+    const [clients, paperCodes, paperTypes, gsms, widths, mtrsList, coreIds, finishes] = await Promise.all([
+      Client.distinct("clientName"),
+      Tape.distinct("tapePaperCode"),
+      Tape.distinct("tapePaperType"),
+      Tape.distinct("tapeGsm"),
+      Tape.distinct("tapeWidth"),
+      Tape.distinct("tapeMtrs"),
+      Tape.distinct("tapeCoreId"),
+      Tape.distinct("tapeFinish"),
+    ]);
 
     // console.log(paperCodes, paperTypes, gsms, widths, mtrsList);
 
@@ -58,19 +57,19 @@ router.post("/form/tape-binding", async (req, res) => {
     }
 
     // Check for duplicate binding (same user, same tape, same client paper code, AND ALL OTHER SPECS)
-    const existingBinding = await TapeBinding.findOne({
+    const existingBinding = await TapeBinding.exists({
       userId,
       tapeId,
       tapeClientPaperCode: req.body.tapeClientPaperCode,
-      clientTapeGsm: req.body.clientTapeGsm,
-      tapeRatePerRoll: req.body.tapeRatePerRoll,
-      tapeSaleCost: req.body.tapeSaleCost,
-      tapeMinQty: req.body.tapeMinQty,
-      tapeOdrQty: req.body.tapeOdrQty,
+      clientTapeGsm: Number(req.body.clientTapeGsm),
+      tapeRatePerRoll: Number(req.body.tapeRatePerRoll),
+      tapeSaleCost: Number(req.body.tapeSaleCost),
+      tapeMinQty: Number(req.body.tapeMinQty),
+      tapeOdrQty: Number(req.body.tapeOdrQty),
       tapeOdrFreq: req.body.tapeOdrFreq,
       tapeCreditTerm: req.body.tapeCreditTerm,
       // tapeMtrsDel is typically 0 on create, but if they pass it, we should check it to be "exact" match as requested
-      tapeMtrsDel: req.body.tapeMtrsDel || 0,
+      tapeMtrsDel: Number(req.body.tapeMtrsDel || 0),
     });
     if (existingBinding) {
       req.flash("notification", "This exacta tape binding configuration already exists for this user.");
@@ -80,7 +79,14 @@ router.post("/form/tape-binding", async (req, res) => {
     // Create tape binding with user reference
     const tapeBinding = await TapeBinding.create({
       ...req.body,
+      clientTapeGsm: Number(req.body.clientTapeGsm),
+      tapeRatePerRoll: Number(req.body.tapeRatePerRoll),
+      tapeSaleCost: Number(req.body.tapeSaleCost),
+      tapeMinQty: Number(req.body.tapeMinQty),
+      tapeOdrQty: Number(req.body.tapeOdrQty),
+      tapeMtrsDel: Number(req.body.tapeMtrsDel || 0),
       userId, // persisted safely
+      tapeId,
     });
 
     // Attach tapeBinding to user (like label/ttr)
@@ -161,7 +167,7 @@ router.get("/form/tape-binding/resolve-tape", async (req, res) => {
       tapeMtrs: Number(tapeMtrs),
       tapeCoreId: Number(tapeCoreId),
       tapeFinish: tapeFinish,
-    });
+    }).lean();
 
     if (!tape) {
       return res.status(404).json(null);
@@ -190,19 +196,30 @@ router.get("/tape/view/:id", async (req, res) => {
       })
       .lean();
 
-    // Fetch stock for each tape binding
-    const tapeData = user?.tape || [];
-    for (const binding of tapeData) {
-      if (binding.tapeId?._id) {
-        const stockAgg = await TapeStock.aggregate([
-          { $match: { tape: new mongoose.Types.ObjectId(binding.tapeId._id) } },
-          { $group: { _id: null, total: { $sum: "$quantity" } } },
-        ]);
-        binding.stock = stockAgg[0]?.total || 0;
-      } else {
-        binding.stock = 0;
-      }
+    if (!user) {
+      req.flash("notification", "User not found");
+      return res.redirect("back");
     }
+
+    // Fetch stock for all bound tapes in one aggregation to avoid N+1 queries
+    const tapeData = user.tape || [];
+    const tapeIds = tapeData.map((binding) => binding.tapeId?._id).filter(Boolean);
+
+    const stockMap = {};
+    if (tapeIds.length) {
+      const stockAgg = await TapeStock.aggregate([
+        { $match: { tape: { $in: tapeIds } } },
+        { $group: { _id: "$tape", total: { $sum: "$quantity" } } },
+      ]);
+      stockAgg.forEach((row) => {
+        stockMap[row._id.toString()] = row.total;
+      });
+    }
+
+    tapeData.forEach((binding) => {
+      const tid = binding.tapeId?._id?.toString();
+      binding.stock = stockMap[tid] || 0;
+    });
 
     res.render("inventory/tapeDisp.ejs", {
       jsonData: tapeData,

@@ -99,6 +99,15 @@
     <div class="contain">
       <!-- Navigation bar -->
       <div class="side-nav nav-panel-toggle">
+        <script>
+          // Instant sidebar restore — runs synchronously before paint
+          (function() {
+            if (localStorage.getItem('fd_navExpanded') === 'collapsed') {
+              var el = document.querySelector('.side-nav');
+              if (el) el.classList.remove('nav-panel-toggle');
+            }
+          })();
+        </script>
         <div title="Expand" class="nav-items nav-toggle">
           <i class="fa-solid fa-bars" style="color: #ffffff"></i>
           <p class="nav-items-para">Navigation</p>
@@ -113,7 +122,7 @@
           <div class="nav-labels-opt">
             <div title="Client View" class="<%= title === 'Client View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/client/view'" style="border-top: 2px solid #ffffff9d;" >
               <i class="fa-solid fa-eye" style="color: #ffffff"></i>
-              <p class="nav-items-para">Client</p>
+              <p class="nav-items-para">Client List</p>
             </div>            
             <div title="Client Details" class="<%= title === 'Client Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/master/view'" >
               <i class="fa-solid fa-eye" style="color: #ffffff"></i>
@@ -121,33 +130,29 @@
             </div>
             <div title="Tape View" class="<%= title === 'Tape View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tape/view'" style="border-bottom: 2px solid #ffffff9d;" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
-              <p class="nav-items-para">Tape View</p>
+              <p class="nav-items-para">Tape</p>
             </div>                        
           </div>
         </div>
 
         <div class="nav-opt-wrap">
-          <div title="Client Masters" class="view-toggle nav-items">
+          <div title="Item Binding" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Client Masters</p>
+            <p class="nav-items-para">Item Binding</p>
           </div>
 
           <div class="nav-labels-opt">
-            <div title="Client Data" class="<%= title === 'Client Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/client'" style="border-top: 2px solid #ffffff9d;" >
-              <i class="fa-solid fa-user" style="color: #ffffff"></i>
-              <p class="nav-items-para">Client Data</p>
-            </div>
-            <div title="Client Tape" class="<%= title === 'Client Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-binding'" style="border-bottom: 2px solid #ffffff9d;" >
+            <div title="Client Tape" class="<%= title === 'Client Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-binding'" style="border-top: 2px solid #ffffff9d; border-bottom: 2px solid #ffffff9d;" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
-              <p class="nav-items-para">Client Tape</p>
-            </div>          
+              <p class="nav-items-para">Tape</p>
+            </div>                      
           </div>
         </div>         
 
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Item Masters</p>
+            <p class="nav-items-para">Masters</p>
           </div>
 
           <div class="nav-labels-opt">
@@ -159,10 +164,16 @@
               <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
               <p class="nav-items-para">TTR</p>
             </div> -->
-            <div title="Tape Master" class="<%= title === 'Tape Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-master'" style="border-top: 2px solid #ffffff9d; border-bottom: 2px solid #ffffff9d" >
+           
+            <div title="Tape Master" class="<%= title === 'Tape Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-master'" style="border-top: 2px solid #ffffff9d" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
             </div>
+            <div title="Client Data" class="<%= title === 'Client Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/client'" style="border-bottom: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-user" style="color: #ffffff"></i>
+              <p class="nav-items-para">Client Data</p>
+            </div>
+
             <!-- <div title="Block" class="<%= title === 'Block' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/block'" >
               <i class="fa-solid fa-cube" style="color: #ffffff"></i>
               <p class="nav-items-para">Block</p>
@@ -313,7 +324,7 @@
           <div class="nav-labels-opt">
             <div title="Tape Stock" class="<%= title === 'Tape Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tapestock'" style="border-top: 2px solid #ffffff9d; border-bottom: 2px solid #ffffff9d" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
-              <p class="nav-items-para">Tape Stock</p>
+              <p class="nav-items-para">Tape</p>
             </div>
           </div>
         </div>

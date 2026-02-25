@@ -35,5 +35,8 @@ const tapeStockSchema = new mongoose.Schema(
   },
 );
 
+// Fast lookup for balance aggregations per tape & location/finish
+tapeStockSchema.index({ tape: 1, location: 1, tapeFinish: 1 });
+
 /* ================= EXPORT ================= */
 export default mongoose.models.TapeStock || mongoose.model("TapeStock", tapeStockSchema);

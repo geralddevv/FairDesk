@@ -17,39 +17,46 @@ const tapeSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      index: true,
     },
 
     tapeGsm: {
       type: Number,
       required: true,
+      index: true,
     },
 
     tapePaperType: {
       type: String,
       required: true,
       trim: true,
+      index: true,
     },
 
     tapeWidth: {
       type: Number,
       required: true,
+      index: true,
     },
 
     tapeMtrs: {
       type: Number,
       required: true,
+      index: true,
     },
 
     tapeCoreId: {
       type: Number,
       enum: [0.5, 1, 3],
       required: true,
+      index: true,
     },
 
     tapeFinish: {
       type: String,
       enum: ["MATTE", "GLOSSY", "CLEAR"],
       required: true,
+      index: true,
     },
 
     tapeAdhesiveGsm: {

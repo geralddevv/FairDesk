@@ -7,12 +7,14 @@ const tapeBindingSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tape",
       required: true,
+      index: true,
     },
 
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Username",
       required: true,
+      index: true,
     },
 
     /* ================= CLIENT OVERRIDES ================= */
@@ -77,6 +79,24 @@ const tapeBindingSchema = new mongoose.Schema(
   {
     timestamps: true,
   },
+);
+
+// Prevent duplicate bindings and speed up lookups for the tape-binding form/view
+tapeBindingSchema.index(
+  {
+    userId: 1,
+    tapeId: 1,
+    tapeClientPaperCode: 1,
+    clientTapeGsm: 1,
+    tapeRatePerRoll: 1,
+    tapeSaleCost: 1,
+    tapeMinQty: 1,
+    tapeOdrQty: 1,
+    tapeOdrFreq: 1,
+    tapeCreditTerm: 1,
+    tapeMtrsDel: 1,
+  },
+  { unique: true },
 );
 
 export default mongoose.models.TapeBinding || mongoose.model("TapeBinding", tapeBindingSchema);

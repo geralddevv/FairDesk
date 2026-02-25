@@ -21,6 +21,7 @@ const tapeSalesOrderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Tape",
       required: true,
+      index: true,
     },
 
     sourceLocation: {
@@ -66,5 +67,11 @@ const tapeSalesOrderSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// Speeds up availability lookups and pending-booked aggregation
+tapeSalesOrderSchema.index({ tapeId: 1, status: 1, sourceLocation: 1 });
+// Speeds up pending list & user-based lookups
+tapeSalesOrderSchema.index({ status: 1, createdAt: -1 });
+tapeSalesOrderSchema.index({ userId: 1, status: 1 });
 
 export default mongoose.models.TapeSalesOrder || mongoose.model("TapeSalesOrder", tapeSalesOrderSchema);
