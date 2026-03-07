@@ -57,7 +57,7 @@
         href="/fairdesk/sales/order/logs"
         style="
           padding: 6px 14px;
-          background: #044A78;
+          background: #044a78;
           color: white;
           border-radius: 6px;
           text-decoration: none;
@@ -105,9 +105,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+<script id="order-data" type="application/json">
+  <%- JSON.stringify(orders || []) %>
+</script>
 <script>
-  /* Safe JSON injection without double-parsing */
-  const orderData = JSON.parse('<%- JSON.stringify(orders || []).replace(/\\/g, "\\\\").replace(/\'/g, "\\\'") %>');
+  /* Safe JSON injection */
+  const orderData = JSON.parse(document.getElementById("order-data").textContent);
 
   /* Dialog references */
   let customDialog, dialogMessage, dialogYes, dialogNo, cancelReasonWrap, cancelReasonInput;
@@ -502,7 +505,7 @@
   }
   #cancel-reason-input:focus {
     outline: none;
-    border-color: #044A78;
+    border-color: #044a78;
     box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1);
   }
 </style>

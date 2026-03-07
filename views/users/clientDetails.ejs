@@ -714,26 +714,8 @@
     <script src="/js/BTStrap.js" defer></script>
     <script src="/js/choices.min.js"></script>
     
-    <script>
-  // ===== TOAST HANDLING ONLY (NO ACTION BUTTON LOGIC) =====
-
-  const toast = document.getElementById("toast");
-
-  function hideToast() {
-    if (toast) {
-      toast.style.animation = "slideOut 0.5s forwards";
-      setTimeout(() => {
-        toast.style.display = "none";
-      }, 500);
-    }
-  }
-
-  // Auto hide toast after 5 seconds
-  if (toast) {
-    setTimeout(hideToast, 5000);
-  }
-</script>
-
+    </script>
+    
 <!-- ================= FLOATING ACTION BUTTONS ================= -->
 <style>
   .fab-capsule {
@@ -784,5 +766,9 @@
   <div class="fab-divider"></div>
   <div title="Add User" class="fab-item" onclick="window.location.href='/fairdesk/form/client?tab=user'" style="cursor: pointer;">
     <i class="fa-solid fa-user-plus"></i>
+  </div>
+  <div class="fab-divider"></div>
+  <div title="Edit User" class="fab-item" onclick="window.location.href='/fairdesk/form/edit/user/<%= userData._id %>'" style="cursor: pointer;">
+    <i class="fa-solid fa-pen"></i>
   </div>
 </div>

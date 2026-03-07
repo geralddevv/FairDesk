@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Tafeta from "../../models/inventory/tafeta.js";
 import TafetaStock from "../../models/inventory/TafetaStock.js";
 import TafetaStockLog from "../../models/inventory/TafetaStockLog.js";
+import Location from "../../models/system/location.js";
 
 const router = express.Router();
 
@@ -22,6 +23,8 @@ router.get("/", async (req, res) => {
         Tafeta.distinct("tafetaCoreId"),
       ]);
 
+    const locations = await Location.distinct("locationName");
+
     res.render("stock/tafetaStock", {
       title: "Tafeta Stock",
       CSS: false,
@@ -36,6 +39,7 @@ router.get("/", async (req, res) => {
       coreLens,
       notches,
       coreIds,
+      locations,
     });
   } catch (err) {
     console.error(err);
@@ -180,7 +184,7 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "Tafeta stock added successfully");
-    res.json({ success: true, redirect: "/fairdesk/tafetastock" });
+    res.redirect("/fairdesk/tafetastock");
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: "Failed to add Tafeta stock" });

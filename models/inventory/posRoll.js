@@ -39,7 +39,7 @@ const posRollSchema = new mongoose.Schema(
     },
 
     posWidth: {
-      type: Number,
+      type: String,
       required: true,
       index: true,
     },

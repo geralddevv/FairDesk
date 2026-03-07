@@ -3,191 +3,198 @@
 
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
-<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet">
+<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet" />
 
 <body>
-<div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
-  <div class="indi-head">
-    <h1>Tape Master</h1>
-    <div class="download-btns">
-      <div class="download-selector" id="downloadSelector">
-        <button class="download-selector__trigger">
-          <span>
-            <i class="fa-solid fa-file-arrow-down"></i>
-            <span class="download-typo">Download</span>
-          </span>
-          <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
-        </button>
-        <div class="download-selector__menu" id="downloads">
-          <span class="download-selector__option" id="download-pdf">
-            <i class="fas fa-file-pdf download-selector__option-icon"></i>
-            <span>PDF</span>
-          </span>
-          <span class="download-selector__option" id="download-xlsx">
-            <i class="fas fa-file-excel download-selector__option-icon"></i>
-            <span>Excel</span>
-          </span>
+  <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+    <div class="indi-head">
+      <h1>Tape Master</h1>
+      <div class="download-btns">
+        <div class="download-selector" id="downloadSelector">
+          <button class="download-selector__trigger">
+            <span>
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span class="download-typo">Download</span>
+            </span>
+            <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
+          </button>
+          <div class="download-selector__menu" id="downloads">
+            <span class="download-selector__option" id="download-pdf">
+              <i class="fas fa-file-pdf download-selector__option-icon"></i>
+              <span>PDF</span>
+            </span>
+            <span class="download-selector__option" id="download-xlsx">
+              <i class="fas fa-file-excel download-selector__option-icon"></i>
+              <span>Excel</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>
+
+    <div id="master-table" class="tabulator tabulator-modern"></div>
   </div>
 
-  <div id="master-table" class="tabulator tabulator-modern"></div>
-</div>
+  <!-- Tabulator JS -->
+  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-<!-- Tabulator JS -->
-<script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script id="table-data" type="application/json">
+    <%- JSON.stringify(jsonData) %>
+  </script>
+  <script>
+    // Parse data from Express
+    const tableData = JSON.parse(document.getElementById("table-data").textContent);
 
-<script>
-  // Parse data from Express
-  const tableData = JSON.parse('<%- JSON.stringify(jsonData) %>');
-
-  // Initialize Tabulator
-  const table = new Tabulator("#master-table", {
-    data: tableData,
-    layout: "fitColumns",
-    responsiveLayout: false,
-    pagination: "local",
-    paginationSize: 30,
-    movableColumns: true,
-    placeholder: "No data to display",
-    columns: [
-      {
-        title: "Product ID",
-        field: "tapeProductId",
-        minWidth: 180,
-        formatter: (cell) => {
-          const row = cell.getRow().getData();
-          return `
-            <span style="cursor:pointer;font-weight:600;text-decoration:underline">
-              ${cell.getValue()}
-            </span>
-          `;
+    // Initialize Tabulator
+    const table = new Tabulator("#master-table", {
+      data: tableData,
+      layout: "fitColumns",
+      responsiveLayout: false,
+      pagination: "local",
+      paginationSize: 30,
+      movableColumns: true,
+      placeholder: "No data to display",
+      columns: [
+        {
+          title: "Product ID",
+          field: "tapeProductId",
+          minWidth: 180,
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            return `
+              <span style="cursor:pointer;font-weight:600;text-decoration:underline">
+                ${cell.getValue()}
+              </span>
+            `;
+          },
+          cellClick: (e, cell) => {
+            const row = cell.getRow().getData();
+            window.location.href = `/fairdesk/tape/profile/${row._id}`;
+          },
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
         },
-        cellClick: (e, cell) => {
-          const row = cell.getRow().getData();
-          window.location.href = `/fairdesk/tape/profile/${row._id}`;
+        {
+          title: "Paper Code",
+          field: "tapePaperCode",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
         },
-        headerFilter: "input",
-        headerFilterPlaceholder: "Search",
-      },
-      {
-        title: "Paper Code",
-        field: "tapePaperCode",
-        headerFilter: "input",
-        headerFilterPlaceholder: "Search",
-      },
-      {
-        title: "GSM",
-        field: "tapeGsm",
-        headerFilter: "input",
-        headerFilterPlaceholder: "Search",
-      },
-      {
-        title: "Paper Type",
-        field: "tapePaperType",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", "THERMAL": "THERMAL", "CHROMO": "CHROMO", "POLYESTER": "POLYESTER" },
-          clearable: true,
+        {
+          title: "GSM",
+          field: "tapeGsm",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
         },
-      },
-      { title: "Width", field: "tapeWidth" },
-      { title: "Meters", field: "tapeMtrs" },
-      {
-        title: "Core ID",
-        field: "tapeCoreId",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", "0.5": "0.5", "1": "1", "3": "3" },
-          clearable: true,
+        {
+          title: "Paper Type",
+          field: "tapePaperType",
+          headerFilter: "select",
+          headerFilterParams: {
+            values: { "": "All", THERMAL: "THERMAL", CHROMO: "CHROMO", POLYESTER: "POLYESTER" },
+            clearable: true,
+          },
         },
-      },
-      {
-        title: "Finish",
-        field: "tapeFinish",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", "MATTE": "MATTE", "GLOSSY": "GLOSSY", "CLEAR": "CLEAR" },
-          clearable: true,
+        { title: "Width", field: "tapeWidth" },
+        { title: "Meters", field: "tapeMtrs" },
+        {
+          title: "Core ID",
+          field: "tapeCoreId",
+          headerFilter: "select",
+          headerFilterParams: {
+            values: { "": "All", 0.5: "0.5", 1: "1", 3: "3" },
+            clearable: true,
+          },
         },
-      },
-      { title: "Adhesive GSM", field: "tapeAdhesiveGsm" },
-    ],
-  });
-
-  // Dropdown toggle
-  const selector = document.getElementById("downloadSelector");
-  const trigger = selector.querySelector(".download-selector__trigger");
-
-  trigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    selector.classList.toggle("download-selector--active");
-  });
-
-  document.addEventListener("click", () => {
-    selector.classList.remove("download-selector--active");
-  });
-
-  // PDF download
-  document.getElementById("download-pdf").addEventListener("click", () => {
-    table.download("pdf", "tape-master.pdf", {
-      orientation: "landscape",
-      title: "Tape Master Data",
+        {
+          title: "Finish",
+          field: "tapeFinish",
+          headerFilter: "select",
+          headerFilterParams: {
+            values: { "": "All", MATTE: "MATTE", GLOSSY: "GLOSSY", CLEAR: "CLEAR" },
+            clearable: true,
+          },
+        },
+        { title: "Adhesive GSM", field: "tapeAdhesiveGsm" },
+      ],
     });
-    selector.classList.remove("download-selector--active");
-  });
 
-  // Excel download
-  document.getElementById("download-xlsx").addEventListener("click", () => {
-    table.download("xlsx", "tape-master.xlsx", {
-      sheetName: "Tape Master",
+    // Dropdown toggle
+    const selector = document.getElementById("downloadSelector");
+    const trigger = selector.querySelector(".download-selector__trigger");
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selector.classList.toggle("download-selector--active");
     });
-    selector.classList.remove("download-selector--active");
-  });
-</script>
 
-<!-- ================= FLOATING ACTION BUTTON ================= -->
-<style>
-  .fab-capsule {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
-    background: #044A78;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    padding: 6px 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-  }
+    document.addEventListener("click", () => {
+      selector.classList.remove("download-selector--active");
+    });
 
-  .fab-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    color: #fff;
-    text-decoration: none;
-    font-size: 18px;
-    border-radius: 50%;
-    transition: background 0.2s;
-  }
+    // PDF download
+    document.getElementById("download-pdf").addEventListener("click", () => {
+      table.download("pdf", "tape-master.pdf", {
+        orientation: "landscape",
+        title: "Tape Master Data",
+      });
+      selector.classList.remove("download-selector--active");
+    });
 
-  .fab-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-  }
-</style>
+    // Excel download
+    document.getElementById("download-xlsx").addEventListener("click", () => {
+      table.download("xlsx", "tape-master.xlsx", {
+        sheetName: "Tape Master",
+      });
+      selector.classList.remove("download-selector--active");
+    });
+  </script>
 
-<div class="fab-capsule">
-  <div title="Add Tape Master" class="fab-item" onclick="window.location.href='/fairdesk/form/tape-master'" style="cursor: pointer;">
-    <i class="fa-solid fa-plus"></i>
+  <!-- ================= FLOATING ACTION BUTTON ================= -->
+  <style>
+    .fab-capsule {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #044a78;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+    }
+
+    .fab-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      color: #fff;
+      text-decoration: none;
+      font-size: 18px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .fab-item:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+  </style>
+
+  <div class="fab-capsule">
+    <div
+      title="Add Tape Master"
+      class="fab-item"
+      onclick="window.location.href = '/fairdesk/form/tape-master'"
+      style="cursor: pointer"
+    >
+      <i class="fa-solid fa-plus"></i>
+    </div>
   </div>
-</div>
-
 </body>

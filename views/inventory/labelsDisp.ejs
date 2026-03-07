@@ -3,47 +3,49 @@
 
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
-<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet">
+<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet" />
 
 <body>
-  <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px" >
-      <div class="indi-head">
-        <h1>Labels</h1>
-        <div class="download-btns">
-          <div class="download-selector" id="downloadSelector">
-            <button class="download-selector__trigger">
-              <span>
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span class="download-typo">Download</span>
-              </span>
-              <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
-            </button>
-            <div class="download-selector__menu" id="downloads">
-              <span class="download-selector__option" id="download-pdf">
-                <i class="fas fa-file-pdf download-selector__option-icon"></i>
-                <span>PDF</span>
-              </span>
-              <span class="download-selector__option" id="download-xlsx">
-                <i class="fas fa-file-excel download-selector__option-icon"></i>
-                <span>Excel</span>
-              </span>
-            </div>
+  <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+    <div class="indi-head">
+      <h1>Labels</h1>
+      <div class="download-btns">
+        <div class="download-selector" id="downloadSelector">
+          <button class="download-selector__trigger">
+            <span>
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span class="download-typo">Download</span>
+            </span>
+            <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
+          </button>
+          <div class="download-selector__menu" id="downloads">
+            <span class="download-selector__option" id="download-pdf">
+              <i class="fas fa-file-pdf download-selector__option-icon"></i>
+              <span>PDF</span>
+            </span>
+            <span class="download-selector__option" id="download-xlsx">
+              <i class="fas fa-file-excel download-selector__option-icon"></i>
+              <span>Excel</span>
+            </span>
           </div>
+        </div>
       </div>
     </div>
 
     <div id="master-table" class="tabulator tabulator-modern"></div>
-</div>
+  </div>
 
   <!-- Tabulator JS -->
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
-
+  <script id="table-data" type="application/json">
+    <%- JSON.stringify(jsonData) %>
+  </script>
   <script>
     // Render data from Express (passed into EJS)
-    const tableData = JSON.parse('<%- JSON.stringify(jsonData) %>');
+    const tableData = JSON.parse(document.getElementById("table-data").textContent);
 
     // Initialize Tabulator
     const table = new Tabulator("#master-table", {
@@ -68,7 +70,7 @@
         { title: "Gap", field: "labelGap" },
         { title: "Ups", field: "labelUps" },
         { title: "Core", field: "labelCore" },
-        { title: "Per Roll Qty", field: "perRollQty" }, 
+        { title: "Per Roll Qty", field: "perRollQty" },
         { title: "First Out", field: "firstOut" },
         { title: "Rate Per 1K", field: "ratePerK" },
         { title: "Rate Per Label", field: "ratePerLabel" },
@@ -77,23 +79,23 @@
         { title: "Min Order Qty", field: "minOrderQty" },
         { title: "Rep Order Frequency", field: "repOrderFq" },
         { title: "credit Term", field: "creditTerm" },
-      ]
+      ],
     });
 
     // Dropdown toggle
     const selector = document.getElementById("downloadSelector");
     const trigger = selector.querySelector(".download-selector__trigger");
-    
+
     trigger.addEventListener("click", (e) => {
       e.stopPropagation();
       selector.classList.toggle("download-selector--active");
     });
-  
+
     // Close dropdown on outside click
     document.addEventListener("click", () => {
       selector.classList.remove("download-selector--active");
     });
-  
+
     // PDF download
     document.getElementById("download-pdf").addEventListener("click", () => {
       table.download("pdf", "labels.pdf", {
@@ -102,7 +104,7 @@
       });
       selector.classList.remove("download-selector--active");
     });
-  
+
     // Excel download
     document.getElementById("download-xlsx").addEventListener("click", () => {
       table.download("xlsx", "labels.xlsx", {
@@ -110,6 +112,5 @@
       });
       selector.classList.remove("download-selector--active");
     });
-
   </script>
 </body>

@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Tape from "../../models/inventory/tape.js";
 import TapeStock from "../../models/inventory/TapeStock.js";
 import TapeStockLog from "../../models/inventory/TapeStockLog.js";
+import Location from "../../models/system/location.js";
 
 const router = express.Router();
 
@@ -20,6 +21,8 @@ router.get("/", async (req, res) => {
       Tape.distinct("tapeFinish"),
     ]);
 
+    const locations = await Location.distinct("locationName");
+
     res.render("stock/tapeStock", {
       title: "Tape Stock",
       CSS: false,
@@ -30,8 +33,9 @@ router.get("/", async (req, res) => {
       gsms,
       widths,
       mtrsList,
-      coreIds, // though hardcoded in view, good to have
-      finishes, // though hardcoded in view
+      coreIds,
+      finishes,
+      locations,
     });
   } catch (err) {
     console.error(err);
@@ -50,7 +54,10 @@ router.get("/filter-specs", async (req, res) => {
       if (tapePaperCode && excludeKey !== "tapePaperCode") f.tapePaperCode = tapePaperCode;
       if (tapePaperType && excludeKey !== "tapePaperType") f.tapePaperType = tapePaperType;
       if (tapeGsm && excludeKey !== "tapeGsm") f.tapeGsm = Number(tapeGsm);
-      if (tapeWidth && excludeKey !== "tapeWidth") f.tapeWidth = Number(tapeWidth);
+      if (tapeWidth && excludeKey !== "tapeWidth") {
+        const numW = Number(tapeWidth);
+        f.tapeWidth = !isNaN(numW) ? { $in: [tapeWidth, numW] } : tapeWidth;
+      }
       if (tapeMtrs && excludeKey !== "tapeMtrs") f.tapeMtrs = Number(tapeMtrs);
       if (tapeCoreId && excludeKey !== "tapeCoreId") f.tapeCoreId = Number(tapeCoreId);
       if (tapeFinish && excludeKey !== "tapeFinish") f.tapeFinish = tapeFinish;
@@ -79,11 +86,12 @@ router.post("/resolve", async (req, res) => {
   try {
     const { paperCode, gsm, paperType, width, mtrs, coreId, finish } = req.body;
 
+    const widthFilter = !isNaN(Number(width)) ? { $in: [width, Number(width)] } : width;
     const tape = await Tape.findOne({
       tapePaperCode: paperCode?.trim(),
       tapeGsm: Number(gsm),
       tapePaperType: paperType?.trim(),
-      tapeWidth: Number(width),
+      tapeWidth: widthFilter,
       tapeMtrs: Number(mtrs),
       tapeCoreId: Number(coreId),
       tapeFinish: finish,
@@ -162,7 +170,7 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "Tape stock added successfully");
-    res.json({ success: true, redirect: "/fairdesk/tapestock" });
+    res.redirect("/fairdesk/tapestock");
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: "Failed to add tape stock" });

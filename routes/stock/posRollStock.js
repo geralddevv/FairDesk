@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import PosRoll from "../../models/inventory/posRoll.js";
 import PosRollStock from "../../models/inventory/PosRollStock.js";
 import PosRollStockLog from "../../models/inventory/PosRollStockLog.js";
+import Location from "../../models/system/location.js";
 
 const router = express.Router();
 
@@ -19,6 +20,8 @@ router.get("/", async (req, res) => {
       PosRoll.distinct("posCoreId"),
     ]);
 
+    const locations = await Location.distinct("locationName");
+
     res.render("stock/posRollStock", {
       title: "POS Roll Stock",
       CSS: false,
@@ -31,6 +34,7 @@ router.get("/", async (req, res) => {
       widths,
       mtrsList,
       coreIds,
+      locations,
     });
   } catch (err) {
     console.error(err);
@@ -49,7 +53,10 @@ router.get("/filter-specs", async (req, res) => {
       if (posPaperType && excludeKey !== "posPaperType") f.posPaperType = posPaperType;
       if (posColor && excludeKey !== "posColor") f.posColor = posColor;
       if (posGsm && excludeKey !== "posGsm") f.posGsm = Number(posGsm);
-      if (posWidth && excludeKey !== "posWidth") f.posWidth = Number(posWidth);
+      if (posWidth && excludeKey !== "posWidth") {
+        const numW = Number(posWidth);
+        f.posWidth = !isNaN(numW) ? { $in: [posWidth, numW] } : posWidth;
+      }
       if (posMtrs && excludeKey !== "posMtrs") f.posMtrs = Number(posMtrs);
       if (posCoreId && excludeKey !== "posCoreId") f.posCoreId = Number(posCoreId);
       return f;
@@ -82,7 +89,7 @@ router.post("/resolve", async (req, res) => {
       posPaperType: paperType?.trim(),
       posColor: color?.trim(),
       posGsm: Number(gsm),
-      posWidth: Number(width),
+      posWidth: !isNaN(Number(width)) ? { $in: [width, Number(width)] } : width,
       posMtrs: Number(mtrs),
       posCoreId: Number(coreId),
     }).lean();
@@ -158,7 +165,7 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "POS Roll stock added successfully");
-    res.json({ success: true, redirect: "/fairdesk/posrollstock" });
+    res.redirect("/fairdesk/posrollstock");
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: "Failed to add POS Roll stock" });

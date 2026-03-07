@@ -3,8 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>Tafeta Profile</title>
+  <link rel="stylesheet" href="/css/common.css">
 
-    <style>
+  <style>
       :root {
         --primary: #044a78;
         --secondary: #2f335c;
@@ -173,5 +174,17 @@
         </div>
       </div>
     </div>
-  </body>
+  </div>
+
+<!-- Global Loading Spinner -->
+<div id="global-spinner">
+  <div class="spinner-circle"></div>
+</div>
+<script>
+  window.addEventListener("load", () => {
+    const spinner = document.getElementById("global-spinner");
+    if (spinner) spinner.classList.add("hidden");
+  });
+</script>
+</body>
 </html>

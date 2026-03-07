@@ -27,6 +27,7 @@ import TtrStock from "../models/inventory/TtrStock.js";
 import PosRollStockLog from "../models/inventory/PosRollStockLog.js";
 import TafetaStockLog from "../models/inventory/TafetaStockLog.js";
 import TtrStockLog from "../models/inventory/TtrStockLog.js";
+import Location from "../models/system/location.js";
 const router = express.Router();
 
 // ----------------------------------RateCalculator---------------------------------->
@@ -328,6 +329,61 @@ router.post("/form/tape-master", async (req, res) => {
   }
 });
 
+// Route to render Edit USER form
+router.get("/form/edit/user/:userId", async (req, res) => {
+  try {
+    let { userId } = req.params;
+    let user = await Username.findById(userId);
+
+    if (!user) {
+      req.flash("error", "User not found.");
+      return res.redirect("/fairdesk/users/master");
+    }
+
+    res.render("users/editUser", {
+      CSS: false,
+      title: "Edit User",
+      JS: false,
+      user,
+      notification: req.flash("notification"),
+      error: req.flash("error"),
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Error loading user data.");
+    res.redirect("back");
+  }
+});
+
+// Route to handle Edit USER submission
+router.post("/form/edit/user/:userId", async (req, res) => {
+  try {
+    let { userId } = req.params;
+    const updateData = req.body;
+
+    // Cleanup if self dispatch is enabled, ensure transport fields are empty
+    if (updateData.SelfDispatch) {
+      updateData.transportName = "";
+      updateData.transportContact = "";
+      updateData.dropLocation = "";
+      updateData.deliveryMode = "";
+      updateData.deliveryLocation = "";
+      updateData.clientPayment = "";
+    } else {
+      updateData.SelfDispatch = "";
+    }
+
+    await Username.findByIdAndUpdate(userId, updateData, { new: true, runValidators: true });
+
+    req.flash("notification", "User details updated successfully!");
+    res.redirect(`/fairdesk/client/details/${userId}`);
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Error updating user details.");
+    res.redirect("back");
+  }
+});
+
 // ----------------------------------POS Roll Master---------------------------------->
 
 // GET: POS Roll Master form
@@ -404,6 +460,51 @@ router.post("/form/tafeta-master", async (req, res) => {
 
     req.flash("notification", "Tafeta Master created successfully!");
     res.json({ success: true, redirect: "/fairdesk/form/tafeta-master" });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ----------------------------------Location Master---------------------------------->
+
+// GET: Location Master form
+router.get("/form/location", async (req, res) => {
+  const locations = await Location.find().sort({ locationName: 1 }).lean();
+
+  res.render("inventory/locationMaster.ejs", {
+    JS: false,
+    CSS: false,
+    title: "Location Master",
+    locations,
+    notification: req.flash("notification"),
+  });
+});
+
+// POST: Location Master submission
+router.post("/form/location", async (req, res) => {
+  try {
+    await Location.create({ locationName: req.body.locationName });
+    req.flash("notification", "Location created successfully!");
+    res.json({ success: true, redirect: "/fairdesk/form/location" });
+  } catch (err) {
+    console.error(err);
+    const msg = err.code === 11000 ? "This location already exists." : err.message;
+    res.status(400).json({ success: false, message: msg });
+  }
+});
+
+// API: Get all locations as JSON
+router.get("/api/locations", async (req, res) => {
+  const locations = await Location.distinct("locationName");
+  res.json(locations);
+});
+
+// DELETE: Remove a location
+router.delete("/api/locations/:id", async (req, res) => {
+  try {
+    await Location.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });

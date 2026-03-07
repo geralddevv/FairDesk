@@ -42,9 +42,10 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
 
+  <script id="table-data" type="application/json"><%- JSON.stringify(jsonData) %></script>
   <script>
     // Render data from Express (passed into EJS)
-    const tableData = JSON.parse('<%- JSON.stringify(jsonData) %>');
+    const tableData = JSON.parse(document.getElementById('table-data').textContent);
 
     console.log(tableData);
 

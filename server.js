@@ -108,6 +108,6 @@ app.use((err, req, res, next) => {
 });
 
 /* 192.168.10.170/ */
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server running on http://192.168.10.178:${port}`);
 });

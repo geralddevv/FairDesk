@@ -134,6 +134,11 @@
     </style>
   </head>
   <body>
+    <!-- Global Loading Spinner -->
+    <div id="global-spinner">
+      <div class="spinner-circle"></div>
+    </div>
+
     <% if ((notification && notification.length) || (error && error.length)) { %>
     <div class="toast-notification <%= error && error.length ? 'toast-error' : 'toast-success' %>" id="toast">
       <span> <%= error && error.length ? error[0] : notification[0] %> </span>
@@ -227,9 +232,14 @@
               <p class="nav-items-para">Tafeta</p>
             </div>
 
-            <div title="TTR" class="<%= title === 'TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr'" style="border-bottom: 2px solid #ffffff9d" >
+            <div title="TTR" class="<%= title === 'TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr'" >
               <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
               <p class="nav-items-para">TTR</p>
+            </div>            
+
+            <div title="Location Master" class="<%= title === 'Location Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/location'" style="border-bottom: 2px solid #ffffff9d" >
+              <i class="fa-solid fa-location-dot" style="color: #ffffff"></i>
+              <p class="nav-items-para">Location</p>
             </div>            
 
             <!-- <div title="Block" class="<%= title === 'Block' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/block'" >
@@ -479,6 +489,14 @@
       if (toast) {
         setTimeout(hideToast, 5000);
       }
+
+      // Hide Global Spinner on Load
+      window.addEventListener("load", () => {
+        const spinner = document.getElementById("global-spinner");
+        if (spinner) {
+          spinner.classList.add("hidden");
+        }
+      });
     </script>
   </body>
 </html>

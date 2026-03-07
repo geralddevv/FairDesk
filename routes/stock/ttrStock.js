@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Ttr from "../../models/inventory/ttr.js";
 import TtrStock from "../../models/inventory/TtrStock.js";
 import TtrStockLog from "../../models/inventory/TtrStockLog.js";
+import Location from "../../models/system/location.js";
 
 const router = express.Router();
 
@@ -23,6 +24,8 @@ router.get("/", async (req, res) => {
         Ttr.distinct("ttrWinding"),
       ]);
 
+    const locations = await Location.distinct("locationName");
+
     res.render("stock/ttrStock.ejs", {
       title: "TTR Stock",
       CSS: false,
@@ -38,6 +41,7 @@ router.get("/", async (req, res) => {
       coreLengths,
       notches,
       windings,
+      locations,
     });
   } catch (err) {
     console.error(err);
@@ -202,7 +206,7 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "TTR stock added successfully");
-    res.json({ success: true, redirect: "/fairdesk/ttrstock" });
+    res.redirect("/fairdesk/ttrstock");
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: "Failed to add TTR stock" });

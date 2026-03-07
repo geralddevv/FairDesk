@@ -398,7 +398,7 @@
     }
   }
 
-  function updateStockDisplay() {
+  async function updateStockDisplay() {
     const selectedOption = itemSelect.options[itemSelect.selectedIndex];
     const stockDisplay = document.getElementById("stock-display");
     
@@ -410,7 +410,8 @@
       try {
         const stock = JSON.parse(selectedOption.dataset.stock);
         
-        const allLocations = ["UNIT 1", "UNIT 2"];
+        const locRes = await fetch("/fairdesk/api/locations");
+        const allLocations = await locRes.json();
 
         // Build "ALL" option
         let locationHtml = `<label class="location-option selected" data-location="ALL" data-qty="${stock.totalStock}" data-booked="${stock.booked || 0}" data-balance="${stock.balance || 0}">
@@ -502,8 +503,10 @@
     const warningDiv = document.getElementById("stock-warning");
     const warningText = document.getElementById("stock-warning-text");
 
-    if (qty > availableQty) {
-      warningText.textContent = `Ordered quantity (${qty}) exceeds available stock (${availableQty}) at ${selectedRadio.value}. Order can still be created.`;
+    const isConfirmPage = window.location.pathname.includes('/sales/order/confirm');
+
+    if (qty > availableQty && !isConfirmPage) {
+      warningText.innerHTML = `Ordered quantity <b>${qty}</b> exceeds available stock <b>${availableQty}</b> at ${selectedRadio.value}. Order can still be created.`;
       warningDiv.style.display = "block";
     } else {
       hideStockWarning();

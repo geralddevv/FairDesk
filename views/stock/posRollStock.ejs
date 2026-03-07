@@ -11,8 +11,9 @@
         <label class="stock-header-label" style="width:auto;">Location</label>
         <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
           <option value="" disabled selected hidden>Select Location</option>
-          <option value="UNIT 1">UNIT 1</option>
-          <option value="UNIT 2">UNIT 2</option>
+          <% locations?.forEach(loc => { %>
+            <option value="<%= loc %>"><%= loc %></option>
+          <% }) %>
         </select>
       </div>
 
