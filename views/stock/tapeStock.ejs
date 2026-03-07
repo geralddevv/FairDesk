@@ -8,12 +8,11 @@
 
       <!-- ================= LOCATION ================= -->
       <div class="span-five" style="display:flex; gap:6px; justify-content:start; flex-direction:row; width:auto;">
-        <label style="width:auto;">Location</label>
+        <label class="stock-header-label" style="width:auto;">Location</label>
         <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
           <option value="" disabled selected hidden>Select Location</option>
           <option value="UNIT 1">UNIT 1</option>
           <option value="UNIT 2">UNIT 2</option>
-          <option value="UNIT 3">UNIT 3</option>
         </select>
       </div>
 
@@ -22,7 +21,7 @@
 
       <!-- ================= CURRENT STOCK ================= -->
       <div class="span-five" id="stockWrap" style="display:flex; gap:6px; justify-content:end; flex-direction:row; width:auto;">
-        <label style="width:auto;">Current Stock</label>
+        <label class="stock-header-label" style="width:auto;">Current Stock</label>
         <input type="number" id="currentStock" class="form-control input-tag" style="width:100px" value="0" readonly />
       </div>
     </div>

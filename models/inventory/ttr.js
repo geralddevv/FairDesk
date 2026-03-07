@@ -1,6 +1,104 @@
 import mongoose from "mongoose";
 
-let ttrSchema = new mongoose.Schema({}, {strict: false});
-let Ttr = mongoose.model("Ttr", ttrSchema);
+const ttrSchema = new mongoose.Schema(
+  {
+    /* ================= IDENTIFICATION ================= */
+    ttrProductId: {
+      type: String, // FS | TTR | 000001
+      required: true,
+      unique: true,
+      trim: true,
+    },
 
-export default Ttr;
+    /* ================= PRODUCT DETAILS ================= */
+    ttrType: {
+      type: String,
+      required: true,
+      enum: [
+        "WAX",
+        "WAX PREMIUM",
+        "WAX COLOR",
+        "WAX RESIN",
+        "WAX RESIN PREMIUM",
+        "WAX RESIN COLOR",
+        "RESIN",
+        "RESIN COLOR",
+        "SCRATCH PROOF",
+        "WASHCARE",
+        "TTO",
+      ],
+      trim: true,
+      index: true,
+    },
+
+    ttrColor: {
+      type: String,
+      required: true,
+      enum: ["BLACK", "RED", "GREEN", "BLUE", "YELLOW", "GOLD", "SILVER"],
+      default: "BLACK",
+      trim: true,
+      index: true,
+    },
+
+    ttrMaterialCode: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+
+    ttrWidth: {
+      type: Number,
+      required: true,
+      index: true,
+    },
+
+    ttrMtrs: {
+      type: Number,
+      required: true,
+      index: true,
+    },
+
+    ttrInkFace: {
+      type: String,
+      required: true,
+      enum: ["IN", "OUT"],
+    },
+
+    ttrCoreId: {
+      type: String,
+      required: true,
+      enum: ["1", "0.5"],
+    },
+
+    ttrCoreLength: {
+      type: Number,
+      required: true,
+    },
+
+    ttrNotch: {
+      type: String,
+      required: true,
+      enum: ["NO", "YES"],
+      default: "NO",
+    },
+
+    ttrWinding: {
+      type: String,
+      required: true,
+      enum: ["NORMAL", "LEFT", "CENTER"],
+      default: "NORMAL",
+    },
+
+    /* ================= AUDIT ================= */
+    createdBy: {
+      type: String,
+      default: "SYSTEM",
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+export default mongoose.models.Ttr || mongoose.model("Ttr", ttrSchema);

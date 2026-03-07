@@ -34,7 +34,7 @@ const tapeSchema = new mongoose.Schema(
     },
 
     tapeWidth: {
-      type: Number,
+      type: String,
       required: true,
       index: true,
     },
@@ -72,8 +72,7 @@ const tapeSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.models.Tape || mongoose.model("Tape", tapeSchema);
-

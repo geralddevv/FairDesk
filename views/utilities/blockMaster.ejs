@@ -104,7 +104,7 @@
             </div>
 
             </div>
-              <div class="color-headings" style="margin-bottom: 0px; grid-column: span 32; background-color: #1a1a2e; color: white; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;"> 
+              <div class="color-headings" style="margin-bottom: 0px; grid-column: span 32; background-color: #044A78; color: white; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;"> 
                 <span style="flex: 1; font-size: 16px; font-weight: 600; padding-left: 15px;">Pantone Code</span>
                 <span style="flex: 1; font-size: 16px; font-weight: 600; padding-left: 15px;">Color Name</span>
                 <span style="flex: 1; font-size: 16px; font-weight: 600; padding-left: 15px;">Anilox No</span>
@@ -114,10 +114,10 @@
             <h1>Back</h1>
           </div>         
           <div id="back-clr-details" style="grid-column: span 32;">
-              <div class="color-headings" style="margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly />
-                <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly />
-                <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly />
+              <div class="color-headings" style="margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly />
+                <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly />
+                <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly />
               </div>
           </div>
 
@@ -125,10 +125,10 @@
             <h1>Front</h1>
           </div>
           <div id="front-clr-details" style="grid-column: span 32;">
-              <div class="color-headings" style="margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <input type="text" id="pantone-code" class="form-control" name="pantoneCode" placeholder="Enter Pantone Code" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly />
-                <input type="text" id="pantone-code" class="form-control" name="pantoneCode" placeholder="Enter Color Name" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly />
-                <input type="text" id="pantone-code" class="form-control" name="pantoneCode" placeholder="Enter Anilox No" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly />
+              <div class="color-headings" style="margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <input type="text" id="pantone-code" class="form-control" name="pantoneCode" placeholder="Enter Pantone Code" value="-" style="flex: 1; border: 1px solid #044A78;" readonly />
+                <input type="text" id="pantone-code" class="form-control" name="pantoneCode" placeholder="Enter Color Name" value="-" style="flex: 1; border: 1px solid #044A78;" readonly />
+                <input type="text" id="pantone-code" class="form-control" name="pantoneCode" placeholder="Enter Anilox No" value="-" style="flex: 1; border: 1px solid #044A78;" readonly />
               </div>
           </div>
 
@@ -199,12 +199,12 @@ document.getElementById('front-color').addEventListener('input', function() {
         // Create empty state div
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'color-headings';
-        emptyDiv.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
+        emptyDiv.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
         
         emptyDiv.innerHTML = `
-            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly>
-            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly>
-            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly>
+            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly>
+            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly>
+            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly>
         `;
         container.appendChild(emptyDiv);
     } else {
@@ -212,13 +212,13 @@ document.getElementById('front-color').addEventListener('input', function() {
         for (let i = 0; i < count; i++) {
             const div = document.createElement('div');
             div.className = 'color-headings';
-            div.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
+            div.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
             
             div.innerHTML = `
                 <h4 style="margin: 0;">${i + 1}</h4>
-                <input type="text" name="frontColDet[${i}][pantoneCode]" class="form-control" placeholder="Pantone Code" style="flex: 1; border: 1px solid #1a1a2e;">
-                <input type="text" name="frontColDet[${i}][colorName]" class="form-control" placeholder="Color Name" style="flex: 1; border: 1px solid #1a1a2e;">
-                <input type="text" name="frontColDet[${i}][aniloxNo]" class="form-control" placeholder="Anilox No" style="flex: 1; border: 1px solid #1a1a2e;">
+                <input type="text" name="frontColDet[${i}][pantoneCode]" class="form-control" placeholder="Pantone Code" style="flex: 1; border: 1px solid #044A78;">
+                <input type="text" name="frontColDet[${i}][colorName]" class="form-control" placeholder="Color Name" style="flex: 1; border: 1px solid #044A78;">
+                <input type="text" name="frontColDet[${i}][aniloxNo]" class="form-control" placeholder="Anilox No" style="flex: 1; border: 1px solid #044A78;">
             `;
             container.appendChild(div);
         }
@@ -241,12 +241,12 @@ document.getElementById('back-color').addEventListener('input', function() {
         // Create empty state div
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'color-headings';
-        emptyDiv.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
+        emptyDiv.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
         
         emptyDiv.innerHTML = `
-            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly>
-            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly>
-            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" readonly>
+            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly>
+            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly>
+            <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" readonly>
         `;
         container.appendChild(emptyDiv);
     } else {
@@ -254,13 +254,13 @@ document.getElementById('back-color').addEventListener('input', function() {
         for (let i = 0; i < count; i++) {
             const div = document.createElement('div');
             div.className = 'color-headings';
-            div.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
+            div.style.cssText = 'margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;';
             
             div.innerHTML = `
                 <h4 style="margin: 0;">${i + 1}</h4>
-                <input type="text" name="backColDet[${i}][pantoneCode]" class="form-control" placeholder="Pantone Code" style="flex: 1; border: 1px solid #1a1a2e;">
-                <input type="text" name="backColDet[${i}][colorName]" class="form-control" placeholder="Color Name" style="flex: 1; border: 1px solid #1a1a2e;">
-                <input type="text" name="backColDet[${i}][aniloxNo]" class="form-control" placeholder="Anilox No" style="flex: 1; border: 1px solid #1a1a2e;">
+                <input type="text" name="backColDet[${i}][pantoneCode]" class="form-control" placeholder="Pantone Code" style="flex: 1; border: 1px solid #044A78;">
+                <input type="text" name="backColDet[${i}][colorName]" class="form-control" placeholder="Color Name" style="flex: 1; border: 1px solid #044A78;">
+                <input type="text" name="backColDet[${i}][aniloxNo]" class="form-control" placeholder="Anilox No" style="flex: 1; border: 1px solid #044A78;">
             `;
             container.appendChild(div);
         }

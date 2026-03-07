@@ -1,0 +1,194 @@
+<!-- Link to boilerplate.ejs -->
+<% layout('/layout/boilerplate') -%>
+
+<!-- Tabulator CSS -->
+<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet" />
+
+<style>
+  .fab-capsule {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: #044A78;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+  }
+
+  .fab-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .fab-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+  }
+</style>
+
+<body>
+  <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+    <div class="indi-head">
+      <h1>TTR Master</h1>
+      <div class="download-btns">
+        <div class="download-selector" id="downloadSelector">
+          <button class="download-selector__trigger">
+            <span>
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span class="download-typo">Download</span>
+            </span>
+            <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
+          </button>
+          <div class="download-selector__menu" id="downloads">
+            <span class="download-selector__option" id="download-pdf">
+              <i class="fas fa-file-pdf download-selector__option-icon"></i>
+              <span>PDF</span>
+            </span>
+            <span class="download-selector__option" id="download-xlsx">
+              <i class="fas fa-file-excel download-selector__option-icon"></i>
+              <span>Excel</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="master-table" class="tabulator tabulator-modern"></div>
+  </div>
+
+  <!-- Tabulator JS -->
+  <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <script>
+    // Parse data from Express
+    const tableData = <%- JSON.stringify(jsonData) %>;
+
+    // Initialize Tabulator
+    const table = new Tabulator("#master-table", {
+      data: tableData,
+      layout: "fitDataStretch", // Good for wide tables
+      responsiveLayout: false,
+      pagination: "local",
+      paginationSize: 30,
+      movableColumns: true,
+      placeholder: "No data to display",
+      columns: [
+        {
+          title: "Product ID",
+          field: "ttrProductId",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
+        },
+        {
+          title: "Type",
+          field: "ttrType",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
+        },
+        {
+          title: "Color",
+          field: "ttrColor",
+          headerFilter: "select",
+          headerFilterParams: {
+            values: {
+              "": "All",
+              BLACK: "BLACK",
+              RED: "RED",
+              GREEN: "GREEN",
+              BLUE: "BLUE",
+              YELLOW: "YELLOW",
+              GOLD: "GOLD",
+              SILVER: "SILVER",
+            },
+            clearable: true,
+          },
+        },
+        {
+          title: "Material Code",
+          field: "ttrMaterialCode",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
+        },
+        { title: "Width", field: "ttrWidth" },
+        { title: "Mtrs", field: "ttrMtrs" },
+        { title: "Ink Face", field: "ttrInkFace" },
+        {
+          title: "Core ID",
+          field: "ttrCoreId",
+          headerFilter: "select",
+          headerFilterParams: {
+            values: { "": "All", 0.5: "0.5", 1: "1" },
+            clearable: true,
+          },
+        },
+        { title: "Core Len", field: "ttrCoreLength" },
+        {
+          title: "Notch",
+          field: "ttrNotch",
+          headerFilter: "select",
+          headerFilterParams: {
+            values: { "": "All", NO: "NO", YES: "YES" },
+            clearable: true,
+          },
+        },
+        { title: "Winding", field: "ttrWinding" },
+      ],
+    });
+
+    // Dropdown toggle
+    const selector = document.getElementById("downloadSelector");
+    const trigger = selector.querySelector(".download-selector__trigger");
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selector.classList.toggle("download-selector--active");
+    });
+
+    document.addEventListener("click", () => {
+      selector.classList.remove("download-selector--active");
+    });
+
+    // PDF download
+    document.getElementById("download-pdf").addEventListener("click", () => {
+      table.download("pdf", "ttr-master.pdf", {
+        orientation: "landscape",
+        title: "TTR Master Data",
+      });
+      selector.classList.remove("download-selector--active");
+    });
+
+    // Excel download
+    document.getElementById("download-xlsx").addEventListener("click", () => {
+      table.download("xlsx", "ttr-master.xlsx", {
+        sheetName: "TTR Master",
+      });
+      selector.classList.remove("download-selector--active");
+    });
+  </script>
+
+  <div class="fab-capsule">
+    <div
+      title="Add TTR Master"
+      class="fab-item"
+      onclick="window.location.href = '/fairdesk/form/ttr'"
+      style="cursor: pointer"
+    >
+      <i class="fa-solid fa-plus"></i>
+    </div>
+  </div>
+</body>

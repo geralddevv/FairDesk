@@ -46,12 +46,6 @@
     // Render data from Express (passed into EJS)
     const tableData = JSON.parse('<%- JSON.stringify(jsonData) %>');
 
-    tableData.forEach(user => {
-      user.labelCount = user.label?.length || 0;
-      user.ttrCount = user.ttr?.length || 0;
-      user.tapeCount = user.tape?.length || 0;
-    });
-
     console.log(tableData);
 
     // Initialize Tabulator
@@ -64,29 +58,71 @@
       movableColumns: true,
       placeholder: "No data to display",
       columns: [
+        {
+          title: "",
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            const ttrMaster = row.ttrId;
+            if (!ttrMaster || !ttrMaster._id) {
+              return `<span style="color:#999">N/A</span>`;
+            }
+            return `
+              <button 
+                onclick="window.location.href='/fairdesk/ttr/profile/${ttrMaster._id}'"
+                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            `;
+          }
+        },
+        {
+          title: "Stock",
+          field: "stock",
+          hozAlign: "center",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            const stock = row.stock ?? "-";
+            return `<span style="font-weight:600">${stock}</span>`;
+          }
+        },        
+        {
+          title: "Order",
+          hozAlign: "center",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            const clientName = row.userId?.clientName || row.clientName || "";
+            const userId = row.userId?._id || "";
+            return `
+              <button 
+                onclick="window.location.href='/fairdesk/sales/order?type=TTR&client=${encodeURIComponent(clientName)}&user=${userId}&item=${row._id}'"
+                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                <i class="fa-solid fa-cart-plus"></i>
+              </button>
+            `;
+          }
+        },
         { title: "Product ID", field: "productId" },
         { title: "Client Name", field: "clientName" },
         { title: "User Name", field: "userName" },
         { title: "User Contact", field: "userContact" },
         { title: "Location", field: "location" },
-        { title: "TTR Type", field: "ttrType" },
-        { title: "TTR Color", field: "ttrColor" },
-        { title: "TTR Material Code", field: "ttrMaterialCode" },
-        { title: "TTR Client Code", field: "ttrClientCode" },
-        { title: "TTR Width", field: "ttrWidth" },
-        { title: "TTR Mtrs", field: "ttrMtrs" },
-        { title: "TTR Mtrs Del", field: "ttrMtrsDel" },
-        { title: "TTR Ink Face", field: "ttrInkFace" },
-        { title: "TTR Core ID", field: "ttrCoreId" },
-        { title: "TTR Core Length", field: "ttrCoreLength" },
-        { title: "TTR Notch", field: "ttrNotch" },
-        { title: "TTR Winding", field: "ttrWinding" },
-        { title: "TTR Rate Per Roll", field: "ttrRatePerRoll" },
-        { title: "TTR Sale Cost", field: "ttrSaleCost" },
-        { title: "TTR Min Qty", field: "ttrMinQty" },
-        { title: "TTR Single Odr Qty", field: "ttrSinOdrQty" },
-        { title: "TTR Odr Freq", field: "ttrOdrFreq" },
-        { title: "TTR Credit Term", field: "ttrCreditTerm" },
+        { title: "Type", field: "ttrType" },
+        { title: "Color", field: "ttrColor" },
+        { title: "Material Code", field: "ttrMaterialCode" },
+        { title: "Width", field: "ttrWidth" },
+        { title: "Mtrs", field: "ttrMtrs" },
+        { title: "Mtrs Del", field: "ttrMtrsDel" },
+        { title: "Ink Face", field: "ttrInkFace" },
+        { title: "Core ID", field: "ttrCoreId" },
+        { title: "Core Length", field: "ttrCoreLength" },
+        { title: "Notch", field: "ttrNotch" },
+        { title: "Winding", field: "ttrWinding" },
+        { title: "Rate Per Roll", field: "ttrRatePerRoll" },
+        { title: "Sale Cost", field: "ttrSaleCost" },
+        { title: "Min Qty", field: "ttrMinQty" },
+        { title: "Single Odr Qty", field: "ttrSinOdrQty" },
+        { title: "Odr Freq", field: "ttrOdrFreq" },
+        { title: "Credit Term", field: "ttrCreditTerm" },
       ]
     });
 

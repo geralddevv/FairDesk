@@ -8,11 +8,56 @@
   <div class="indi-head">
     <h1>Pending Orders</h1>
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
+      <!-- Item Filter -->
+      <div style="position: relative; display: inline-block">
+        <select
+          id="item-filter"
+          style="
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 3px 30px 2px 14px;
+            background: #ffffff;
+            color: #3e3e3e;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            outline: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+            min-width: 140px;
+          "
+          onmouseover="this.style.boxShadow = '0 3px 6px rgba(0,0,0,0.08)'"
+          onmouseout="this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)'"
+        >
+          <option value="">All Items</option>
+          <option value="TAPE">Tape</option>
+          <option value="TAFETA">Tafeta</option>
+          <option value="POS_ROLL">POS Roll</option>
+          <option value="TTR">TTR</option>
+          <option value="LABEL">Label</option>
+        </select>
+        <i
+          class="fa-solid fa-chevron-down"
+          style="
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #6b7280;
+            pointer-events: none;
+            transition: transform 0.2s ease;
+          "
+        ></i>
+      </div>
+
       <a
         href="/fairdesk/sales/order/logs"
         style="
           padding: 6px 14px;
-          background: #1a1a2e;
+          background: #044A78;
           color: white;
           border-radius: 6px;
           text-decoration: none;
@@ -194,12 +239,17 @@
         width: 140,
         formatter: (cell) => {
           const row = cell.getRow().getData();
-          // Build full URL with prefill params
           const client = row.userId ? row.userId.clientName : "";
           const user = row.userId ? row.userId._id : "";
           const item = row.tapeBinding ? row.tapeBinding._id : "";
-          const confirmUrl = `/fairdesk/sales/order/confirm?orderId=${row._id}&type=TAPE&client=${encodeURIComponent(client)}&user=${user}&item=${item}`;
-          const editUrl = `/fairdesk/sales/order?orderId=${row._id}&type=TAPE&client=${encodeURIComponent(client)}&user=${user}&item=${item}`;
+          let itemType = "TAPE";
+          if (row.onModel === "PosRoll") itemType = "POS_ROLL";
+          if (row.onModel === "Tafeta") itemType = "TAFETA";
+          if (row.onModel === "Ttr") itemType = "TTR";
+          if (row.onModel === "Label") itemType = "LABEL";
+
+          const confirmUrl = `/fairdesk/sales/order/confirm?orderId=${row._id}&type=${itemType}&client=${encodeURIComponent(client)}&user=${user}&item=${item}`;
+          const editUrl = `/fairdesk/sales/order?orderId=${row._id}&type=${itemType}&client=${encodeURIComponent(client)}&user=${user}&item=${item}`;
           return `
                 <div style="display:flex; gap:5px; justify-content:center;">
                     <a href="javascript:void(0)"
@@ -236,14 +286,33 @@
       { title: "Client", field: "userId.clientName" },
       { title: "User", field: "userId.userName" },
       {
+        title: "Item Type",
+        field: "onModel",
+        formatter: (cell) => {
+          const val = cell.getValue();
+          if (val === "PosRoll") return "POS Roll";
+          if (val === "Tafeta") return "Tafeta";
+          if (val === "Ttr") return "TTR";
+          if (val === "Label") return "Label";
+          return "Tape";
+        },
+      },
+      {
         title: "Item Details",
         field: "tapeId",
         formatter: (cell) => {
           const tape = cell.getValue();
           if (!tape) return "N/A";
 
-          return `<span style="color:#1a1a2e; font-weight:600; display:block;">
-                    ${tape.tapePaperCode} ${tape.tapeGsm}gsm
+          let name = "Unknown Item";
+          if (tape.tapePaperCode) name = `${tape.tapePaperCode} ${tape.tapeGsm}gsm`;
+          else if (tape.posPaperCode) name = `${tape.posPaperCode} ${tape.posGsm}gsm`;
+          else if (tape.tafetaMaterialCode) name = `${tape.tafetaMaterialCode} ${tape.tafetaGsm}gsm`;
+          else if (tape.ttrColor) name = `${tape.ttrColor} ${tape.ttrWidth}mm x ${tape.ttrMtrs}m`;
+          else if (tape.labelWidth) name = `${tape.labelWidth}x${tape.labelHeight}`;
+
+          return `<span style="color:#044A78; font-weight:600; display:block;">
+                    ${name}
                   </span>`;
         },
       },
@@ -259,7 +328,7 @@
             const remaining = quantity - dispatched;
             return `
               <div style="display:flex; flex-direction:column; align-items:center; line-height:1.2;">
-                <span style="font-weight:600; color:#1a1a2e;">${remaining} left</span>
+                <span style="font-weight:600; color:#044A78;">${remaining} left</span>
                 <span style="font-size:10px; color:#6b7280; font-weight:500;">(${dispatched} sent)</span>
               </div>
             `;
@@ -275,6 +344,23 @@
       },
       { title: "Remarks", field: "remarks" },
     ],
+  });
+
+  // Handle Item Filter
+  document.getElementById("item-filter").addEventListener("change", function (e) {
+    const val = e.target.value;
+    if (val === "") {
+      table.clearFilter();
+    } else {
+      table.setFilter(function (data) {
+        let type = "TAPE";
+        if (data.onModel === "PosRoll") type = "POS_ROLL";
+        if (data.onModel === "Tafeta") type = "TAFETA";
+        if (data.onModel === "Ttr") type = "TTR";
+        if (data.onModel === "Label") type = "LABEL";
+        return type === val;
+      });
+    }
   });
 
   // Dropdown toggle
@@ -416,7 +502,7 @@
   }
   #cancel-reason-input:focus {
     outline: none;
-    border-color: #1a1a2e;
+    border-color: #044A78;
     box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1);
   }
 </style>

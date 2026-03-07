@@ -85,6 +85,8 @@
       user.labelCount = user.labelCount ?? 0;
       user.ttrCount = user.ttr?.length || 0;
       user.tapeCount = user.tape?.length || 0;
+      user.posRollCount = user.posRoll?.length || 0;
+      user.tafetaCount = user.tafeta?.length || 0;
     });
 
     // ================= TABULATOR INIT =================
@@ -222,6 +224,30 @@
               window.location.href = `/fairdesk/tape/view/${row._id}`;
             },
           },
+          {
+            title: "POS Rolls",
+            field: "posRollCount",
+            formatter: (cell) => {
+              const row = cell.getRow().getData();
+              return `<span style="cursor:pointer;text-decoration:underline;">${row.posRollCount}</span>`;
+            },
+            cellClick: (e, cell) => {
+              const row = cell.getRow().getData();
+              window.location.href = `/fairdesk/pos-roll/view/${row._id}`;
+            },
+          },
+          {
+            title: "Tafeta",
+            field: "tafetaCount",
+            formatter: (cell) => {
+              const row = cell.getRow().getData();
+              return `<span style="cursor:pointer;text-decoration:underline;">${row.tafetaCount}</span>`;
+            },
+            cellClick: (e, cell) => {
+              const row = cell.getRow().getData();
+              window.location.href = `/fairdesk/tafeta/view/${row._id}`;
+            },
+          },
         ],
       });
     }
@@ -260,7 +286,7 @@
       position: fixed;
       bottom: 28px;
       right: 28px;
-      background: #1a1a2e;
+      background: #044A78;
       border-radius: 50px;
       display: flex;
       align-items: center;

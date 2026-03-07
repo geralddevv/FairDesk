@@ -28,18 +28,36 @@ const userSchema = new mongoose.Schema({
   clientMsme: { type: String },
 
   // Multiple label per client
-  label: [{
-    type: Schema.Types.ObjectId,
-    ref: 'Label'
-  }],
-  ttr: [{
-    type: Schema.Types.ObjectId,
-    ref: 'Ttr'
-  }],
-  tape: [{
-    type: Schema.Types.ObjectId,
-    ref: 'TapeBinding'
-  }]
+  label: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "Label",
+    },
+  ],
+  ttr: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "TtrBinding",
+    },
+  ],
+  tape: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "TapeBinding",
+    },
+  ],
+  posRoll: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "PosRollBinding",
+    },
+  ],
+  tafeta: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "TafetaBinding",
+    },
+  ],
 });
 
 const Username = mongoose.model("Username", userSchema);

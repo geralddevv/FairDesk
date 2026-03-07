@@ -27,21 +27,12 @@ router.get("/create", async (req, res) => {
 /* CREATE PAYROLL */
 router.post("/create", async (req, res) => {
   try {
-    const {
-      employeeId,
-      month,
-      year,
-      presentDays,
-      absentDays,
-      othrs = 0,
-      incentive = 0,
-    } = req.body;
+    const { employeeId, month, year, presentDays, absentDays, othrs = 0, incentive = 0 } = req.body;
 
     /* FETCH EMPLOYEE */
     const emp = await Employee.findById(employeeId);
     if (!emp) {
-      req.flash("error", "Employee not found");
-      return res.redirect("back");
+      return res.status(400).json({ success: false, message: "Employee not found" });
     }
     /* FETCH EMI FROM LOAN MASTER */
     let emiAmount = 0;
@@ -59,11 +50,7 @@ router.post("/create", async (req, res) => {
     });
 
     if (alreadyLogged) {
-      req.flash(
-        "error",
-        "Payroll already exists for this employee and month"
-      );
-      return res.redirect("back");
+      return res.status(400).json({ success: false, message: "Payroll already exists for this employee and month" });
     }
 
     /* ADVANCE (DEDUCTION RULE) */
@@ -72,10 +59,7 @@ router.post("/create", async (req, res) => {
 
     if (advanceRecord && advanceRecord.currentBalance > 0) {
       const maxAdvanceAllowed = emp.basicSalary * 0.5;
-      advanceDeduction = Math.min(
-        advanceRecord.currentBalance,
-        maxAdvanceAllowed
-      );
+      advanceDeduction = Math.min(advanceRecord.currentBalance, maxAdvanceAllowed);
     }
 
     /* ABSENT CALCULATION */
@@ -90,17 +74,10 @@ router.post("/create", async (req, res) => {
     const railwayPass = Number(req.body.railwayPass || 0);
     const bonus = Number(req.body.bonus || 0);
 
-    const totalAdditions =
-      otAmount + houseRent + travelling + railwayPass + bonus;
+    const totalAdditions = otAmount + houseRent + travelling + railwayPass + bonus;
 
     /* GROSS SALARY */
-    const grossSalary = Number(
-      (
-        Number(emp.basicSalary) +
-        totalAdditions +
-        Number(incentive)
-      ).toFixed(2)
-    );
+    const grossSalary = Number((Number(emp.basicSalary) + totalAdditions + Number(incentive)).toFixed(2));
 
     /* TOTAL DEDUCTIONS */
     const totalDeduction = Number(
@@ -111,13 +88,11 @@ router.post("/create", async (req, res) => {
         absentAmount +
         advanceDeduction +
         emiAmount
-      ).toFixed(2)
+      ).toFixed(2),
     );
 
     /* TAKE AWAY */
-    const takeAway = Number(
-      Math.max(grossSalary - totalDeduction, 0).toFixed(2)
-    );
+    const takeAway = Number(Math.max(grossSalary - totalDeduction, 0).toFixed(2));
 
     /* UPSERT PAYROLL (SNAPSHOT) */
     const payroll = await Payroll.findOneAndUpdate(
@@ -139,7 +114,7 @@ router.post("/create", async (req, res) => {
         totalDeduction,
         takeAway,
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     /* PAYROLL LOG (HISTORY) */
@@ -170,11 +145,11 @@ router.post("/create", async (req, res) => {
     if (emiAmount > 0 && loan) {
       const openingBalance = loan.currentBalance;
       const closingBalance = Math.max(openingBalance - emiAmount, 0);
-    
+
       loan.currentBalance = closingBalance;
       loan.status = closingBalance === 0 ? "CLOSED" : "ACTIVE";
       await loan.save();
-    
+
       await LoanLog.create({
         employee: emp._id,
         loan: loan._id,
@@ -211,11 +186,10 @@ router.post("/create", async (req, res) => {
     }
 
     req.flash("notification", "Payroll created successfully");
-    res.redirect("/fairdesk/payroll/create");
+    res.json({ success: true, redirect: "/fairdesk/payroll/create" });
   } catch (err) {
     console.error(err);
-    req.flash("error", "Failed to create payroll");
-    res.redirect("back");
+    res.status(400).json({ success: false, message: "Failed to create payroll" });
   }
 });
 
@@ -250,12 +224,21 @@ router.get("/view", async (req, res) => {
   });
 
   const monthMap = {
-    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
-    5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
-    9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec",
+    1: "Jan",
+    2: "Feb",
+    3: "Mar",
+    4: "Apr",
+    5: "May",
+    6: "Jun",
+    7: "Jul",
+    8: "Aug",
+    9: "Sep",
+    10: "Oct",
+    11: "Nov",
+    12: "Dec",
   };
 
-  const jsonData = payrolls.map(p => ({
+  const jsonData = payrolls.map((p) => ({
     employeeId: p.employee?._id,
     employeeName: p.employee?.empName || "-",
     empId: p.employee?.empId || "-",
@@ -293,7 +276,7 @@ router.get("/employee/:id/payrolls", async (req, res) => {
       .populate("employee", "empName empId")
       .lean();
 
-    const history = logs.map(p => ({
+    const history = logs.map((p) => ({
       employeeId: p.employee?._id,
       employeeName: p.employee?.empName || "-",
       empId: p.employee?.empId || "-",
@@ -325,9 +308,7 @@ router.get("/employee/:id/payrolls", async (req, res) => {
 /* FETCH EMPLOYEE (FOR PAYROLL & ADVANCE) */
 router.get("/employee/:id", async (req, res) => {
   try {
-    const emp = await Employee.findById(req.params.id)
-      .select("empId empName basicSalary")
-      .lean();
+    const emp = await Employee.findById(req.params.id).select("empId empName basicSalary").lean();
 
     if (!emp) return res.status(404).json(null);
 

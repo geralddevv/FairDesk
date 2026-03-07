@@ -28,8 +28,7 @@ router.post("/create", async (req, res) => {
     const amount = Number(advanceAmount) || 0;
 
     if (!employeeId || amount <= 0) {
-      req.flash("error", "Invalid advance amount");
-      return res.redirect("back");
+      return res.status(400).json({ success: false, message: "Invalid advance amount" });
     }
 
     const empObjectId = new mongoose.Types.ObjectId(employeeId);
@@ -37,8 +36,7 @@ router.post("/create", async (req, res) => {
     /* FETCH EMPLOYEE */
     const emp = await Employee.findById(empObjectId);
     if (!emp) {
-      req.flash("error", "Employee not found");
-      return res.redirect("back");
+      return res.status(400).json({ success: false, message: "Employee not found" });
     }
 
     /* 50% ADVANCE LIMIT */
@@ -50,11 +48,9 @@ router.post("/create", async (req, res) => {
 
     /* LIMIT CHECK */
     if (currentBalance + amount > maxAllowedAdvance) {
-      req.flash(
-        "error",
-        `Advance limit exceeded. Max allowed is ₹${maxAllowedAdvance}`
-      );
-      return res.redirect("back");
+      return res
+        .status(400)
+        .json({ success: false, message: `Advance limit exceeded. Max allowed is ₹${maxAllowedAdvance}` });
     }
 
     /* CREATE NEW ADVANCE */
@@ -74,9 +70,8 @@ router.post("/create", async (req, res) => {
         type: "CREDIT",
         source: "MANUAL",
       });
-    }
+    } else {
     /* UPDATE EXISTING ADVANCE */
-    else {
       const openingBalance = advance.currentBalance;
       const closingBalance = openingBalance + amount;
 
@@ -96,22 +91,18 @@ router.post("/create", async (req, res) => {
     }
 
     req.flash("notification", "Advance saved successfully");
-    res.redirect("/fairdesk/advance/create");
+    res.json({ success: true, redirect: "/fairdesk/advance/create" });
   } catch (err) {
     console.error(err);
-    req.flash("error", "Failed to save advance");
-    res.redirect("back");
+    res.status(400).json({ success: false, message: "Failed to save advance" });
   }
 });
 
 /* ADVANCE DISPLAY */
 router.get("/view", async (req, res) => {
-  const advances = await Advance.find()
-    .populate("employee", "empName empId")
-    .sort({ updatedAt: -1 })
-    .lean();
+  const advances = await Advance.find().populate("employee", "empName empId").sort({ updatedAt: -1 }).lean();
 
-  const jsonData = advances.map(a => ({
+  const jsonData = advances.map((a) => ({
     employeeId: a.employee?._id,
     employeeName: a.employee?.empName || "-",
     empId: a.employee?.empId || "-",
@@ -119,7 +110,6 @@ router.get("/view", async (req, res) => {
     status: a.status,
     updatedAt: new Date(a.updatedAt).toLocaleDateString(),
   }));
-
 
   res.render("accounting/advanceDisp", {
     jsonData,
@@ -143,7 +133,7 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
     return res.json({ history: [] });
   }
 
-  const formatted = logs.map(l => ({
+  const formatted = logs.map((l) => ({
     employeeName: l.employee?.empName || "-",
     empId: l.employee?.empId || "-",
 
@@ -151,8 +141,8 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
     amount: l.amount,
     closingBalance: l.closingBalance,
 
-    type: l.type,       // CREDIT / DEBIT
-    source: l.source,   // MANUAL / PAYROLL
+    type: l.type, // CREDIT / DEBIT
+    source: l.source, // MANUAL / PAYROLL
     date: new Date(l.createdAt).toLocaleDateString(),
   }));
 
@@ -166,6 +156,5 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
     history: formatted,
   });
 });
-
 
 export default router;

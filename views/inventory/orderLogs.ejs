@@ -12,7 +12,7 @@
         href="/fairdesk/sales/pending"
         style="
           padding: 6px 14px;
-          background: #1a1a2e;
+          background: #044A78;
           color: white;
           border-radius: 6px;
           text-decoration: none;
@@ -110,8 +110,17 @@
         formatter: (cell) => {
           const order = cell.getValue();
           if (!order?.tapeId) return "N/A";
-          return `<span style="color:#1a1a2e; font-weight:600; display:block;">
-                    ${order.tapeId.tapePaperCode || ""} ${order.tapeId.tapeGsm || ""}gsm
+
+          let name = "Unknown Item";
+          const t = order.tapeId;
+          if (t.tapePaperCode) name = `${t.tapePaperCode} ${t.tapeGsm}gsm`;
+          else if (t.posPaperCode) name = `${t.posPaperCode} ${t.posGsm}gsm`;
+          else if (t.tafetaMaterialCode) name = `${t.tafetaMaterialCode} ${t.tafetaGsm}gsm`;
+          else if (t.ttrColor) name = `${t.ttrColor} ${t.ttrWidth}mm x ${t.ttrMtrs}m`;
+          else if (t.labelWidth) name = `${t.labelWidth}x${t.labelHeight}`;
+
+          return `<span style="color:#044A78; font-weight:600; display:block;">
+                    ${name}
                   </span>`;
         },
       },

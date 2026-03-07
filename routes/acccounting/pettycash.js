@@ -42,15 +42,8 @@ router.post("/create", async (req, res) => {
     const txnAmount = Number(amount) || 0;
 
     /* BASIC VALIDATION */
-    if (
-      !location ||
-      txnAmount <= 0 ||
-      !type ||
-      (type === "PAID" && !to) ||
-      (type === "RECEIVED" && !from)
-    ) {
-      req.flash("error", "Invalid petty cash entry");
-      return res.redirect("back");
+    if (!location || txnAmount <= 0 || !type || (type === "PAID" && !to) || (type === "RECEIVED" && !from)) {
+      return res.status(400).json({ success: false, message: "Invalid petty cash entry" });
     }
 
     /* UI → INTERNAL TYPE MAP */
@@ -62,18 +55,14 @@ router.post("/create", async (req, res) => {
 
     /* HARD STOP — ETHICAL GUARD */
     if (internalType === "OUTWARD" && txnAmount > openingBalance) {
-      req.flash("error", "Insufficient petty cash balance");
-      return res.redirect("back"); // NO CREATE, NO UPDATE, NO LOG
+      return res.status(400).json({ success: false, message: "Insufficient petty cash balance" });
     }
 
     /* NOW IT IS SAFE TO CREATE / UPDATE */
     const petty = await getOrCreatePettyCash(location);
 
     /* CALCULATE CLOSING BALANCE */
-    const closingBalance =
-      internalType === "INWARD"
-        ? openingBalance + txnAmount
-        : openingBalance - txnAmount;
+    const closingBalance = internalType === "INWARD" ? openingBalance + txnAmount : openingBalance - txnAmount;
 
     /* FINAL SAFETY ASSERTION */
     if (closingBalance < 0) {
@@ -87,17 +76,11 @@ router.post("/create", async (req, res) => {
     /* CREATE LOG (SUCCESS ONLY) */
     await PettyCashLog.create({
       location,
-        
-      from:
-        internalType === "OUTWARD"
-          ? "-"
-          : (from && from.trim()) || "-",
-        
-      to:
-        internalType === "INWARD"
-          ? "-"
-          : (to && to.trim()) || "-",
-        
+
+      from: internalType === "OUTWARD" ? "-" : (from && from.trim()) || "-",
+
+      to: internalType === "INWARD" ? "-" : (to && to.trim()) || "-",
+
       openingBalance,
       amount: txnAmount,
       closingBalance,
@@ -106,12 +89,10 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "Petty cash updated successfully");
-    return res.redirect("/fairdesk/pettycash/create");
-
+    return res.json({ success: true, redirect: "/fairdesk/pettycash/create" });
   } catch (err) {
     console.error(err);
-    req.flash("error", "Petty cash transaction failed");
-    return res.redirect("back");
+    res.status(400).json({ success: false, message: "Petty cash transaction failed" });
   }
 });
 
@@ -120,7 +101,7 @@ router.get("/view", async (req, res) => {
   try {
     const pettyList = await PettyCash.find().lean();
 
-    const snapshot = pettyList.map(p => ({
+    const snapshot = pettyList.map((p) => ({
       location: p.location,
       balance: p.currentBalance,
       status: p.currentBalance > 0 ? "ACTIVE" : "EMPTY",
@@ -146,9 +127,7 @@ router.get("/logs/:location", async (req, res) => {
   try {
     const { location } = req.params;
 
-    const logs = await PettyCashLog.find({ location })
-      .sort({ createdAt: -1 })
-      .lean();
+    const logs = await PettyCashLog.find({ location }).sort({ createdAt: -1 }).lean();
 
     res.json({ history: logs });
   } catch (err) {

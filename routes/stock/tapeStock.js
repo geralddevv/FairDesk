@@ -124,8 +124,7 @@ router.post("/create", async (req, res) => {
 
     // STRONG VALIDATION
     if (!tapeId || !tapeFinish || !location || qty <= 0) {
-      req.flash("error", "Invalid stock entry");
-      return res.redirect(req.get("Referrer") || "/");
+      return res.status(400).json({ success: false, message: "Invalid stock entry" });
     }
 
     const tapeObjectId = new mongoose.Types.ObjectId(tapeId);
@@ -162,13 +161,11 @@ router.post("/create", async (req, res) => {
       createdBy: req.user?.username || "SYSTEM",
     });
 
-    req.flash("success", "Tape stock added successfully");
-    console.log("FLASH SUCCESS:", req.flash("success"));
-    res.redirect("/fairdesk/tapestock");
+    req.flash("notification", "Tape stock added successfully");
+    res.json({ success: true, redirect: "/fairdesk/tapestock" });
   } catch (err) {
     console.error(err);
-    req.flash("error", "Failed to add tape stock");
-    res.redirect(req.get("Referrer") || "/");
+    res.status(400).json({ success: false, message: "Failed to add tape stock" });
   }
 });
 

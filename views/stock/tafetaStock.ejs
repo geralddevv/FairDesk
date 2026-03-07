@@ -1,0 +1,300 @@
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content">
+  <form class="rottary-content" method="post" action="/fairdesk/tafetastock/create">
+
+    <!-- ================= HEADER ================= -->
+    <div class="span-full form-heading" style="display:flex; justify-content:space-between; flex-direction:row;">
+
+      <!-- ================= LOCATION ================= -->
+      <div class="span-five" style="display:flex; gap:6px; justify-content:start; flex-direction:row; width:auto;">
+        <label class="stock-header-label" style="width:auto;">Location</label>
+        <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
+          <option value="" disabled selected hidden>Select Location</option>
+          <option value="UNIT 1">UNIT 1</option>
+          <option value="UNIT 2">UNIT 2</option>
+        </select>
+      </div>
+
+      <!-- ================= TITLE ================= -->
+      <h1>Tafeta Stock Entry</h1>
+
+      <!-- ================= CURRENT STOCK ================= -->
+      <div class="span-five" id="stockWrap" style="display:flex; gap:6px; justify-content:end; flex-direction:row; width:auto;">
+        <label class="stock-header-label" style="width:auto;">Current Stock</label>
+        <input type="number" id="currentStock" class="form-control input-tag" style="width:100px" value="0" readonly />
+      </div>
+    </div>
+
+    <!-- ================= TAFETA SPECS ================= -->
+    <div class="span-five">
+      <label>Tafeta ID</label>
+      <input type="text" id="resolvedTafeta" class="form-control input-tag" placeholder="ID will appear here" readonly />
+      <input type="hidden" name="tafetaId" id="resolvedTafetaId" />
+    </div>
+
+    <div class="span-six">
+      <label for="tafeta-material-code">Material Code</label>
+      <select name="tafetaMaterialCode" id="tafeta-material-code" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% materialCodes?.forEach(mc => { %>
+          <option value="<%= mc %>"><%= mc %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-six">
+      <label for="tafeta-material-type">Material Type</label>
+      <select name="tafetaMaterialType" id="tafeta-material-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% materialTypes?.forEach(mt => { %>
+          <option value="<%= mt %>"><%= mt %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="tafeta-color">Color</label>
+      <select name="tafetaColor" id="tafeta-color" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% colors?.forEach(c => { %>
+          <option value="<%= c %>"><%= c %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="tafeta-gsm">GSM</label>
+      <select name="tafetaGsm" id="tafeta-gsm" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% gsms?.forEach(g => { %>
+          <option value="<%= g %>"><%= g %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="tafeta-width">Width</label>
+      <select name="tafetaWidth" id="tafeta-width" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% widths?.forEach(w => { %>
+          <option value="<%= w %>"><%= w %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-mtrs">MTRS</label>
+      <select name="tafetaMtrs" id="tafeta-mtrs" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% mtrsList?.forEach(m => { %>
+          <option value="<%= m %>"><%= m %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-core-len">Core Len</label>
+      <select name="tafetaCoreLen" id="tafeta-core-len" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% coreLens?.forEach(cl => { %>
+          <option value="<%= cl %>"><%= cl %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-notch">Notch</label>
+      <select name="tafetaNotch" id="tafeta-notch" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% notches?.forEach(n => { %>
+          <option value="<%= n %>"><%= n %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-core-id">Core ID</label>
+      <select name="tafetaCoreId" id="tafeta-core-id" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% coreIds?.forEach(ci => { %>
+          <option value="<%= ci %>"><%= ci %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <!-- ================= RESOLVED TAFETA ================= -->
+    <div class="span-full form-subheading"></div>
+
+    <!-- ================= QUANTITY ================= -->
+    <div class="span-seven">
+      <label>Quantity</label>
+      <input type="number" name="quantity" class="form-control input-tag" min="1" placeholder="Enter Quantity" required />
+    </div>
+
+    <div class="span-half" style="grid-column: span 25;">
+      <label>Remarks</label>
+      <input type="text" name="remarks" class="form-control input-tag" placeholder="Enter Remarks" />
+    </div>
+
+    <div class="span-full btn-grp">
+      <button type="submit" id="submitBtn" disabled>Save Stock</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const locationSelect = document.getElementById("locationSelect");
+  const stockInput = document.getElementById("currentStock");
+
+  const resolvedTafeta = document.getElementById("resolvedTafeta");
+  const resolvedTafetaId = document.getElementById("resolvedTafetaId");
+  const submitBtn = document.getElementById("submitBtn");
+
+  const tafetaFields = [
+    "tafeta-material-code",
+    "tafeta-material-type",
+    "tafeta-color",
+    "tafeta-gsm",
+    "tafeta-width",
+    "tafeta-mtrs",
+    "tafeta-core-len",
+    "tafeta-notch",
+    "tafeta-core-id",
+  ];
+
+  /* ================= CONFIG ================= */
+  const fieldToApiKey = {
+    "tafeta-material-code": "materialCodes",
+    "tafeta-material-type": "materialTypes",
+    "tafeta-color": "colors",
+    "tafeta-gsm": "gsms",
+    "tafeta-width": "widths",
+    "tafeta-mtrs": "mtrsList",
+    "tafeta-core-len": "coreLens",
+    "tafeta-notch": "notches",
+    "tafeta-core-id": "coreIds",
+  };
+
+  const fieldToParam = {
+    "tafeta-material-code": "tafetaMaterialCode",
+    "tafeta-material-type": "tafetaMaterialType",
+    "tafeta-color": "tafetaColor",
+    "tafeta-gsm": "tafetaGsm",
+    "tafeta-width": "tafetaWidth",
+    "tafeta-mtrs": "tafetaMtrs",
+    "tafeta-core-len": "tafetaCoreLen",
+    "tafeta-notch": "tafetaNotch",
+    "tafeta-core-id": "tafetaCoreId",
+  };
+
+  /* ================= CHOICES INIT ================= */
+  const specChoices = {};
+  tafetaFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      specChoices[id] = new Choices(el, {
+        searchEnabled: true,
+        shouldSort: false,
+        itemSelectText: "",
+      });
+    }
+  });
+
+  /* ================= SMART FILTER ================= */
+  async function filterSpecs(changedFieldId) {
+    const params = new URLSearchParams();
+    tafetaFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.value) {
+        params.set(fieldToParam[id], el.value);
+      }
+    });
+
+    try {
+      const res = await fetch(`/fairdesk/tafetastock/filter-specs?${params}`);
+      const data = await res.json();
+      if (!data) return;
+
+      tafetaFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+
+        const apiKey = fieldToApiKey[id];
+        const filteredValues = data[apiKey] || [];
+        const currentValue = document.getElementById(id)?.value || "";
+
+        const newChoices = filteredValues.map(v => ({
+          value: String(v),
+          label: String(v),
+          selected: String(v) === currentValue,
+        }));
+
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: !currentValue }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+    } catch (err) {
+      console.error("Filter specs error:", err);
+    }
+  }
+
+  /* ================= RESOLVE ================= */
+  async function resolveTafeta() {
+    const values = {};
+    for (let id of tafetaFields) {
+      const el = document.getElementById(id);
+      if (!el || !el.value) return;
+      values[id] = el.value;
+    }
+
+    const res = await fetch("/fairdesk/tafetastock/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        materialCode: values["tafeta-material-code"],
+        materialType: values["tafeta-material-type"],
+        color: values["tafeta-color"],
+        gsm: values["tafeta-gsm"],
+        width: values["tafeta-width"],
+        mtrs: values["tafeta-mtrs"],
+        coreLen: values["tafeta-core-len"],
+        notch: values["tafeta-notch"],
+        coreId: values["tafeta-core-id"],
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.found) {
+      resolvedTafeta.value = "No matching Tafeta found";
+      resolvedTafetaId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+      return;
+    }
+
+    resolvedTafeta.value = data.TafetaProductId;
+    resolvedTafetaId.value = data.tafetaId;
+    submitBtn.disabled = false;
+
+    if (locationSelect.value) fetchStock();
+  }
+
+  /* ================= STOCK FETCH ================= */
+  async function fetchStock() {
+    if (!resolvedTafetaId.value || !locationSelect.value) return;
+    const res = await fetch(`/fairdesk/tafetastock/balance/${resolvedTafetaId.value}/${locationSelect.value}`);
+    const data = await res.json();
+    stockInput.value = data.stock ?? 0;
+  }
+
+  /* ================= HANDLERS ================= */
+  tafetaFields.forEach(id => {
+    document.getElementById(id)?.addEventListener("change", async () => {
+      await filterSpecs(id);
+      resolveTafeta();
+    });
+  });
+
+  locationSelect.addEventListener("change", fetchStock);
+});
+</script>

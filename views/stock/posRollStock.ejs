@@ -1,0 +1,274 @@
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content">
+  <form class="rottary-content" method="post" action="/fairdesk/posrollstock/create">
+
+    <!-- ================= HEADER ================= -->
+    <div class="span-full form-heading" style="display:flex; justify-content:space-between; flex-direction:row;">
+
+      <!-- ================= LOCATION ================= -->
+      <div class="span-five" style="display:flex; gap:6px; justify-content:start; flex-direction:row; width:auto;">
+        <label class="stock-header-label" style="width:auto;">Location</label>
+        <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
+          <option value="" disabled selected hidden>Select Location</option>
+          <option value="UNIT 1">UNIT 1</option>
+          <option value="UNIT 2">UNIT 2</option>
+        </select>
+      </div>
+
+      <!-- ================= TITLE ================= -->
+      <h1>POS Roll Stock Entry</h1>
+
+      <!-- ================= CURRENT STOCK ================= -->
+      <div class="span-five" id="stockWrap" style="display:flex; gap:6px; justify-content:end; flex-direction:row; width:auto;">
+        <label class="stock-header-label" style="width:auto;">Current Stock</label>
+        <input type="number" id="currentStock" class="form-control input-tag" style="width:100px" value="0" readonly />
+      </div>
+    </div>
+
+    <!-- ================= POS ROLL SPECS ================= -->
+    <div class="span-five">
+      <label>POS Roll ID</label>
+      <input type="text" id="resolvedPosRoll" class="form-control input-tag" placeholder="ID will appear here" readonly />
+      <input type="hidden" name="posRollId" id="resolvedPosRollId" />
+    </div>
+
+    <div class="span-four">
+      <label for="pos-paper-code">Paper Code</label>
+      <select name="posPaperCode" id="pos-paper-code" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% paperCodes?.forEach(pc => { %>
+          <option value="<%= pc %>"><%= pc %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-four">
+      <label for="pos-paper-type">Paper Type</label>
+      <select name="posPaperType" id="pos-paper-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% paperTypes?.forEach(pt => { %>
+          <option value="<%= pt %>"><%= pt %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-four">
+      <label for="pos-color">Color</label>
+      <select name="posColor" id="pos-color" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% colors?.forEach(c => { %>
+          <option value="<%= c %>"><%= c %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-three">
+      <label for="pos-gsm">GSM</label>
+      <select name="posGsm" id="pos-gsm" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% gsms?.forEach(g => { %>
+          <option value="<%= g %>"><%= g %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-four">
+      <label for="pos-width">Width</label>
+      <select name="posWidth" id="pos-width" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% widths?.forEach(w => { %>
+          <option value="<%= w %>"><%= w %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-four">
+      <label for="pos-mtrs">MTRS</label>
+      <select name="posMtrs" id="pos-mtrs" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% mtrsList?.forEach(m => { %>
+          <option value="<%= m %>"><%= m %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-four">
+      <label for="pos-core-id">Core ID</label>
+       <select name="posCoreId" id="pos-core-id" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <option value="3">3</option>
+        <option value="1">1</option>
+        <option value="0.5">0.5</option>
+      </select>
+    </div>
+
+    <!-- ================= RESOLVED POS ROLL ================= -->
+    <div class="span-full form-subheading"></div>
+
+    <!-- ================= QUANTITY ================= -->
+    <div class="span-seven">
+      <label>Quantity</label>
+      <input type="number" name="quantity" class="form-control input-tag" min="1" placeholder="Enter Quantity" required />
+    </div>
+
+    <div class="span-half" style="grid-column: span 25;">
+      <label>Remarks</label>
+      <input type="text" name="remarks" class="form-control input-tag" placeholder="Enter Remarks" />
+    </div>
+
+    <div class="span-full btn-grp">
+      <button type="submit" id="submitBtn" disabled>Save Stock</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const locationSelect = document.getElementById("locationSelect");
+  const stockInput = document.getElementById("currentStock");
+
+  const resolvedPosRoll = document.getElementById("resolvedPosRoll");
+  const resolvedPosRollId = document.getElementById("resolvedPosRollId");
+  const submitBtn = document.getElementById("submitBtn");
+
+  const posFields = [
+    "pos-paper-code",
+    "pos-paper-type",
+    "pos-color",
+    "pos-gsm",
+    "pos-width",
+    "pos-mtrs",
+    "pos-core-id",
+  ];
+
+  /* ================= CONFIG ================= */
+  const fieldToApiKey = {
+    "pos-paper-code": "paperCodes",
+    "pos-paper-type": "paperTypes",
+    "pos-color": "colors",
+    "pos-gsm": "gsms",
+    "pos-width": "widths",
+    "pos-mtrs": "mtrsList",
+    "pos-core-id": "coreIds",
+  };
+
+  const fieldToParam = {
+    "pos-paper-code": "posPaperCode",
+    "pos-paper-type": "posPaperType",
+    "pos-color": "posColor",
+    "pos-gsm": "posGsm",
+    "pos-width": "posWidth",
+    "pos-mtrs": "posMtrs",
+    "pos-core-id": "posCoreId",
+  };
+
+  /* ================= CHOICES INIT ================= */
+  const specChoices = {};
+  posFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      specChoices[id] = new Choices(el, {
+        searchEnabled: true,
+        shouldSort: false,
+        itemSelectText: "",
+      });
+    }
+  });
+
+  /* ================= SMART FILTER ================= */
+  async function filterSpecs(changedFieldId) {
+    const params = new URLSearchParams();
+    posFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.value) {
+        params.set(fieldToParam[id], el.value);
+      }
+    });
+
+    try {
+      const res = await fetch(`/fairdesk/posrollstock/filter-specs?${params}`);
+      const data = await res.json();
+      if (!data) return;
+
+      posFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+
+        const apiKey = fieldToApiKey[id];
+        const filteredValues = data[apiKey] || [];
+        const currentValue = document.getElementById(id)?.value || "";
+
+        const newChoices = filteredValues.map(v => ({
+          value: String(v),
+          label: String(v),
+          selected: String(v) === currentValue,
+        }));
+
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: !currentValue }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+    } catch (err) {
+      console.error("Filter specs error:", err);
+    }
+  }
+
+  /* ================= RESOLVE ================= */
+  async function resolvePosRoll() {
+    const values = {};
+    for (let id of posFields) {
+      const el = document.getElementById(id);
+      if (!el || !el.value) return;
+      values[id] = el.value;
+    }
+
+    const res = await fetch("/fairdesk/posrollstock/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paperCode: values["pos-paper-code"],
+        paperType: values["pos-paper-type"],
+        color: values["pos-color"],
+        gsm: values["pos-gsm"],
+        width: values["pos-width"],
+        mtrs: values["pos-mtrs"],
+        coreId: values["pos-core-id"],
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.found) {
+      resolvedPosRoll.value = "No matching POS Roll found";
+      resolvedPosRollId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+      return;
+    }
+
+    resolvedPosRoll.value = data.PosProductId;
+    resolvedPosRollId.value = data.posRollId;
+    submitBtn.disabled = false;
+
+    if (locationSelect.value) fetchStock();
+  }
+
+  /* ================= STOCK FETCH ================= */
+  async function fetchStock() {
+    if (!resolvedPosRollId.value || !locationSelect.value) return;
+    const res = await fetch(`/fairdesk/posrollstock/balance/${resolvedPosRollId.value}/${locationSelect.value}`);
+    const data = await res.json();
+    stockInput.value = data.stock ?? 0;
+  }
+
+  /* ================= HANDLERS ================= */
+  posFields.forEach(id => {
+    document.getElementById(id)?.addEventListener("change", async () => {
+      await filterSpecs(id);
+      resolvePosRoll();
+    });
+  });
+
+  locationSelect.addEventListener("change", fetchStock);
+});
+</script>

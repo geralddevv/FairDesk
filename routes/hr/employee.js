@@ -20,8 +20,7 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const unique =
-      Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, unique + path.extname(file.originalname));
   },
 });
@@ -84,12 +83,12 @@ router.post(
       await Employee.create(employeeData);
 
       req.flash("notification", "Employee created successfully!");
-      res.redirect("/fairdesk/employee/create");
+      res.json({ success: true, redirect: "/fairdesk/employee/create" });
     } catch (err) {
       console.error(err);
-      res.redirect("back");
+      res.status(400).json({ success: false, message: err.message });
     }
-  }
+  },
 );
 
 /* ================= EMPLOYEE PROFILE VIEW ================= */
@@ -136,7 +135,7 @@ router.post(
   async (req, res) => {
     try {
       const emp = await Employee.findById(req.params.id);
-      if (!emp) return res.redirect("back");
+      if (!emp) return res.status(400).json({ success: false, message: "Employee not found" });
 
       const replaceFile = (field, folder) => {
         if (req.files?.[field]) {
@@ -155,12 +154,13 @@ router.post(
       Object.assign(emp, req.body);
       await emp.save();
 
-      res.redirect(`/fairdesk/employee/profile/${emp._id}`);
+      req.flash("notification", "Employee updated successfully!");
+      res.json({ success: true, redirect: `/fairdesk/employee/profile/${emp._id}` });
     } catch (err) {
       console.error(err);
-      res.redirect("back");
+      res.status(400).json({ success: false, message: err.message });
     }
-  }
+  },
 );
 
 export default router;

@@ -3,7 +3,7 @@
     
     <style>
         :root {
-            --primary: #1a1a2e;
+            --primary: #044A78;
             --secondary: #2c3e50;
             --accent: #e74c3c;
             --light: #9e9e9e;
@@ -20,7 +20,7 @@
             margin: 0 auto;
             background: white;
             border-radius: 0.5rem;
-            border: 2px solid #1a1a2e;
+            border: 2px solid #044A78;
             /* box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); */
             overflow: hidden;
         }
@@ -467,10 +467,6 @@
                                         <div class="spec-value"><%= ttr.ttrMaterialCode %></div>
                                     </div>
                                     <div class="spec-item">
-                                        <div class="spec-label">Client Code</div>
-                                        <div class="spec-value"><%= ttr.ttrClientCode %></div>
-                                    </div>
-                                    <div class="spec-item">
                                         <div class="spec-label">Width</div>
                                         <div class="spec-value"><%= ttr.ttrWidth %>mm</div>
                                     </div>
@@ -555,10 +551,114 @@
                     <% }); %>
                 </div>
             <% } else { %>
+                </div>
+            <% } else { %>
                 <div class="no-data">
                     <i class="fas fa-scroll"></i>
                     <h3>No Tapes Found</h3>
                     <p>This client doesn't have any tapes associated with their account.</p>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- POS Rolls Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">POS Rolls</h2>
+                <span class="count-badge"><%= posRolls ? posRolls.length : 0 %> POS Roll(s)</span>
+            </div>
+            
+            <% if (posRolls && posRolls.length > 0) { %>
+                <div class="products-grid">
+                    <% posRolls.forEach(function(pos) { %>
+                        <div class="product-card">
+                            <div class="product-header">
+                                <div class="product-id"><%= pos.posProductId %></div>
+                                <div class="product-title"><%= pos.posPaperType %> POS Roll</div>
+                            </div>
+                            <div class="product-body">
+                                <div class="product-specs">
+                                    <div class="spec-item">
+                                        <div class="spec-label">Paper Code</div>
+                                        <div class="spec-value"><%= pos.posPaperCode %></div>
+                                    </div>
+                                    <div class="spec-item">
+                                        <div class="spec-label">Color</div>
+                                        <div class="spec-value"><%= pos.posColor %></div>
+                                    </div>
+                                    <div class="spec-item">
+                                        <div class="spec-label">GSM / Width</div>
+                                        <div class="spec-value"><%= pos.posGsm %>gsm / <%= pos.posWidth %>mm</div>
+                                    </div>
+                                    <div class="spec-item">
+                                        <div class="spec-label">Client Paper Code</div>
+                                        <div class="spec-value"><%= pos.posClientPaperCode %></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="product-footer">
+                                <div class="price">Sale Cost: ₹<%= pos.posSaleCost %></div>
+                                <button class="action-btn">View Details</button>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div class="no-data">
+                    <i class="fas fa-scroll"></i>
+                    <h3>No POS Rolls Found</h3>
+                    <p>This client doesn't have any POS rolls associated with their account.</p>
+                </div>
+            <% } %>
+        </div>
+
+        <!-- Tafetas Section -->
+        <div class="section">
+            <div class="section-header">
+                <h2 class="section-title">Tafetas</h2>
+                <span class="count-badge"><%= tafetas ? tafetas.length : 0 %> Tafeta(s)</span>
+            </div>
+            
+            <% if (tafetas && tafetas.length > 0) { %>
+                <div class="products-grid">
+                    <% tafetas.forEach(function(tafeta) { %>
+                        <div class="product-card">
+                            <div class="product-header">
+                                <div class="product-id"><%= tafeta.tafetaProductId %></div>
+                                <div class="product-title"><%= tafeta.tafetaMaterialType %> Tafeta</div>
+                            </div>
+                            <div class="product-body">
+                                <div class="product-specs">
+                                    <div class="spec-item">
+                                        <div class="spec-label">Material Code</div>
+                                        <div class="spec-value"><%= tafeta.tafetaMaterialCode %></div>
+                                    </div>
+                                    <div class="spec-item">
+                                        <div class="spec-label">Color</div>
+                                        <div class="spec-value"><%= tafeta.tafetaColor %></div>
+                                    </div>
+                                    <div class="spec-item">
+                                        <div class="spec-label">GSM / Width</div>
+                                        <div class="spec-value"><%= tafeta.tafetaGsm %>gsm / <%= tafeta.tafetaWidth %>mm</div>
+                                    </div>
+                                    <div class="spec-item">
+                                        <div class="spec-label">Client Material Code</div>
+                                        <div class="spec-value"><%= tafeta.tafetaClientMaterialCode %></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="product-footer">
+                                <div class="price">Sale Cost: ₹<%= tafeta.tafetaSaleCost %></div>
+                                <button class="action-btn">View Details</button>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div class="no-data">
+                    <i class="fas fa-scroll"></i>
+                    <h3>No Tafetas Found</h3>
+                    <p>This client doesn't have any tafetas associated with their account.</p>
                 </div>
             <% } %>
         </div>

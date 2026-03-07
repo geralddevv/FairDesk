@@ -52,8 +52,7 @@ router.post("/form/tape-binding", async (req, res) => {
     // Validate user exists
     const user = await Username.findById(userId);
     if (!user) {
-      req.flash("notification", "Invalid user selected");
-      return res.redirect("back");
+      return res.status(400).json({ success: false, message: "Invalid user selected" });
     }
 
     // Check for duplicate binding (same user, same tape, same client paper code, AND ALL OTHER SPECS)
@@ -72,8 +71,9 @@ router.post("/form/tape-binding", async (req, res) => {
       tapeMtrsDel: Number(req.body.tapeMtrsDel || 0),
     });
     if (existingBinding) {
-      req.flash("notification", "This exacta tape binding configuration already exists for this user.");
-      return res.redirect("back");
+      return res
+        .status(400)
+        .json({ success: false, message: "This exact tape binding configuration already exists for this user." });
     }
 
     // Create tape binding with user reference
@@ -94,11 +94,10 @@ router.post("/form/tape-binding", async (req, res) => {
     await user.save();
 
     req.flash("notification", "Tape binding created successfully!");
-    res.redirect("/fairdesk/client/details/" + userId);
+    res.json({ success: true, redirect: "/fairdesk/client/details/" + userId });
   } catch (err) {
     console.error("TAPE BINDING ERROR:", err);
-    req.flash("notification", err.message);
-    res.redirect("back");
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

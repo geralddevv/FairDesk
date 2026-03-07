@@ -148,7 +148,6 @@
         <option value="OFFICE" <%= employee?.empLoc === 'OFFICE' ? 'selected' : '' %>>OFFICE</option>
         <option value="UNIT 1" <%= employee?.empLoc === 'UNIT 1' ? 'selected' : '' %>>UNIT 1</option>
         <option value="UNIT 2" <%= employee?.empLoc === 'UNIT 2' ? 'selected' : '' %>>UNIT 2</option>
-        <option value="UNIT 3" <%= employee?.empLoc === 'UNIT 3' ? 'selected' : '' %>>UNIT 3</option>
       </select>
     </div>
     
@@ -255,7 +254,7 @@
         name="empPresentAddress"
         placeholder="Enter Employee Present Address"
         rows="3"
-        style="border: 1px solid #1a1a2e; resize: none;"
+        style="border: 1px solid #044A78; resize: none;"
       ><%= employee?.empPresentAddress || '' %></textarea>
     </div>
 
@@ -267,7 +266,7 @@
         name="empPermanentAddress"
         placeholder="Enter Employee Permanent Address"
         rows="3"
-        style="border: 1px solid #1a1a2e; resize: none;"
+        style="border: 1px solid #044A78; resize: none;"
       ><%= employee?.empPermanentAddress || '' %></textarea>
     </div>
 
@@ -279,7 +278,7 @@
         name="empHobbies"
         placeholder="Enter Employee Hobbies & Interests"
         rows="3"
-        style="border: 1px solid #1a1a2e; resize: none;"
+        style="border: 1px solid #044A78; resize: none;"
       ><%= employee?.empHobbies || '' %></textarea>
     </div>       
 
@@ -427,17 +426,17 @@
         <input type="text" id="dependents-count" style="width: 130px; height: 25px; margin-left: 20px;"  maxlength="2" class="form-control" name="dependentsCount" placeholder="Dependents Count"/>
     </div>
 
-    <div class="dependent-headings" style="margin-bottom: 0px; grid-column: span 32; background-color: #1a1a2e; color: white; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;"> 
+    <div class="dependent-headings" style="margin-bottom: 0px; grid-column: span 32; background-color: #044A78; color: white; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;"> 
       <span style="flex: 1; font-size: 16px; font-weight: 600; padding-left: 15px;">Name</span>
       <span style="flex: 1; font-size: 16px; font-weight: 600; padding-left: 15px;">DOB</span>
       <span style="flex: 1; font-size: 16px; font-weight: 600; padding-left: 15px;">Relation</span>
     </div> 
     
     <div id="dependents-details" style="grid-column: span 32;">
-        <div class="dependents-details" style="margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #1a1a2e; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-          <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" tabindex="-1" readonly />
-          <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" tabindex="-1" readonly />
-          <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #1a1a2e;" tabindex="-1" readonly />
+        <div class="dependents-details" style="margin-bottom: 10px; grid-column: span 32; padding: 10px; border-radius: 5px; border: 2px solid #044A78; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" tabindex="-1" readonly />
+          <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" tabindex="-1" readonly />
+          <input type="text" class="form-control" value="-" style="flex: 1; border: 1px solid #044A78;" tabindex="-1" readonly />
         </div>
     </div>
 
@@ -568,7 +567,7 @@ function renderDependents(count) {
         margin-bottom: 10px;
         padding: 10px;
         border-radius: 5px;
-        border: 2px solid #1a1a2e;
+        border: 2px solid #044A78;
         display: flex;
         gap: 10px;
       ">

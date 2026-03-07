@@ -77,8 +77,14 @@ document.querySelectorAll(".nav-opt-wrap .nav-labels-opt").forEach((menu) => {
 
 // ================= INPUT UPPERCASE =================
 
-document.querySelectorAll("input").forEach((input) => {
+document.querySelectorAll("input[type='text']").forEach((input) => {
   input.addEventListener("input", function () {
-    this.value = this.value.toUpperCase();
+    const start = this.selectionStart;
+    const end = this.selectionEnd;
+    const uppercased = this.value.toUpperCase();
+    if (this.value !== uppercased) {
+      this.value = uppercased;
+      this.setSelectionRange(start, end);
+    }
   });
 });

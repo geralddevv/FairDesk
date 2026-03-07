@@ -13,6 +13,7 @@
   "dependencies": {
     "bootstrap": "^5.3.7",
     "choices.js": "^11.1.0",
+    "compression": "^1.8.1",
     "connect-flash": "^0.1.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",

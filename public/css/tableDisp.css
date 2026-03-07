@@ -21,12 +21,12 @@ input {
 }
 
 .tabulator .tabulator-header {
-  background-color: #1a1a2e !important;
+  background-color: #044A78 !important;
 }
 
 .tabulator .tabulator-col,
 .tabulator .tabulator-col-content {
-  background-color: #1a1a2e !important;
+  background-color: #044A78 !important;
   color: #fff !important;
   font-size: 15px !important;
   font-weight: 600 !important;
@@ -36,7 +36,7 @@ input {
 .tabulator .tabulator-cell {
   font-size: 14px;
   font-weight: 500;
-  color: #1a1e2e !important;
+  color: #044A78 !important;
   border: 2px solid transparent;
   padding: 2px 4px !important;
   transition: all 0.1s ease-in-out;
@@ -44,7 +44,7 @@ input {
 }
 
 .tabulator .tabulator-cell:hover {
-  border: 2px solid #1a1a2e;
+  border: 2px solid #044A78;
 }
 
 .tabulator .tabulator-row {
@@ -75,18 +75,18 @@ input {
 }
 
 .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb {
-  background: #1a1a2e;
+  background: #044A78;
   border-radius: 6px;
 }
 
 .tabulator .tabulator-tableholder::-webkit-scrollbar-thumb:hover {
-  background: #1a1a2e;
+  background: #044A78;
 }
 
 /* Firefox */
 .tabulator .tabulator-tableholder {
   scrollbar-width: thin;
-  scrollbar-color: #1a1e2e #f0f2f5;
+  scrollbar-color: #044A78 #f0f2f5;
 }
 
 .side-nav {
@@ -121,7 +121,7 @@ input {
 
 .download-selector__trigger {
   background-color: #f0f0f0;
-  color: #1a1a2e;
+  color: #044A78;
   padding: 2px 14px;
   font-size: 14px;
   font-weight: 500;
@@ -145,7 +145,7 @@ input {
   position: absolute;
   background-color: rgb(240, 240, 240);
   width: 100%;
-  border: 1px solid #1a1a2e;
+  border: 1px solid #044A78;
   border-radius: 0.5rem;
   z-index: 1000;
   opacity: 0;
@@ -163,7 +163,7 @@ input {
 }
 
 .download-selector__option {
-  color: #1a1a2e;
+  color: #044A78;
   padding: 8px 10px;
   font-size: 15px;
   text-decoration: none;
@@ -188,7 +188,7 @@ input {
 
 .download-selector__option-icon {
   width: 20px;
-  color: #1a1a2e;
+  color: #044A78;
 }
 
 .download-typo {
@@ -199,7 +199,7 @@ input {
   width: 100%;
   border-radius: 0.5rem;
   padding: 0.4rem 0.8rem;
-  background-color: #1a1a2e;
+  background-color: #044A78;
   color: white;
   display: flex;
   justify-content: space-between;
@@ -248,6 +248,6 @@ input {
 .client-name-cell {
   cursor: pointer;
   font-weight: 600;
-  color: #1a1a2e;
+  color: #044A78;
   text-decoration: underline;
 }

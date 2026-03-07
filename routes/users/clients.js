@@ -19,7 +19,7 @@ router.get("/view", async (req, res) => {
         clientMsme: 1,
         clientGumasta: 1,
         clientStatus: 1,
-      }
+      },
     );
 
     res.render("users/clientsView.ejs", {
@@ -80,11 +80,10 @@ router.post("/edit/:id", async (req, res) => {
     });
 
     req.flash("notification", "Client updated successfully!");
-    res.redirect("/fairdesk/client/view");
+    res.json({ success: true, redirect: "/fairdesk/client/view" });
   } catch (err) {
     console.error(err);
-    req.flash("notification", "Failed to update client");
-    res.redirect("back");
+    res.status(400).json({ success: false, message: "Failed to update client" });
   }
 });
 

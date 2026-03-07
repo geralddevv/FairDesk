@@ -28,14 +28,10 @@ router.post("/create", async (req, res) => {
     const amount = Number(loanAmount) || 0;
 
     // accept both names safely
-    const newEmi =
-      Number(req.body.emi) ||
-      Number(req.body.emiAmount) ||
-      0;
+    const newEmi = Number(req.body.emi) || Number(req.body.emiAmount) || 0;
 
     if (!employeeId || amount <= 0 || newEmi <= 0) {
-      req.flash("error", "Invalid loan or EMI amount");
-      return res.redirect("back");
+      return res.status(400).json({ success: false, message: "Invalid loan or EMI amount" });
     }
 
     const empObjectId = new mongoose.Types.ObjectId(employeeId);
@@ -62,7 +58,7 @@ router.post("/create", async (req, res) => {
       });
 
       req.flash("notification", "Loan issued successfully");
-      return res.redirect("/fairdesk/loan/create");
+      return res.json({ success: true, redirect: "/fairdesk/loan/create" });
     }
 
     /* LOAN RE-ISSUE (TOP-UP / CONSOLIDATION) */
@@ -100,23 +96,18 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "Loan re-issued successfully");
-    return res.redirect("/fairdesk/loan/create");
-
+    return res.json({ success: true, redirect: "/fairdesk/loan/create" });
   } catch (err) {
     console.error(err);
-    req.flash("error", "Failed to issue loan");
-    return res.redirect("back");
+    res.status(400).json({ success: false, message: "Failed to issue loan" });
   }
 });
 
 /* LOAN DISPLAY */
 router.get("/view", async (req, res) => {
-  const loans = await Loan.find()
-    .populate("employee", "empName empId")
-    .sort({ updatedAt: -1 })
-    .lean();
+  const loans = await Loan.find().populate("employee", "empName empId").sort({ updatedAt: -1 }).lean();
 
-  const jsonData = loans.map(l => ({
+  const jsonData = loans.map((l) => ({
     employeeId: l.employee?._id,
     employeeName: l.employee?.empName || "-",
     empId: l.employee?.empId || "-",
@@ -148,7 +139,7 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
     return res.json({ history: [] });
   }
 
-  const formatted = logs.map(l => ({
+  const formatted = logs.map((l) => ({
     employeeName: l.employee?.empName || "-",
     empId: l.employee?.empId || "-",
 
@@ -171,6 +162,5 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
     history: formatted,
   });
 });
-
 
 export default router;

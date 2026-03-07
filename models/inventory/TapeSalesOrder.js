@@ -3,9 +3,15 @@ import mongoose from "mongoose";
 const tapeSalesOrderSchema = new mongoose.Schema(
   {
     /* ================= REFERENCES ================= */
+    onBindingModel: {
+      type: String,
+      required: true,
+      enum: ["TapeBinding", "PosRollBinding", "TafetaBinding", "TtrBinding", "LabelBinding"],
+      default: "TapeBinding",
+    },
     tapeBinding: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "TapeBinding",
+      refPath: "onBindingModel",
       required: true,
       index: true,
     },
@@ -17,9 +23,15 @@ const tapeSalesOrderSchema = new mongoose.Schema(
       index: true,
     },
 
+    onModel: {
+      type: String,
+      required: true,
+      enum: ["Tape", "PosRoll", "Tafeta", "Ttr", "Label"],
+      default: "Tape",
+    },
     tapeId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Tape",
+      refPath: "onModel",
       required: true,
       index: true,
     },

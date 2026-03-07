@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tafeta Profile</title>
+
+    <style>
+      :root {
+        --primary: #044a78;
+        --secondary: #2f335c;
+        --bg: #f4f6f9;
+        --card: #ffffff;
+        --muted: #6b6f8c;
+        --line: #e2e5f1;
+      }
+
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        margin: 0;
+        padding: 28px;
+        color: var(--primary);
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: auto;
+        background: var(--card);
+        padding: 36px;
+        border-radius: 12px;
+        box-shadow: 0 14px 34px rgba(26, 26, 46, 0.12);
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        padding-bottom: 24px;
+        border-bottom: 2px solid var(--primary);
+      }
+
+      .title h2 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 600;
+      }
+
+      .meta {
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .edit-btn {
+        margin-left: auto;
+        padding: 8px 16px;
+        background: var(--primary);
+        color: #fff;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        transition: 0.2s;
+      }
+
+      .edit-btn:hover {
+        background: #0f1020;
+      }
+
+      .section {
+        margin-top: 32px;
+      }
+
+      .section h3 {
+        font-size: 15px;
+        color: var(--secondary);
+        margin-bottom: 10px;
+      }
+
+      .divider {
+        height: 2px;
+        background: var(--line);
+        margin-bottom: 16px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+      }
+
+      .row:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        color: var(--muted);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- HEADER -->
+      <div class="header">
+        <div class="title">
+          <h2><%= tafeta.tafetaProductId %></h2>
+          <div class="meta">Tafeta Master Record</div>
+        </div>
+
+        <a href="/fairdesk/tafeta/edit/<%= tafeta._id %>" class="edit-btn">Edit</a>
+      </div>
+
+      <!-- MATERIAL DETAILS -->
+      <div class="section">
+        <h3>Material Details</h3>
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="label">Material Code</div>
+          <div><%= tafeta.tafetaMaterialCode %></div>
+        </div>
+        <div class="row">
+          <div class="label">Material Type</div>
+          <div><%= tafeta.tafetaMaterialType %></div>
+        </div>
+        <div class="row">
+          <div class="label">Color</div>
+          <div><%= tafeta.tafetaColor %></div>
+        </div>
+        <div class="row">
+          <div class="label">GSM</div>
+          <div><%= tafeta.tafetaGsm %></div>
+        </div>
+      </div>
+
+      <!-- SIZE DETAILS -->
+      <div class="section">
+        <h3>Size & Roll</h3>
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="label">Width</div>
+          <div><%= tafeta.tafetaWidth %></div>
+        </div>
+        <div class="row">
+          <div class="label">Meters</div>
+          <div><%= tafeta.tafetaMtrs %></div>
+        </div>
+        <div class="row">
+          <div class="label">Core Length</div>
+          <div><%= tafeta.tafetaCoreLen %></div>
+        </div>
+        <div class="row">
+          <div class="label">Notch</div>
+          <div><%= tafeta.tafetaNotch %></div>
+        </div>
+        <div class="row">
+          <div class="label">Core ID</div>
+          <div><%= tafeta.tafetaCoreId %></div>
+        </div>
+      </div>
+
+      <!-- META -->
+      <div class="section">
+        <h3>System Info</h3>
+        <div class="divider"></div>
+
+        <div class="row">
+          <div class="label">Created At</div>
+          <div><%= tafeta.createdAt?.toDateString() %></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

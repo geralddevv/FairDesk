@@ -1,0 +1,313 @@
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content">
+  <form class="rottary-content" method="post" action="/fairdesk/ttrstock/create">
+
+    <!-- ================= HEADER ================= -->
+    <div class="span-full form-heading" style="display:flex; justify-content:space-between; flex-direction:row;">
+
+      <!-- ================= LOCATION ================= -->
+      <div class="span-five" style="display:flex; gap:6px; justify-content:start; flex-direction:row; width:auto;">
+        <label class="stock-header-label" style="width:auto;">Location</label>
+        <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
+          <option value="" disabled selected hidden>Select Location</option>
+          <option value="UNIT 1">UNIT 1</option>
+          <option value="UNIT 2">UNIT 2</option>
+        </select>
+      </div>
+
+      <!-- ================= TITLE ================= -->
+      <h1>TTR Stock Entry</h1>
+
+      <!-- ================= CURRENT STOCK ================= -->
+      <div class="span-five" id="stockWrap" style="display:flex; gap:6px; justify-content:end; flex-direction:row; width:auto;">
+        <label class="stock-header-label" style="width:auto;">Current Stock</label>
+        <input type="number" id="currentStock" class="form-control input-tag" style="width:100px" value="0" readonly />
+      </div>
+    </div>
+
+    <!-- ================= TTR SPECS ================= -->
+    <div class="span-five">
+      <label>TTR ID</label>
+      <input type="text" id="resolvedTtr" class="form-control input-tag" placeholder="ID will appear here" readonly />
+      <input type="hidden" name="ttrId" id="resolvedTtrId" />
+    </div>
+
+    <div class="span-six">
+      <label for="ttr-material-code">Material Code</label>
+      <select name="ttrMaterialCode" id="ttr-material-code" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% materialCodes?.forEach(mc => { %>
+          <option value="<%= mc %>"><%= mc %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-type">Type</label>
+      <select name="ttrType" id="ttr-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% types?.forEach(t => { %>
+          <option value="<%= t %>"><%= t %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-color">Color</label>
+      <select name="ttrColor" id="ttr-color" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% colors?.forEach(c => { %>
+          <option value="<%= c %>"><%= c %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-width">Width</label>
+      <select name="ttrWidth" id="ttr-width" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% widths?.forEach(w => { %>
+          <option value="<%= w %>"><%= w %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-mtrs">MTRS</label>
+      <select name="ttrMtrs" id="ttr-mtrs" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% mtrsList?.forEach(m => { %>
+          <option value="<%= m %>"><%= m %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-ink-face">Ink Face</label>
+      <select name="ttrInkFace" id="ttr-ink-face" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% inkFaces?.forEach(i => { %>
+          <option value="<%= i %>"><%= i %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-core-id">Core ID</label>
+      <select name="ttrCoreId" id="ttr-core-id" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% coreIds?.forEach(c => { %>
+          <option value="<%= c %>"><%= c %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-six">
+      <label for="ttr-core-length">Core Length</label>
+      <select name="ttrCoreLength" id="ttr-core-length" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% coreLengths?.forEach(cl => { %>
+          <option value="<%= cl %>"><%= cl %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="ttr-notch">Notch</label>
+      <select name="ttrNotch" id="ttr-notch" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% notches?.forEach(n => { %>
+          <option value="<%= n %>"><%= n %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="span-six">
+      <label for="ttr-winding">Winding</label>
+      <select name="ttrWinding" id="ttr-winding" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% windings?.forEach(w => { %>
+          <option value="<%= w %>"><%= w %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <!-- ================= RESOLVED TTR ================= -->
+    <div class="span-full form-subheading"></div>
+
+    <!-- ================= QUANTITY ================= -->
+    <div class="span-seven">
+      <label>Quantity</label>
+      <input type="number" name="quantity" class="form-control input-tag" min="1" placeholder="Enter Quantity" required />
+    </div>
+
+    <div class="span-half" style="grid-column: span 25;">
+      <label>Remarks</label>
+      <input type="text" name="remarks" class="form-control input-tag" placeholder="Enter Remarks" />
+    </div>
+
+    <div class="span-full btn-grp">
+      <button type="submit" id="submitBtn" disabled>Save Stock</button>
+    </div>
+
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const locationSelect = document.getElementById("locationSelect");
+  const stockInput = document.getElementById("currentStock");
+
+  const resolvedTtr = document.getElementById("resolvedTtr");
+  const resolvedTtrId = document.getElementById("resolvedTtrId");
+  const submitBtn = document.getElementById("submitBtn");
+
+  const ttrFields = [
+    "ttr-type",
+    "ttr-color",
+    "ttr-material-code",
+    "ttr-width",
+    "ttr-mtrs",
+    "ttr-ink-face",
+    "ttr-core-id",
+    "ttr-core-length",
+    "ttr-notch",
+    "ttr-winding",
+  ];
+
+  /* ================= CONFIG ================= */
+  const fieldToApiKey = {
+    "ttr-type": "types",
+    "ttr-color": "colors",
+    "ttr-material-code": "materialCodes",
+    "ttr-width": "widths",
+    "ttr-mtrs": "mtrsList",
+    "ttr-ink-face": "inkFaces",
+    "ttr-core-id": "coreIds",
+    "ttr-core-length": "coreLengths",
+    "ttr-notch": "notches",
+    "ttr-winding": "windings",
+  };
+
+  const fieldToParam = {
+    "ttr-type": "ttrType",
+    "ttr-color": "ttrColor",
+    "ttr-material-code": "ttrMaterialCode",
+    "ttr-width": "ttrWidth",
+    "ttr-mtrs": "ttrMtrs",
+    "ttr-ink-face": "ttrInkFace",
+    "ttr-core-id": "ttrCoreId",
+    "ttr-core-length": "ttrCoreLength",
+    "ttr-notch": "ttrNotch",
+    "ttr-winding": "ttrWinding",
+  };
+
+  /* ================= CHOICES INIT ================= */
+  const specChoices = {};
+  ttrFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      specChoices[id] = new Choices(el, {
+        searchEnabled: true,
+        shouldSort: false,
+        itemSelectText: "",
+      });
+    }
+  });
+
+  /* ================= SMART FILTER ================= */
+  async function filterSpecs(changedFieldId) {
+    const params = new URLSearchParams();
+    ttrFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.value) {
+        params.set(fieldToParam[id], el.value);
+      }
+    });
+
+    try {
+      const res = await fetch(`/fairdesk/ttrstock/filter-specs?${params}`);
+      const data = await res.json();
+      if (!data) return;
+
+      ttrFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+
+        const apiKey = fieldToApiKey[id];
+        const filteredValues = data[apiKey] || [];
+        const currentValue = document.getElementById(id)?.value || "";
+
+        const newChoices = filteredValues.map(v => ({
+          value: String(v),
+          label: String(v),
+          selected: String(v) === currentValue,
+        }));
+
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: !currentValue }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+    } catch (err) {
+      console.error("Filter specs error:", err);
+    }
+  }
+
+  /* ================= RESOLVE ================= */
+  async function resolveTtr() {
+    const values = {};
+    for (let id of ttrFields) {
+      const el = document.getElementById(id);
+      if (!el || !el.value) return;
+      values[id] = el.value;
+    }
+
+    const res = await fetch("/fairdesk/ttrstock/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: values["ttr-type"],
+        color: values["ttr-color"],
+        materialCode: values["ttr-material-code"],
+        width: values["ttr-width"],
+        mtrs: values["ttr-mtrs"],
+        inkFace: values["ttr-ink-face"],
+        coreId: values["ttr-core-id"],
+        coreLength: values["ttr-core-length"],
+        notch: values["ttr-notch"],
+        winding: values["ttr-winding"],
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.found) {
+      resolvedTtr.value = "No matching TTR found";
+      resolvedTtrId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+      return;
+    }
+
+    resolvedTtr.value = data.TtrProductId;
+    resolvedTtrId.value = data.ttrId;
+    submitBtn.disabled = false;
+
+    if (locationSelect.value) fetchStock();
+  }
+
+  /* ================= STOCK FETCH ================= */
+  async function fetchStock() {
+    if (!resolvedTtrId.value || !locationSelect.value) return;
+    const res = await fetch(`/fairdesk/ttrstock/balance/${resolvedTtrId.value}/${locationSelect.value}`);
+    const data = await res.json();
+    stockInput.value = data.stock ?? 0;
+  }
+
+  /* ================= HANDLERS ================= */
+  ttrFields.forEach(id => {
+    document.getElementById(id)?.addEventListener("change", async () => {
+      await filterSpecs(id);
+      resolveTtr();
+    });
+  });
+
+  locationSelect.addEventListener("change", fetchStock);
+});
+</script>

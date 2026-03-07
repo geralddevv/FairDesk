@@ -11,7 +11,7 @@
     </div>
 
     <!-- Stock Status Bar with Location Selection -->
-    <div id="stock-display" class="span-full" style="display: none; padding: 10px 15px; background: #fff; border: 1px solid #1a1a2e; border-radius: 0.5rem; transition: all 0.3s ease;">
+    <div id="stock-display" class="span-full" style="display: none; padding: 10px 15px; background: #fff; border: 1px solid #044A78; border-radius: 0.5rem; transition: all 0.3s ease;">
       <!-- Content populated by JS -->
     </div>
     <input type="hidden" name="sourceLocation" id="source-location" />
@@ -26,6 +26,8 @@
       <select name="itemType" id="item-type" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select Item Type</option>
         <option value="TAPE">Tape</option>
+        <option value="POS_ROLL">POS Roll</option>
+        <option value="TAFETA">Tafeta</option>
         <option value="LABEL">Label</option>
         <option value="TTR">TTR</option>
       </select>
@@ -119,14 +121,14 @@
             <div style="padding: 6px 0; border-bottom: 1px dashed #e0f2fe; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
                 <span>
                     <span style="color: #64748b; font-size: 12px; margin-right: 5px;">
-                        <%= new Date(log.performedAt).toLocaleString('en-IN', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %>
+                        <%= new Date(log.performedAt).toLocaleDateString('en-IN', { month: 'short', day: '2-digit', year: 'numeric' }) %>
                     </span>
                     <% if (log.invoiceNumber) { %>
                     <span style="font-family: monospace; background: #e0f2fe; padding: 1px 6px; border-radius: 4px; font-size: 12px;">
                         <%= log.invoiceNumber %>
                     </span>
                     <% } %>
-                <strong><%= log.quantity %></strong> sent 
+                <span style="margin-left: 6px;"><strong><%= log.quantity %></strong> sent</span>
                 <span style="color: #64748b;">(Remaining: <%= runningRemaining %>)</span>
                 </span>
                 <span style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
@@ -182,7 +184,7 @@
 <div id="edit-log-dialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; transition:opacity 0.3s;">
   <div style="background:white; border-radius:8px; width:440px; max-width:90%; box-shadow:0 4px 15px rgba(0,0,0,0.2); overflow:hidden; animation:logDialogPopIn 0.2s ease-out;">
     <div style="padding:20px 20px 0; border-bottom: 1px solid #e5e7eb;">
-      <h3 style="margin:0 0 15px; color:#1a1a2e; font-size:17px;"><i class="fa-solid fa-pencil" style="margin-right:6px;"></i>Edit Dispatch Log</h3>
+      <h3 style="margin:0 0 15px; color:#044A78; font-size:17px;"><i class="fa-solid fa-pencil" style="margin-right:6px;"></i>Edit Dispatch Log</h3>
     </div>
     <div style="padding:20px;">
       <input type="hidden" id="edit-log-id" />
@@ -201,7 +203,7 @@
     </div>
     <div style="padding:15px 20px; background:#f9fafb; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid #e5e7eb;">
       <button type="button" onclick="closeEditDialog()" style="padding:8px 16px; border:1px solid #d1d5db; background:white; color:#374151; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">Cancel</button>
-      <button type="button" onclick="submitEditLog()" style="padding:8px 16px; border:none; background:#1a1a2e; color:white; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save Changes</button>
+      <button type="button" onclick="submitEditLog()" style="padding:8px 16px; border:none; background:#044A78; color:white; border-radius:6px; cursor:pointer; font-weight:500; transition:all 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Save Changes</button>
     </div>
   </div>
 </div>
@@ -228,7 +230,7 @@
   }
   #edit-log-qty:focus, #edit-log-invoice:focus, #edit-log-date:focus {
     outline: none;
-    border-color: #1a1a2e;
+    border-color: #044A78;
     box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1);
   }
 </style>
@@ -265,19 +267,19 @@
   }
 
   .location-option.selected {
-    border-color: #1a1a2e;
+    border-color: #044A78;
     background: #eef0ff;
   }
 
   .location-radio {
-    accent-color: #1a1a2e;
+    accent-color: #044A78;
     width: 16px;
     height: 16px;
     cursor: pointer;
   }
 
   .location-label {
-    color: #1a1a2e;
+    color: #044A78;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -285,7 +287,7 @@
 
   .location-qty {
     font-weight: 700;
-    color: #1a1a2e;
+    color: #044A78;
     font-size: 15px;
   }
 </style>
@@ -408,7 +410,7 @@
       try {
         const stock = JSON.parse(selectedOption.dataset.stock);
         
-        const allLocations = ["UNIT 1", "UNIT 2", "UNIT 3"];
+        const allLocations = ["UNIT 1", "UNIT 2"];
 
         // Build "ALL" option
         let locationHtml = `<label class="location-option selected" data-location="ALL" data-qty="${stock.totalStock}" data-booked="${stock.booked || 0}" data-balance="${stock.balance || 0}">
@@ -434,7 +436,7 @@
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
             <div style="display: flex; flex-wrap: wrap; align-items: center;">${locationHtml}</div>
             <div id="stock-stats" style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
-              <div style="font-weight: 700; color: #1a1a2e; font-size: 16px;">
+              <div style="font-weight: 700; color: #044A78; font-size: 16px;">
                 <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">${stock.totalStock}</span>
               </div>
               <div style="font-weight: 700; color: #d97706; font-size: 16px;" title="Pending Orders">
@@ -536,14 +538,14 @@
     const selectedOption = itemSelect.options[itemSelect.selectedIndex];
     
     // Check Source Location
-    if (itemType === "TAPE" && !sourceLocationInput.value) {
+    if ((itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA") && !sourceLocationInput.value) {
       e.preventDefault();
       showToast("Please select a source location from the stock display.", "error");
       return false;
     }
 
     // Check Minimum Order Qty
-    if (itemType === "TAPE" && selectedOption) {
+    if ((itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA") && selectedOption) {
       const minQty = parseInt(selectedOption.dataset.minQty) || 0;
       if (qty < minQty) {
         e.preventDefault();
@@ -567,10 +569,12 @@
     const toast = document.createElement("div");
     toast.textContent = message;
     
-    // Style based on type
-    const bg = type === "error" ? "#fee2e2" : "#e0f2fe";
-    const color = type === "error" ? "#991b1b" : "#075985";
-    const border = type === "error" ? "#f87171" : "#38bdf8";
+    // Style based on type (supports "error", "success", true/false)
+    const isError = type === "error" || type === true;
+    const isSuccess = type === "success" || type === false;
+    const bg = isError ? "#fee2e2" : (isSuccess ? "#dcfce7" : "#e0f2fe");
+    const color = isError ? "#991b1b" : (isSuccess ? "#166534" : "#075985");
+    const border = isError ? "#f87171" : (isSuccess ? "#22c55e" : "#38bdf8");
 
     toast.style.cssText = `
       padding: 12px 24px;
@@ -649,7 +653,13 @@
          itemSelect.innerHTML = '';
          const itemOpt = document.createElement("option");
          itemOpt.value = itemId;
-         const tapeName = orderToEdit.tapeId ? (orderToEdit.tapeId.tapePaperCode + " " + orderToEdit.tapeId.tapeGsm + "gsm") : "Item";
+         let tapeName = "Item";
+         if (orderToEdit.tapeId) {
+            const t = orderToEdit.tapeId;
+            if (t.tapePaperCode) tapeName = t.tapePaperCode + " " + t.tapeGsm + "gsm";
+            else if (t.posPaperCode) tapeName = t.posPaperCode + " " + t.posGsm + "gsm";
+            else if (t.tafetaMaterialCode) tapeName = t.tafetaMaterialCode + " " + t.tafetaGsm + "gsm";
+         }
          itemOpt.textContent = tapeName;
          
          // INJECT STOCK INFO
@@ -818,7 +828,7 @@
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Log updated successfully!');
+        showToast('Log updated successfully!', false);
         await refreshLogsSection();
       } else {
         showToast(data.message || 'Failed to update log.', 'error');
@@ -839,7 +849,7 @@
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Log deleted successfully!');
+        showToast('Log deleted successfully!', false);
         await refreshLogsSection();
       } else {
         showToast(data.message || 'Failed to delete log.', 'error');
