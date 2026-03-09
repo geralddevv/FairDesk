@@ -45,16 +45,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  transition:
-    opacity 0.4s ease-out,
-    visibility 0.4s ease-out;
 }
 
-/* Add this class via JS to fade it out smoothly */
 #global-spinner.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+  display: none;
 }
 
 .spinner-circle {
@@ -72,6 +66,36 @@
   }
 }
 /* ================================================== */
+
+/* =============== TABLE LOADING SPINNER =============== */
+.table-spinner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(244, 246, 249, 0.7); /* match --bg lightly */
+  z-index: 9999;
+}
+.table-spinner.hidden {
+  display: none;
+}
+.table-spinner .spinner-circle {
+  width: 50px;
+  height: 50px;
+}
+/* When spinner is active, keep table hidden to avoid layout jumps */
+.table-spinner:not(.hidden) + #master-table {
+  opacity: 0;
+  pointer-events: none;
+}
+#master-table {
+  opacity: 1;
+}
+/* ===================================================== */
 
 label,
 [class^="span-"] {

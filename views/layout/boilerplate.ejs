@@ -42,14 +42,7 @@
         color: #0a3646;
       }
 
-      /* Hide page content until JS finishes */
-      .page-content {
-        opacity: 0;
-      }
-      .page-content.ready {
-        opacity: 1;
-        transition: opacity 0.15s ease-in;
-      }    
+
 
       .toast-success {
         background-color: #d1e7dd;
@@ -134,11 +127,6 @@
     </style>
   </head>
   <body>
-    <!-- Global Loading Spinner -->
-    <div id="global-spinner">
-      <div class="spinner-circle"></div>
-    </div>
-
     <% if ((notification && notification.length) || (error && error.length)) { %>
     <div class="toast-notification <%= error && error.length ? 'toast-error' : 'toast-success' %>" id="toast">
       <span> <%= error && error.length ? error[0] : notification[0] %> </span>
@@ -469,11 +457,7 @@
     <% if(JS) { %>
     <script src="/js/<%= JS %>" defer></script>
     <% } %>
-<script>
-  window.addEventListener("load", () => {
-    document.getElementById("pageContent")?.classList.add("ready");
-  });
-</script>
+
 
     <script>
       const toast = document.getElementById("toast");
@@ -490,12 +474,12 @@
         setTimeout(hideToast, 5000);
       }
 
-      // Hide Global Spinner on Load
+
+      // Instantly hide and remove table spinners after page fully loads
       window.addEventListener("load", () => {
-        const spinner = document.getElementById("global-spinner");
-        if (spinner) {
-          spinner.classList.add("hidden");
-        }
+        document.querySelectorAll('.table-spinner').forEach(el => {
+          el.remove();
+        });
       });
     </script>
   </body>

@@ -370,19 +370,46 @@
                     <span class="info-label">Department:</span>
                     <span class="info-value"><%= userData.userDepartment %></span>
                 </div>
-                <div class="info-item">
+                <div class="info-item" style="border: none;">
                     <span class="info-label">Dispatch Type:</span>
-                    <span class="info-value"><%= userData.SelfDispatch %></span>
+                    <span class="info-value"><%= userData.SelfDispatch ? 'Self Dispatch' : 'Transport' %></span>
                 </div>
             </div>
             
             <!-- Full width dispatch information card -->
             <div class="info-card full-width-card">
                 <h3>Dispatch Information</h3>
+                <style>.full-width-card .info-item:last-child { border-bottom: none !important; }</style>
                 <div class="info-item">
                     <span class="info-label">Dispatch Address:</span>
                     <span class="info-value"><%= userData.dispatchAddress %></span>
                 </div>
+                <% if (!userData.SelfDispatch) { %>
+                    <div class="info-item">
+                        <span class="info-label">Transport Name:</span>
+                        <span class="info-value"><%= userData.transportName || 'N/A' %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Transport Contact:</span>
+                        <span class="info-value"><%= userData.transportContact || 'N/A' %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Drop Location:</span>
+                        <span class="info-value"><%= userData.dropLocation || 'N/A' %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Delivery Mode:</span>
+                        <span class="info-value"><%= userData.deliveryMode || 'N/A' %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Delivery Location:</span>
+                        <span class="info-value"><%= userData.deliveryLocation || 'N/A' %></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Payment:</span>
+                        <span class="info-value"><%= userData.clientPayment || 'N/A' %></span>
+                    </div>
+                <% } %>
             </div>
         </div>
         

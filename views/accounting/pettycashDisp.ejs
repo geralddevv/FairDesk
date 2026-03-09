@@ -35,6 +35,7 @@
     </div>
   </div>
 
+  <div class="table-spinner"><div class="spinner-circle"></div></div>
   <div id="master-table"></div>
 </div>
 
@@ -84,13 +85,13 @@
          </span>`,
       cellClick: async (e, cell) => {
         const { location } = cell.getRow().getData();
-      
+
         const res = await fetch(`/fairdesk/pettycash/logs/${location}`);
         const { history } = await res.json();
-      
+
         table.setColumns(logColumns);
         table.replaceData(history);
-      
+
         document.querySelector(".indi-head h1").innerText =
           `Petty Cash — ${location}`;
         document.getElementById("backToSnapshot").style.display = "inline-flex";
@@ -153,29 +154,26 @@
 
 <script>
   /* ===== TRANSACTION TYPE → VISIBILITY + VALUE FIX ===== */
-function syncFields() {
-  if (txnType.value === "PAID") {
-    // PAID → only TO
-    fromWrap.style.display = "none";
-    fromInput.required = false;
-    fromInput.value = "-"; // ✅ FIXED
+  function syncFields() {
+    if (txnType.value === "PAID") {
+      // PAID → only TO
+      fromWrap.style.display = "none";
+      fromInput.required = false;
+      fromInput.value = "-"; // ✅ FIXED
 
-    toWrap.style.display = "block";
-    toInput.required = true;
-  } else {
-    // RECEIVED → only FROM
-    toWrap.style.display = "none";
-    toInput.required = false;
-    toInput.value = "-"; // ✅ FIXED
+      toWrap.style.display = "block";
+      toInput.required = true;
+    } else {
+      // RECEIVED → only FROM
+      toWrap.style.display = "none";
+      toInput.required = false;
+      toInput.value = "-"; // ✅ FIXED
 
-    fromWrap.style.display = "block";
-    fromInput.required = true;
+      fromWrap.style.display = "block";
+      fromInput.required = true;
+    }
   }
-}
-
 
   txnType.addEventListener("change", syncFields);
   syncFields(); // run once on load
 </script>
-
-

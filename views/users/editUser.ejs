@@ -1,31 +1,30 @@
-<!--- Link to boilerplate.ejs -->
 <% layout('/layout/boilerplate') -%>
 
 <div class="main-content">
   <div>
     <div class="span-full form-subheading gap" style="margin-bottom: 1rem;">
-      <div class="user-switch active">
+      <div>
         <h1>Edit User Details</h1>
       </div>
     </div>       
 
-    <form action="/fairdesk/form/edit/user/<%= user._id %>" method="post" class="user-content span-full needs-validation" autocomplete="off" novalidate>
+    <form action="/fairdesk/form/edit/user/<%= user._id %>" method="post" class="span-full needs-validation" style="display: grid; grid-template-columns: repeat(32, 1fr); gap: 1.25rem;" autocomplete="off" novalidate>
     
       <div class="span-full form-subheading">
         <h1>Client Reference</h1>
       </div>
 
-      <div class="span-four">
+      <div class="span-seven">
         <label for="user-client-id">Client Id</label>
         <input id="user-client-id" class="form-control input-tag" value="<%= user.clientId %>" disabled />
       </div>    
 
-      <div class="span-four">
+      <div class="span-six">
         <label for="client-name">Client Name</label>
         <input class="form-control input-tag" value="<%= user.clientName %>" disabled />
       </div>
 
-      <div class="span-four">
+      <div class="span-six">
         <label for="client-type">Client Type</label>
         <input class="form-control input-tag" value="<%= user.clientType %>" disabled />
       </div>
@@ -35,7 +34,7 @@
         <input type="text" id="username-ho-location" class="form-control input-tag" name="hoLocation" value="<%= user.hoLocation %>" placeholder="Enter H/O Location" required />
       </div>
 
-      <div class="span-six">
+      <div class="span-seven">
         <label for="account-head">Account Head</label>
         <input type="text" id="username-account-head" class="form-control input-tag" name="accountHead" value="<%= user.accountHead %>" placeholder="Enter Account Head" required />
       </div>    
@@ -88,7 +87,7 @@
         </div>
       </div>       
 
-      <div class="span-full hardware-options" style="display: <%= !user.SelfDispatch ? 'grid' : 'none' %>;">
+      <div class="span-full hardware-options" style="display: <%= !user.SelfDispatch ? 'grid' : 'none' %>; grid-template-columns: repeat(32, 1fr); gap: 1.25rem;">
         <div class="span-six">
           <label for="transport-name">Name</label>
           <input type="text" id="transport-name" class="form-control input-tag" name="transportName" value="<%= user.transportName || '' %>" placeholder="Enter Transport Name" />
@@ -128,7 +127,7 @@
         </div>      
       </div>
 
-      <div class="span-full software-options" style="display: <%= user.SelfDispatch ? 'grid' : 'none' %>;">
+      <div class="span-full software-options" style="display: <%= user.SelfDispatch ? 'grid' : 'none' %>; grid-template-columns: repeat(32, 1fr); gap: 1.25rem;">
         <!-- If Self Dispatch is selected, this hidden input ensures a truthy value is sent over POST -->
         <input type="hidden" id="self-dispatch-value" name="SelfDispatch" value="<%= user.SelfDispatch || '' %>" />
         <input type="text" id="self-dispatch-display" class="form-control input-tag span-full" value="Self Dispatch" readonly />
@@ -149,6 +148,24 @@
     const hardwareOptions = document.querySelector(".hardware-options");
     const softwareOptions = document.querySelector(".software-options");
     const selfDispatchInput = document.getElementById("self-dispatch-value");
+    
+    // Get all transport inputs
+    const transportInputs = hardwareOptions.querySelectorAll("input, select");
+
+    function updateTransportInputs(isTransport) {
+      transportInputs.forEach(input => {
+        if (isTransport) {
+          input.disabled = false;
+          input.required = true;
+        } else {
+          input.disabled = true;
+          input.required = false;
+        }
+      });
+    }
+
+    // Initialize state
+    updateTransportInputs(!selfDispatchTab.classList.contains("active"));
 
     transportTab.addEventListener("click", () => {
       transportTab.classList.add("active");
@@ -156,6 +173,7 @@
       hardwareOptions.style.display = "grid";
       softwareOptions.style.display = "none";
       selfDispatchInput.value = ""; // Clear self dispatch when transport selected
+      updateTransportInputs(true);
     });
 
     selfDispatchTab.addEventListener("click", () => {
@@ -164,6 +182,7 @@
       softwareOptions.style.display = "grid";
       hardwareOptions.style.display = "none";
       selfDispatchInput.value = "Self Dispatch"; // Set value when selected
+      updateTransportInputs(false);
     });
   });
 </script>

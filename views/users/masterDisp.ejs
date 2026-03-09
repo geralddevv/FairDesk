@@ -31,6 +31,7 @@
       </div>
     </div>
 
+    <div class="table-spinner"><div class="spinner-circle"></div></div>
     <div id="master-table" class="tabulator tabulator-modern"></div>
   </div>
 
@@ -87,6 +88,7 @@
       user.tapeCount = user.tape?.length || 0;
       user.posRollCount = user.posRoll?.length || 0;
       user.tafetaCount = user.tafeta?.length || 0;
+      user.dispatchType = user.SelfDispatch ? "Self Dispatch" : "Transport";
     });
 
     // ================= TABULATOR INIT =================
@@ -175,15 +177,15 @@
             headerSort: false,
           },
           {
-            title: "Self Dispatch",
-            field: "SelfDispatch",
+            title: "Dispatch Type",
+            field: "dispatchType",
             headerSort: false,
             headerFilter: "select",
             headerFilterParams: {
               values: {
                 "": "All",
-                "SELF DISPATCH": "SELF DISPATCH",
-                "THIRD PARTY": "THIRD PARTY",
+                "Self Dispatch": "Self Dispatch",
+                "Transport": "Transport",
               },
               clearable: true,
             },
@@ -286,7 +288,7 @@
       position: fixed;
       bottom: 28px;
       right: 28px;
-      background: #044A78;
+      background: #044a78;
       border-radius: 50px;
       display: flex;
       align-items: center;

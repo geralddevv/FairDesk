@@ -341,7 +341,7 @@ router.get("/form/edit/user/:userId", async (req, res) => {
     }
 
     res.render("users/editUser", {
-      CSS: false,
+      CSS: "tabOpt.css",
       title: "Edit User",
       JS: false,
       user,
@@ -2026,6 +2026,7 @@ router.get("/client/details/:userId", async (req, res) => {
 
     // 2️⃣ User + Client info (same as before)
     const userData = {
+      _id: user._id,
       clientId: user.clientId,
       clientName: user.clientName,
       clientType: user.clientType,
@@ -2039,6 +2040,12 @@ router.get("/client/details/:userId", async (req, res) => {
       userDepartment: user.userDepartment,
       SelfDispatch: user.SelfDispatch,
       dispatchAddress: user.dispatchAddress,
+      transportName: user.transportName,
+      transportContact: user.transportContact,
+      dropLocation: user.dropLocation,
+      deliveryMode: user.deliveryMode,
+      deliveryLocation: user.deliveryLocation,
+      clientPayment: user.clientPayment,
     };
 
     // 3️⃣ USER-ONLY inventory

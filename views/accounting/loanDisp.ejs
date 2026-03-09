@@ -12,13 +12,13 @@
 
     /* IMPORTANT FIX */
     color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.5);
-    background-color: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.12);
   }
 
   /* status variations — still subtle */
   .loan-highlight.active {
-    background-color: rgba(255,255,255,0.16);
+    background-color: rgba(255, 255, 255, 0.16);
   }
 
   .loan-highlight.closed {
@@ -32,43 +32,40 @@
   }
 </style>
 
-
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <div class="indi-head">
     <span style="display: flex; align-items: center; gap: 10px">
       <button
         id="backToSnapshot"
-        style="display:none;
-               background-color:transparent;
-               padding:2px 14px;
-               border: 1px solid #f0f0f0;
-               border-radius:0.3rem;
-               font-weight:500;
-               cursor:pointer;">
-        <i class="fa-solid fa-arrow-left" style="color: #ffffff;"></i>
+        style="
+          display: none;
+          background-color: transparent;
+          padding: 2px 14px;
+          border: 1px solid #f0f0f0;
+          border-radius: 0.3rem;
+          font-weight: 500;
+          cursor: pointer;
+        "
+      >
+        <i class="fa-solid fa-arrow-left" style="color: #ffffff"></i>
       </button>
-      <h1>Loans</h1>      
+      <h1>Loans</h1>
     </span>
 
     <div class="download-selector" id="downloadSelector">
       <button class="download-selector__trigger">
-        <span>
-          <i class="fa-solid fa-file-arrow-down"></i> Download
-        </span>
+        <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
         <i class="fas fa-chevron-down"></i>
       </button>
 
       <div class="download-selector__menu">
-        <div class="download-selector__option" id="download-pdf">
-          <i class="fas fa-file-pdf"></i> PDF
-        </div>
-        <div class="download-selector__option" id="download-xlsx">
-          <i class="fas fa-file-excel"></i> Excel
-        </div>
+        <div class="download-selector__option" id="download-pdf"><i class="fas fa-file-pdf"></i> PDF</div>
+        <div class="download-selector__option" id="download-xlsx"><i class="fas fa-file-excel"></i> Excel</div>
       </div>
     </div>
   </div>
 
+  <div class="table-spinner"><div class="spinner-circle"></div></div>
   <div id="master-table"></div>
 </div>
 
@@ -86,171 +83,171 @@
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
 <script>
-  /* ===== Dropdown ===== */
-  const downloadSelector = document.getElementById("downloadSelector");
-  const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
+    /* ===== Dropdown ===== */
+    const downloadSelector = document.getElementById("downloadSelector");
+    const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
 
-  triggerBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    downloadSelector.classList.toggle("download-selector--active");
-  });
-
-  document.addEventListener("click", () => {
-    downloadSelector.classList.remove("download-selector--active");
-  });
-
-  downloadSelector
-    .querySelector(".download-selector__menu")
-    .addEventListener("click", (e) => e.stopPropagation());
-
-  /* ===== Table ===== */
-  const tableData = <%- JSON.stringify(jsonData) %>;
-  const snapshotData = [...tableData];
-
-  const baseColumns = [
-    {
-      title: "Employee Name",
-      field: "employeeName",
-      formatter: function (cell) {
-        const data = cell.getRow().getData();
-      
-        return `
-          <div
-            class="emp-link"
-            data-id="${data.employeeId}"
-            style="
-              width:100%;
-              height:100%;
-              cursor:pointer;
-              font-weight:600;
-              text-decoration:underline;
-              display:flex;
-              align-items:center;
-            "
-            title="${data.employeeName}"
-          >
-            ${data.employeeName}
-          </div>
-        `;
-      }
-    },
-    { title: "Employee ID", field: "empId" },
-    { title: "Outstanding", field: "currentBalance" },
-    { title: "EMI", field: "emi" },
-    { title: "Status", field: "status" },
-    { title: "Last Updated", field: "updatedAt" },
-  ];
-
-  const logColumns = [
-    { title: "Employee Name", field: "employeeName" },
-    { title: "Employee ID", field: "empId" },
-    { title: "Opening Balance", field: "openingBalance" },
-    
-    {
-      title: "Action",
-      formatter: function (cell) {
-        const row = cell.getRow().getData();
-      
-        if (row.type === "CREDIT" && row.source === "MANUAL") {
-          return row.openingBalance === 0 ? "INITIAL LOAN" : "LOAN TOP-UP";
-        }
-      
-        if (row.type === "DEBIT" && row.source === "MANUAL") {
-          return "LOAN CLOSE";
-        }
-      
-        if (row.type === "DEBIT" && row.source === "PAYROLL") {
-          return "EMI DEDUCTION";
-        }
-      
-        return "-";
-      },
-      width: 150,
-    },
-  
-    {
-      title: "Amount",
-      field: "amount",
-      formatter: function (cell) {
-        const row = cell.getRow().getData();
-      
-        if (row.type === "DEBIT") {
-          return `- ₹${cell.getValue()}`;
-        }
-      
-        return `+ ₹${cell.getValue()}`;
-      },
-    },
-  
-    { title: "Closing Balance", field: "closingBalance" },
-    { title: "Type", field: "type" },
-    { title: "Source", field: "source" },
-    { title: "Date", field: "date" },
-  ];
-
-
-  const table = new Tabulator("#master-table", {
-    data: tableData,
-
-    layout: "fitColumns",
-    columnMinWidth: 120,
-    resizableColumns: true,
-    movableColumns: true,
-
-    pagination: "local",
-    paginationSize: 30,
-
-    columns: baseColumns,
-  });
-
-  document.addEventListener("click", async (e) => {
-  if (!e.target.classList.contains("emp-link")) return;
-
-  const employeeId = e.target.dataset.id;
-
-  const res = await fetch(`/fairdesk/loan/employee/${employeeId}/logs`);
-  const { history, summary } = await res.json();
-
-  if (!history.length) return;
-
-  table.setColumns(logColumns);
-  table.replaceData(history);
-
-  const statusClass = summary.status.toLowerCase();
-
-document.querySelector(".indi-head h1").innerHTML =
-  `Loans — Outstanding:
-   <span class="loan-highlight ${statusClass}">
-     ₹${summary.currentBalance} (${summary.status})
-   </span>`;
-
-
-  document.getElementById("backToSnapshot").style.display = "inline-flex";
-});
-
-  document
-  .getElementById("backToSnapshot")
-  .addEventListener("click", () => {
-    table.setColumns(baseColumns);
-    table.replaceData(snapshotData);
-
-    document.querySelector(".indi-head h1").innerText = "Loans";
-    document.getElementById("backToSnapshot").style.display = "none";
-  });
-
-  /* ===== Downloads ===== */
-  document.getElementById("download-pdf").addEventListener("click", () => {
-    table.download("pdf", "loan-data.pdf", {
-      orientation: "landscape",
-      title: "Loan Data",
+    triggerBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      downloadSelector.classList.toggle("download-selector--active");
     });
-    downloadSelector.classList.remove("download-selector--active");
+
+    document.addEventListener("click", () => {
+      downloadSelector.classList.remove("download-selector--active");
+    });
+
+    downloadSelector
+      .querySelector(".download-selector__menu")
+      .addEventListener("click", (e) => e.stopPropagation());
+
+    /* ===== Table ===== */
+    const tableData = <%- JSON.stringify(jsonData) %>;
+    const snapshotData = [...tableData];
+
+    const baseColumns = [
+      {
+        title: "Employee Name",
+        field: "employeeName",
+        formatter: function (cell) {
+          const data = cell.getRow().getData();
+
+          return `
+            <div
+              class="emp-link"
+              data-id="${data.employeeId}"
+              style="
+                width:100%;
+                height:100%;
+                cursor:pointer;
+                font-weight:600;
+                text-decoration:underline;
+                display:flex;
+                align-items:center;
+              "
+              title="${data.employeeName}"
+            >
+              ${data.employeeName}
+            </div>
+          `;
+        }
+      },
+      { title: "Employee ID", field: "empId" },
+      { title: "Outstanding", field: "currentBalance" },
+      { title: "EMI", field: "emi" },
+      { title: "Status", field: "status" },
+      { title: "Last Updated", field: "updatedAt" },
+    ];
+
+    const logColumns = [
+      { title: "Employee Name", field: "employeeName" },
+      { title: "Employee ID", field: "empId" },
+      { title: "Opening Balance", field: "openingBalance" },
+
+      {
+        title: "Action",
+        formatter: function (cell) {
+          const row = cell.getRow().getData();
+
+          if (row.type === "CREDIT" && row.source === "MANUAL") {
+            return row.openingBalance === 0 ? "INITIAL LOAN" : "LOAN TOP-UP";
+          }
+
+          if (row.type === "DEBIT" && row.source === "MANUAL") {
+            return "LOAN CLOSE";
+          }
+
+          if (row.type === "DEBIT" && row.source === "PAYROLL") {
+            return "EMI DEDUCTION";
+          }
+
+          return "-";
+        },
+        width: 150,
+      },
+
+      {
+        title: "Amount",
+        field: "amount",
+        formatter: function (cell) {
+          const row = cell.getRow().getData();
+
+          if (row.type === "DEBIT") {
+            return `- ₹${cell.getValue()}`;
+          }
+
+          return `+ ₹${cell.getValue()}`;
+        },
+      },
+
+      { title: "Closing Balance", field: "closingBalance" },
+      { title: "Type", field: "type" },
+      { title: "Source", field: "source" },
+      { title: "Date", field: "date" },
+    ];
+
+
+    const table = new Tabulator("#master-table", {
+      data: tableData,
+
+      layout: "fitColumns",
+      columnMinWidth: 120,
+      resizableColumns: true,
+      movableColumns: true,
+
+      pagination: "local",
+      paginationSize: 30,
+
+      columns: baseColumns,
+    });
+
+    document.addEventListener("click", async (e) => {
+    if (!e.target.classList.contains("emp-link")) return;
+
+    const employeeId = e.target.dataset.id;
+
+    const res = await fetch(`/fairdesk/loan/employee/${employeeId}/logs`);
+    const { history, summary } = await res.json();
+
+    if (!history.length) return;
+
+    table.setColumns(logColumns);
+    table.replaceData(history);
+
+    const statusClass = summary.status.toLowerCase();
+
+  document.querySelector(".indi-head h1").innerHTML =
+    `Loans — Outstanding:
+     <span class="loan-highlight ${statusClass}">
+       ₹${summary.currentBalance} (${summary.status})
+     </span>`;
+
+
+    document.getElementById("backToSnapshot").style.display = "inline-flex";
   });
 
-  document.getElementById("download-xlsx").addEventListener("click", () => {
-    table.download("xlsx", "loan-data.xlsx", {
-      sheetName: "Loans",
+    document
+    .getElementById("backToSnapshot")
+    .addEventListener("click", () => {
+      table.setColumns(baseColumns);
+      table.replaceData(snapshotData);
+
+      document.querySelector(".indi-head h1").innerText = "Loans";
+      document.getElementById("backToSnapshot").style.display = "none";
     });
-    downloadSelector.classList.remove("download-selector--active");
-  });
+
+    /* ===== Downloads ===== */
+    document.getElementById("download-pdf").addEventListener("click", () => {
+      table.download("pdf", "loan-data.pdf", {
+        orientation: "landscape",
+        title: "Loan Data",
+      });
+      downloadSelector.classList.remove("download-selector--active");
+    });
+
+    document.getElementById("download-xlsx").addEventListener("click", () => {
+      table.download("xlsx", "loan-data.xlsx", {
+        sheetName: "Loans",
+      });
+      downloadSelector.classList.remove("download-selector--active");
+    });
 </script>

@@ -1,10 +1,7 @@
 <% layout('/layout/boilerplate') -%>
 
 <!-- ================= TABULATOR CSS ================= -->
-<link
-  href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css"
-  rel="stylesheet"
-/>
+<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
 <style>
   .loan-highlight {
@@ -12,23 +9,23 @@
     border-radius: 0.35rem;
     font-weight: 600;
     font-size: 1.15rem;
-  
+
     /* IMPORTANT FIX */
     color: #ffffff;
-    border: 1px solid rgba(255,255,255,0.5);
-    background-color: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.12);
   }
-  
+
   /* status variations — still subtle */
   .loan-highlight.active {
-    background-color: rgba(255,255,255,0.16);
+    background-color: rgba(255, 255, 255, 0.16);
   }
-  
+
   .loan-highlight.closed {
     background-color: rgba(40, 167, 69, 0.25);
     border-color: rgba(40, 167, 69, 0.8);
   }
-  
+
   .loan-highlight.overdue {
     background-color: rgba(220, 53, 69, 0.25);
     border-color: rgba(220, 53, 69, 0.8);
@@ -41,39 +38,37 @@
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <div class="indi-head">
-    <span style="display:flex;align-items:center;gap:10px">
-    <button
-      id="backToSnapshot"
-      style="display:none;
-             background:transparent;
-             border:1px solid #f0f0f0;
-             border-radius:0.3rem;
-             padding:2px 14px;
-             cursor:pointer;">
-      <i class="fa-solid fa-arrow-left" style="color:#fff"></i>
-    </button>
-    <h1>Advance</h1>
-  </span>
+    <span style="display: flex; align-items: center; gap: 10px">
+      <button
+        id="backToSnapshot"
+        style="
+          display: none;
+          background: transparent;
+          border: 1px solid #f0f0f0;
+          border-radius: 0.3rem;
+          padding: 2px 14px;
+          cursor: pointer;
+        "
+      >
+        <i class="fa-solid fa-arrow-left" style="color: #fff"></i>
+      </button>
+      <h1>Advance</h1>
+    </span>
 
     <div class="download-selector" id="downloadSelector">
       <button class="download-selector__trigger">
-        <span>
-          <i class="fa-solid fa-file-arrow-down"></i> Download
-        </span>
+        <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
         <i class="fas fa-chevron-down"></i>
       </button>
 
       <div class="download-selector__menu">
-        <div class="download-selector__option" id="download-pdf">
-          <i class="fas fa-file-pdf"></i> PDF
-        </div>
-        <div class="download-selector__option" id="download-xlsx">
-          <i class="fas fa-file-excel"></i> Excel
-        </div>
+        <div class="download-selector__option" id="download-pdf"><i class="fas fa-file-pdf"></i> PDF</div>
+        <div class="download-selector__option" id="download-xlsx"><i class="fas fa-file-excel"></i> Excel</div>
       </div>
     </div>
   </div>
 
+  <div class="table-spinner"><div class="spinner-circle"></div></div>
   <div id="master-table"></div>
 </div>
 
@@ -118,7 +113,7 @@
       field: "employeeName",
       formatter: function (cell) {
         const data = cell.getRow().getData();
-      
+
         return `
           <div
             class="emp-link"

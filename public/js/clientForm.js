@@ -27,6 +27,7 @@
 
     hardwareInputs.forEach((input) => {
       input.disabled = !isHardwareVisible;
+      input.required = isHardwareVisible;
     });
 
     // Software options section
@@ -35,6 +36,7 @@
 
     softwareInputs.forEach((input) => {
       input.disabled = !isSoftwareVisible;
+      input.required = isSoftwareVisible;
     });
   }
 

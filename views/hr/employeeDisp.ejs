@@ -33,6 +33,7 @@
       </div>
     </div>
 
+    <div class="table-spinner"><div class="spinner-circle"></div></div>
     <div id="master-table" class="tabulator tabulator-modern"></div>
   </div>
 
@@ -44,169 +45,176 @@
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
   <script>
-  // ================= DOWNLOAD DROPDOWN =================
+      // ================= DOWNLOAD DROPDOWN =================
 
-  const downloadSelector = document.getElementById("downloadSelector");
-  const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
+      const downloadSelector = document.getElementById("downloadSelector");
+      const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
 
-  triggerBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    downloadSelector.classList.toggle("download-selector--active");
+      triggerBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        downloadSelector.classList.toggle("download-selector--active");
 
-    const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
-    icon.style.transform = downloadSelector.classList.contains("download-selector--active")
-      ? "rotate(180deg)"
-      : "rotate(0deg)";
-  });
+        const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
+        icon.style.transform = downloadSelector.classList.contains("download-selector--active")
+          ? "rotate(180deg)"
+          : "rotate(0deg)";
+      });
 
-  document.addEventListener("click", () => {
-    downloadSelector.classList.remove("download-selector--active");
-    const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
-    icon.style.transform = "rotate(0deg)";
-  });
+      document.addEventListener("click", () => {
+        downloadSelector.classList.remove("download-selector--active");
+        const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
+        icon.style.transform = "rotate(0deg)";
+      });
 
-  downloadSelector
-    .querySelector(".download-selector__menu")
-    .addEventListener("click", (e) => e.stopPropagation());
+      downloadSelector
+        .querySelector(".download-selector__menu")
+        .addEventListener("click", (e) => e.stopPropagation());
 
-  // ================= DATA =================
+      // ================= DATA =================
 
-  const tableData = <%- JSON.stringify(jsonData) %>;
+      const tableData = <%- JSON.stringify(jsonData) %>;
 
-  // ================= TABULATOR =================
+      // ================= TABULATOR =================
 
-  let table;
+      let table;
 
-  function initTable() {
-  table = new Tabulator("#master-table", {
-    data: tableData,
-    layout: "fitColumns",
-    columnMinWidth: 120,
-    resizableColumns: true,
-    movableColumns: true,
-    pagination: "local",
-    paginationSize: 30,
+      function initTable() {
+      table = new Tabulator("#master-table", {
+        data: tableData,
+        layout: "fitColumns",
+        columnMinWidth: 120,
+        resizableColumns: true,
+        movableColumns: true,
+        pagination: "local",
+        paginationSize: 30,
 
-    columns: [
-      {
-        title: "Name",
-        field: "empName",
-        formatter: function (cell) {
-          return `
-            <span style="font-weight:600;color:#044A78;text-decoration:underline">
-              ${cell.getValue()}
-            </span>
-          `;
-        },
-        cellClick: function (e, cell) {
-          const data = cell.getRow().getData();
-          window.open(
-            `/fairdesk/employee/profile/${data._id}`,
-            "_blank"
-          );
-        },
-      },
+        columns: [
+          {
+            title: "Name",
+            field: "empName",
+            formatter: function (cell) {
+              return `
+                <span style="font-weight:600;color:#044A78;text-decoration:underline">
+                  ${cell.getValue()}
+                </span>
+              `;
+            },
+            cellClick: function (e, cell) {
+              const data = cell.getRow().getData();
+              window.open(
+                `/fairdesk/employee/profile/${data._id}`,
+                "_blank"
+              );
+            },
+          },
 
-      {
-        title: "Employee Id",
-        field: "empId",
-        width: 150,
-        formatter: function (cell) {
-          return `
-            <span style="font-weight:600;font-size:14px;color:#044A78">
-              ${cell.getValue()}
-            </span>
-          `;
-        }
-      },
-      {
-        title: "Image",
-        field: "empPhoto",
-        width: 80,
-        hozAlign: "center",
-        formatter: function () {
-          return `
-            <i class="fa-solid fa-image"
-               style="font-size:16px;color:#044A78">
-            </i>
-          `;
-        },
-        cellClick: function (e, cell) {
-          const data = cell.getRow().getData();
-        
-          const imgSrc = data.empPhoto
-            ? `/images/empimg/${data.empPhoto}`
-            : `/images/empimg/${data.empGender === "FEMALE" ? "female.jpg" : "male.jpg"}`;
-        
-          openImgModal(imgSrc);
-        }
-      },
-      { title: "Reporting Manager", field: "empReportingManager" },
-      { title: "Office Mobile", field: "empOfficeMob" },
-      { title: "Office Email", field: "empOfficeEmailId" },
-      { title: "Employee Type", field: "empType" },
-      { title: "Department", field: "empDept" },
-      { title: "Location", field: "empLoc" },
-    ],
-  });
-}
+          {
+            title: "Employee Id",
+            field: "empId",
+            width: 150,
+            formatter: function (cell) {
+              return `
+                <span style="font-weight:600;font-size:14px;color:#044A78">
+                  ${cell.getValue()}
+                </span>
+              `;
+            }
+          },
+          {
+            title: "Image",
+            field: "empPhoto",
+            width: 80,
+            hozAlign: "center",
+            formatter: function () {
+              return `
+                <i class="fa-solid fa-image"
+                   style="font-size:16px;color:#044A78">
+                </i>
+              `;
+            },
+            cellClick: function (e, cell) {
+              const data = cell.getRow().getData();
 
+              const imgSrc = data.empPhoto
+                ? `/images/empimg/${data.empPhoto}`
+                : `/images/empimg/${data.empGender === "FEMALE" ? "female.jpg" : "male.jpg"}`;
 
-  window.addEventListener("load", initTable);
-
-  // ================= DOWNLOAD =================
-
-  document.getElementById("download-pdf").addEventListener("click", () => {
-    if (!table) return;
-
-    table.download("pdf", "employee-data.pdf", {
-      orientation: "landscape",
-      title: "Employee Data",
-    });
-
-    downloadSelector.classList.remove("download-selector--active");
-  });
-
-  document.getElementById("download-xlsx").addEventListener("click", () => {
-    if (!table) return;
-
-    table.download("xlsx", "employee-data.xlsx", {
-      sheetName: "Employees",
-    });
-
-    downloadSelector.classList.remove("download-selector--active");
-  });
-</script>
-<!-- IMAGE PREVIEW MODAL -->
-<div id="imgModal" style="
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.7);
-  justify-content:center;
-  align-items:center;
-  z-index:9999;
-" onclick="closeImgModal()">
-  <img id="imgModalSrc" style="
-    max-width:90%;
-    max-height:90%;
-    border-radius:8px;
-    box-shadow:0 10px 40px rgba(0,0,0,0.4);
-    background:#fff;
-  ">
-</div>
-
-<script>
-  function openImgModal(src) {
-    document.getElementById("imgModalSrc").src = src;
-    document.getElementById("imgModal").style.display = "flex";
-  }
-
-  function closeImgModal() {
-    document.getElementById("imgModal").style.display = "none";
-  }
-</script>
+              openImgModal(imgSrc);
+            }
+          },
+          { title: "Reporting Manager", field: "empReportingManager" },
+          { title: "Office Mobile", field: "empOfficeMob" },
+          { title: "Office Email", field: "empOfficeEmailId" },
+          { title: "Employee Type", field: "empType" },
+          { title: "Department", field: "empDept" },
+          { title: "Location", field: "empLoc" },
+        ],
+      });
+    }
 
 
+      window.addEventListener("load", initTable);
+
+      // ================= DOWNLOAD =================
+
+      document.getElementById("download-pdf").addEventListener("click", () => {
+        if (!table) return;
+
+        table.download("pdf", "employee-data.pdf", {
+          orientation: "landscape",
+          title: "Employee Data",
+        });
+
+        downloadSelector.classList.remove("download-selector--active");
+      });
+
+      document.getElementById("download-xlsx").addEventListener("click", () => {
+        if (!table) return;
+
+        table.download("xlsx", "employee-data.xlsx", {
+          sheetName: "Employees",
+        });
+
+        downloadSelector.classList.remove("download-selector--active");
+      });
+  </script>
+  <!-- IMAGE PREVIEW MODAL -->
+  <div
+    id="imgModal"
+    style="
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    "
+    onclick="closeImgModal()"
+  >
+    <img
+      id="imgModalSrc"
+      style="
+        max-width: 90%;
+        max-height: 90%;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        background: #fff;
+      "
+    />
+  </div>
+
+  <script>
+    function openImgModal(src) {
+      document.getElementById("imgModalSrc").src = src;
+      document.getElementById("imgModal").style.display = "flex";
+    }
+
+    function closeImgModal() {
+      document.getElementById("imgModal").style.display = "none";
+    }
+  </script>
 </body>
