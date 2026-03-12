@@ -227,4 +227,80 @@ router.get("/pos-roll/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Load POS Roll Binding Edit Form */
+router.get("/pos-roll-binding/edit/:id", async (req, res) => {
+  try {
+    const binding = await PosRollBinding.findById(req.params.id).populate("posRollId").populate("userId");
+
+    if (!binding) {
+      req.flash("notification", "POS Roll binding not found");
+      return res.redirect("back");
+    }
+
+    res.render("inventory/posRollBindingEdit.ejs", {
+      title: "Edit POS Roll Binding",
+      binding,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("EDIT BINDING GET ERROR:", err);
+    req.flash("notification", "Failed to load POS Roll Binding Edit");
+    res.redirect("back");
+  }
+});
+
+/* POST : Update POS Roll Binding */
+router.post("/pos-roll-binding/edit/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      posClientPaperCode,
+      clientPosGsm,
+      posMtrsDel,
+      posRatePerRoll,
+      posSaleCost,
+      posMinQty,
+      posOdrQty,
+      posOdrFreq,
+      posCreditTerm,
+      status,
+    } = req.body;
+
+    const binding = await PosRollBinding.findById(id);
+    if (!binding) {
+      req.flash("notification", "Binding not found");
+      return res.redirect("back");
+    }
+
+    binding.posClientPaperCode = posClientPaperCode;
+    binding.clientPosGsm = Number(clientPosGsm);
+    binding.posMtrsDel = Number(posMtrsDel);
+    binding.posRatePerRoll = Number(posRatePerRoll);
+    binding.posSaleCost = Number(posSaleCost);
+    binding.posMinQty = Number(posMinQty);
+    binding.posOdrQty = Number(posOdrQty);
+    binding.posOdrFreq = posOdrFreq;
+    binding.posCreditTerm = posCreditTerm;
+
+    if (status) {
+      binding.status = status;
+    }
+
+    await binding.save();
+
+    req.flash("notification", "POS Roll binding updated successfully!");
+    res.redirect("/fairdesk/pos-roll/view/" + binding.userId);
+  } catch (err) {
+    console.error("EDIT BINDING POST ERROR:", err);
+    if (err.code === 11000) {
+      req.flash("notification", "A POS Roll binding with this exact configuration already exists.");
+    } else {
+      req.flash("notification", "Failed to update POS Roll Binding");
+    }
+    res.redirect("back");
+  }
+});
+
 export default router;

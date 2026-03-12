@@ -78,6 +78,33 @@
           }
         },
         {
+          title: "",
+          hozAlign: "center",
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            if (!row._id) return '';
+            return `
+              <button 
+                onclick="window.location.href='/fairdesk/ttr-binding/edit/${row._id}'"
+                style="padding:2px 10px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Edit Binding">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+            `;
+          }
+        },
+        {
+          title: "Status",
+          field: "status",
+          hozAlign: "center",
+          formatter: function (cell) {
+            const val = cell.getValue() || "ACTIVE";
+            const isActive = val === "ACTIVE";
+            const bg = isActive ? "#28a745" : "#dc3545";
+            return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${val}</span>`;
+          }
+        },
+        {
           title: "Stock",
           field: "stock",
           hozAlign: "center",

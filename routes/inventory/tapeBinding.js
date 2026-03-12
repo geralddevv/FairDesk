@@ -233,4 +233,80 @@ router.get("/tape/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Load Tape Binding Edit Form */
+router.get("/tape-binding/edit/:id", async (req, res) => {
+  try {
+    const binding = await TapeBinding.findById(req.params.id).populate("tapeId").populate("userId");
+
+    if (!binding) {
+      req.flash("notification", "Tape binding not found");
+      return res.redirect("back");
+    }
+
+    res.render("inventory/tapeBindingEdit.ejs", {
+      title: "Edit Tape Binding",
+      binding,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("EDIT BINDING GET ERROR:", err);
+    req.flash("notification", "Failed to load Tape Binding Edit");
+    res.redirect("back");
+  }
+});
+
+/* POST : Update Tape Binding */
+router.post("/tape-binding/edit/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      tapeClientPaperCode,
+      clientTapeGsm,
+      tapeMtrsDel,
+      tapeRatePerRoll,
+      tapeSaleCost,
+      tapeMinQty,
+      tapeOdrQty,
+      tapeOdrFreq,
+      tapeCreditTerm,
+      status,
+    } = req.body;
+
+    const binding = await TapeBinding.findById(id);
+    if (!binding) {
+      req.flash("notification", "Binding not found");
+      return res.redirect("back");
+    }
+
+    binding.tapeClientPaperCode = tapeClientPaperCode;
+    binding.clientTapeGsm = Number(clientTapeGsm);
+    binding.tapeMtrsDel = Number(tapeMtrsDel);
+    binding.tapeRatePerRoll = Number(tapeRatePerRoll);
+    binding.tapeSaleCost = Number(tapeSaleCost);
+    binding.tapeMinQty = Number(tapeMinQty);
+    binding.tapeOdrQty = Number(tapeOdrQty);
+    binding.tapeOdrFreq = tapeOdrFreq;
+    binding.tapeCreditTerm = tapeCreditTerm;
+
+    if (status) {
+      binding.status = status;
+    }
+
+    await binding.save();
+
+    req.flash("notification", "Tape binding updated successfully!");
+    res.redirect("/fairdesk/tape/view/" + binding.userId);
+  } catch (err) {
+    console.error("EDIT BINDING POST ERROR:", err);
+    if (err.code === 11000) {
+      req.flash("notification", "A tape binding with this exact configuration already exists.");
+    } else {
+      req.flash("notification", "Failed to update Tape Binding");
+    }
+    res.redirect("back");
+  }
+});
+
 export default router;

@@ -267,4 +267,80 @@ router.get("/tafeta/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Load Tafeta Binding Edit Form */
+router.get("/tafeta-binding/edit/:id", async (req, res) => {
+  try {
+    const binding = await TafetaBinding.findById(req.params.id).populate("tafetaId").populate("userId");
+
+    if (!binding) {
+      req.flash("notification", "Tafeta binding not found");
+      return res.redirect("back");
+    }
+
+    res.render("inventory/tafetaBindingEdit.ejs", {
+      title: "Edit Tafeta Binding",
+      binding,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("EDIT BINDING GET ERROR:", err);
+    req.flash("notification", "Failed to load Tafeta Binding Edit");
+    res.redirect("back");
+  }
+});
+
+/* POST : Update Tafeta Binding */
+router.post("/tafeta-binding/edit/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      tafetaClientMaterialCode,
+      clientTafetaGsm,
+      tafetaMtrsDel,
+      tafetaRatePerRoll,
+      tafetaSaleCost,
+      tafetaMinQty,
+      tafetaOdrQty,
+      tafetaOdrFreq,
+      tafetaCreditTerm,
+      status,
+    } = req.body;
+
+    const binding = await TafetaBinding.findById(id);
+    if (!binding) {
+      req.flash("notification", "Binding not found");
+      return res.redirect("back");
+    }
+
+    binding.tafetaClientMaterialCode = tafetaClientMaterialCode;
+    binding.clientTafetaGsm = clientTafetaGsm;
+    binding.tafetaMtrsDel = tafetaMtrsDel;
+    binding.tafetaRatePerRoll = Number(tafetaRatePerRoll);
+    binding.tafetaSaleCost = Number(tafetaSaleCost);
+    binding.tafetaMinQty = Number(tafetaMinQty);
+    binding.tafetaOdrQty = Number(tafetaOdrQty);
+    binding.tafetaOdrFreq = tafetaOdrFreq;
+    binding.tafetaCreditTerm = tafetaCreditTerm;
+
+    if (status) {
+      binding.status = status;
+    }
+
+    await binding.save();
+
+    req.flash("notification", "Tafeta binding updated successfully!");
+    res.redirect("/fairdesk/tafeta/view/" + binding.userId);
+  } catch (err) {
+    console.error("EDIT BINDING POST ERROR:", err);
+    if (err.code === 11000) {
+      req.flash("notification", "A Tafeta binding with this exact configuration already exists.");
+    } else {
+      req.flash("notification", "Failed to update Tafeta Binding");
+    }
+    res.redirect("back");
+  }
+});
+
 export default router;

@@ -66,6 +66,13 @@ const ttrBindingSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    /* ================= STATUS ================= */
+    status: {
+      type: String,
+      enum: ["ACTIVE", "INACTIVE"],
+      default: "ACTIVE",
+    },
   },
   {
     timestamps: true,

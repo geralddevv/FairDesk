@@ -295,4 +295,80 @@ router.get("/ttr/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Load TTR Binding Edit Form */
+router.get("/ttr-binding/edit/:id", async (req, res) => {
+  try {
+    const binding = await TtrBinding.findById(req.params.id).populate("ttrId").populate("userId");
+
+    if (!binding) {
+      req.flash("notification", "TTR binding not found");
+      return res.redirect("back");
+    }
+
+    res.render("inventory/ttrBindingEdit.ejs", {
+      title: "Edit TTR Binding",
+      binding,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("EDIT BINDING GET ERROR:", err);
+    req.flash("notification", "Failed to load TTR Binding Edit");
+    res.redirect("back");
+  }
+});
+
+/* POST : Update TTR Binding */
+router.post("/ttr-binding/edit/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      ttrClientMaterialCode,
+      clientTtrGsm,
+      ttrMtrsDel,
+      ttrRatePerRoll,
+      ttrSaleCost,
+      ttrMinQty,
+      ttrOdrQty,
+      ttrOdrFreq,
+      ttrCreditTerm,
+      status,
+    } = req.body;
+
+    const binding = await TtrBinding.findById(id);
+    if (!binding) {
+      req.flash("notification", "Binding not found");
+      return res.redirect("back");
+    }
+
+    binding.ttrClientMaterialCode = ttrClientMaterialCode;
+    binding.clientTtrGsm = clientTtrGsm;
+    binding.ttrMtrsDel = ttrMtrsDel;
+    binding.ttrRatePerRoll = Number(ttrRatePerRoll);
+    binding.ttrSaleCost = Number(ttrSaleCost);
+    binding.ttrMinQty = Number(ttrMinQty);
+    binding.ttrOdrQty = Number(ttrOdrQty);
+    binding.ttrOdrFreq = ttrOdrFreq;
+    binding.ttrCreditTerm = ttrCreditTerm;
+
+    if (status) {
+      binding.status = status;
+    }
+
+    await binding.save();
+
+    req.flash("notification", "TTR binding updated successfully!");
+    res.redirect("/fairdesk/ttr/view/" + binding.userId);
+  } catch (err) {
+    console.error("EDIT BINDING POST ERROR:", err);
+    if (err.code === 11000) {
+      req.flash("notification", "A TTR binding with this exact configuration already exists.");
+    } else {
+      req.flash("notification", "Failed to update TTR Binding");
+    }
+    res.redirect("back");
+  }
+});
+
 export default router;
