@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/css/choices.min.css" />
     <!-- <link rel="stylesheet" href="/css/ratecalculator.css" /> -->
-    <link rel="stylesheet" href="/css/common.css?v=4" />
+    <link rel="stylesheet" href="/css/common.css?v=5" />
     <% if (CSS) { %>
     <link rel="stylesheet" href="/css/<%= CSS %>" />
     <% } %>
@@ -480,6 +480,16 @@
         document.querySelectorAll('.table-spinner').forEach(el => {
           el.remove();
         });
+      });
+
+      // Choices.js focus ring: toggle class on focusin/focusout
+      document.addEventListener("focusin", (e) => {
+        const choicesEl = e.target.closest(".choices");
+        if (choicesEl) choicesEl.classList.add("choices--focused");
+      });
+      document.addEventListener("focusout", (e) => {
+        const choicesEl = e.target.closest(".choices");
+        if (choicesEl) choicesEl.classList.remove("choices--focused");
       });
     </script>
   </body>

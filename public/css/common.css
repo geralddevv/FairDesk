@@ -719,6 +719,31 @@ select {
   display: none !important;
 }
 
+/* Focus ring for Choices.js dropdowns (tab navigation) */
+.choices.choices--focused .choices__inner,
+.choices:focus-within .choices__inner,
+.choices:focus .choices__inner,
+.choices.is-focused .choices__inner,
+.choices.is-open .choices__inner {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(4, 74, 120, 0.25) !important;
+  transition:
+    box-shadow 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
+}
+
+/* Allow box-shadow to be visible (not clipped by overflow:hidden) */
+.choices.choices--focused,
+.choices:focus,
+.choices:focus-within {
+  overflow: visible !important;
+}
+
+/* Ensure the choices container itself shows focus */
+.choices:focus {
+  outline: none !important;
+}
+
 .clientName-label {
   width: 100%;
   display: flex;
