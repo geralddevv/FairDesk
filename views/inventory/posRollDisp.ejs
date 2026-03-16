@@ -44,7 +44,25 @@
 
   <script id="table-data" type="application/json"><%- JSON.stringify(jsonData || []) %></script>
   <script>
-    const tableData = JSON.parse(document.getElementById('table-data').textContent);
+    const rawData = JSON.parse(document.getElementById('table-data').textContent);
+
+    // Flatten nested fields so Tabulator headerFilter works correctly
+    const tableData = rawData.map(row => ({
+      ...row,
+      _userName: row.userId?.userName || "",
+      _userContact: row.userId?.userContact || "",
+      _userLocation: row.userId?.hoLocation || "",
+      _clientName: row.userId?.clientName || "",
+      _posProductId: row.posRollId?.posProductId || "",
+      _posPaperCode: row.posRollId?.posPaperCode || "",
+      _posPaperType: row.posRollId?.posPaperType || "",
+      _posColor: row.posRollId?.posColor || "",
+      _posWidth: row.posRollId?.posWidth || "",
+      _posGsm: row.posRollId?.posGsm || "",
+      _posMtrs: row.posRollId?.posMtrs || "",
+      _posCoreId: row.posRollId?.posCoreId || "",
+      _posMasterId: row.posRollId?._id || "",
+    }));
 
     const table = new Tabulator("#master-table", {
       data: tableData,
@@ -59,13 +77,10 @@
           title: "",
           formatter: function (cell) {
             const row = cell.getRow().getData();
-            const posRollMaster = row.posRollId;
-            if (!posRollMaster || !posRollMaster._id) {
-              return `<span style="color:#999">N/A</span>`;
-            }
+            if (!row._posMasterId) return `<span style="color:#999">N/A</span>`;
             return `
               <button 
-                onclick="window.location.href='/fairdesk/pos-roll/profile/${posRollMaster._id}'"
+                onclick="window.location.href='/fairdesk/pos-roll/profile/${row._posMasterId}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-eye"></i>
               </button>
@@ -92,6 +107,8 @@
           title: "Status",
           field: "status",
           hozAlign: "center",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Filter",
           formatter: function (cell) {
             const val = cell.getValue() || "ACTIVE";
             const isActive = val === "ACTIVE";
@@ -116,33 +133,33 @@
             const row = cell.getRow().getData();
             return `
               <button 
-                onclick="window.location.href='/fairdesk/sales/order?type=POS_ROLL&client=${encodeURIComponent(row.userId.clientName)}&user=${row.userId._id}&item=${row._id}'"
+                onclick="window.location.href='/fairdesk/sales/order?type=POS_ROLL&client=${encodeURIComponent(row._clientName)}&user=${row.userId?._id || ""}&item=${row._id}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-cart-plus"></i>
               </button>
             `;
           }
         },
-        { title: "Product ID", field: "posRollId.posProductId" },
-        { title: "Paper Code", field: "posRollId.posPaperCode" },
-        { title: "Paper Type", field: "posRollId.posPaperType" },
-        { title: "Color", field: "posRollId.posColor" },
-        { title: "Width", field: "posRollId.posWidth" },
-        { title: "GSM", field: "posRollId.posGsm" },
-        { title: "Mtrs", field: "posRollId.posMtrs" },
-        { title: "Core ID", field: "posRollId.posCoreId" },
-        { title: "Client Paper Code", field: "posClientPaperCode" },
-        { title: "Client GSM", field: "clientPosGsm" },
-        { title: "Mtrs Del", field: "posMtrsDel" },
+        { title: "Product ID", field: "_posProductId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Paper Code", field: "_posPaperCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Paper Type", field: "_posPaperType", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Color", field: "_posColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Width", field: "_posWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "GSM", field: "_posGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Mtrs", field: "_posMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Core ID", field: "_posCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Client Paper Code", field: "posClientPaperCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Client GSM", field: "clientPosGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Mtrs Del", field: "posMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
         { title: "Rate Per Roll", field: "posRatePerRoll" },
         { title: "Sale Cost", field: "posSaleCost" },
         { title: "Min Qty", field: "posMinQty" },
         { title: "Order Qty", field: "posOdrQty" },
         { title: "Order Freq", field: "posOdrFreq" },
         { title: "Credit Term", field: "posCreditTerm" },
-        { title: "User Name", field: "userId.userName" },
-        { title: "User Contact", field: "userId.userContact" },
-        { title: "Location", field: "userId.hoLocation" },
+        { title: "User Name", field: "_userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "User Contact", field: "_userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Location", field: "_userLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
       ],
     });
 

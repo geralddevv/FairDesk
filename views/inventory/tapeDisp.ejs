@@ -45,12 +45,26 @@
   <script id="table-data" type="application/json"><%- JSON.stringify(jsonData) %></script>
   <script>
     // Render data from Express (passed into EJS)
-    const tableData = JSON.parse(document.getElementById('table-data').textContent);
+    const rawData = JSON.parse(document.getElementById('table-data').textContent);
+
+    // Flatten nested fields so Tabulator headerFilter works correctly
+    const tableData = rawData.map(row => ({
+      ...row,
+      _userName: row.userId?.userName || "",
+      _userContact: row.userId?.userContact || "",
+      _userLocation: row.userId?.hoLocation || "",
+      _clientName: row.userId?.clientName || "",
+      _tapePaperType: row.tapeId?.tapePaperType || "",
+      _tapeWidth: row.tapeId?.tapeWidth || "",
+      _tapeMtrs: row.tapeId?.tapeMtrs || "",
+      _tapeCoreId: row.tapeId?.tapeCoreId || "",
+      _tapeMasterId: row.tapeId?._id || "",
+    }));
 
     // Initialize Tabulator
     const table = new Tabulator("#master-table", {
       data: tableData,
-      layout: "fitDataTable", // expand to fit content + allow horizontal scroll
+      layout: "fitDataTable",
       responsiveLayout: false,
       pagination: "local",
       paginationSize: 30,
@@ -61,17 +75,10 @@
           title: "",
           formatter: function (cell) {
             const row = cell.getRow().getData();
-          
-            // tape master object already present
-            const tapeMaster = row.tapeId;
-          
-            if (!tapeMaster || !tapeMaster._id) {
-              return `<span style="color:#999">N/A</span>`;
-            }
-          
+            if (!row._tapeMasterId) return `<span style="color:#999">N/A</span>`;
             return `
               <button 
-                onclick="window.location.href='/fairdesk/tape/profile/${tapeMaster._id}'"
+                onclick="window.location.href='/fairdesk/tape/profile/${row._tapeMasterId}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-eye"></i>
               </button>
@@ -98,6 +105,8 @@
           title: "Status",
           field: "status",
           hozAlign: "center",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Filter",
           formatter: function (cell) {
             const val = cell.getValue() || "ACTIVE";
             const isActive = val === "ACTIVE";
@@ -122,22 +131,22 @@
             const row = cell.getRow().getData();
             return `
               <button 
-                onclick="window.location.href='/fairdesk/sales/order?type=TAPE&client=${encodeURIComponent(row.userId.clientName)}&user=${row.userId._id}&item=${row._id}'"
+                onclick="window.location.href='/fairdesk/sales/order?type=TAPE&client=${encodeURIComponent(row._clientName)}&user=${row.userId?._id || ""}&item=${row._id}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-cart-plus"></i>
               </button>
             `;
           }
         },
-        { title: "User Name", field: "userId.userName" },
-        { title: "User Contact", field: "userId.userContact" },
-        { title: "Location", field: "userId.hoLocation" },
-        { title: "Client GSM", field: "clientTapeGsm" },
-        { title: "Paper Type", field: "tapeId.tapePaperType" },
-        { title: "Width", field: "tapeId.tapeWidth" },
-        { title: "Mtrs", field: "tapeId.tapeMtrs" },
-        { title: "Mtrs Del", field: "tapeMtrsDel" },
-        { title: "Core ID", field: "tapeId.tapeCoreId" },
+        { title: "User Name", field: "_userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "User Contact", field: "_userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Location", field: "_userLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Client GSM", field: "clientTapeGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Paper Type", field: "_tapePaperType", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Width", field: "_tapeWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Mtrs", field: "_tapeMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Mtrs Del", field: "tapeMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Core ID", field: "_tapeCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
         { title: "Rate Per Roll", field: "tapeRatePerRoll" },
         { title: "Min Qty", field: "tapeMinQty" },
         { title: "Order Qty", field: "tapeOdrQty" },

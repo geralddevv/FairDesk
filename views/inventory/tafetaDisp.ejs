@@ -44,7 +44,27 @@
 
   <script id="table-data" type="application/json"><%- JSON.stringify(jsonData || []) %></script>
   <script>
-    const tableData = JSON.parse(document.getElementById('table-data').textContent);
+    const rawData = JSON.parse(document.getElementById('table-data').textContent);
+
+    // Flatten nested fields so Tabulator headerFilter works correctly
+    const tableData = rawData.map(row => ({
+      ...row,
+      _userName: row.userId?.userName || "",
+      _userContact: row.userId?.userContact || "",
+      _userLocation: row.userId?.hoLocation || "",
+      _clientName: row.userId?.clientName || "",
+      _tafetaProductId: row.tafetaId?.tafetaProductId || "",
+      _tafetaMaterialCode: row.tafetaId?.tafetaMaterialCode || "",
+      _tafetaMaterialType: row.tafetaId?.tafetaMaterialType || "",
+      _tafetaColor: row.tafetaId?.tafetaColor || "",
+      _tafetaGsm: row.tafetaId?.tafetaGsm || "",
+      _tafetaWidth: row.tafetaId?.tafetaWidth || "",
+      _tafetaMtrs: row.tafetaId?.tafetaMtrs || "",
+      _tafetaCoreLen: row.tafetaId?.tafetaCoreLen || "",
+      _tafetaNotch: row.tafetaId?.tafetaNotch || "",
+      _tafetaCoreId: row.tafetaId?.tafetaCoreId || "",
+      _tafetaMasterId: row.tafetaId?._id || "",
+    }));
 
     const table = new Tabulator("#master-table", {
       data: tableData,
@@ -59,13 +79,10 @@
           title: "",
           formatter: function (cell) {
             const row = cell.getRow().getData();
-            const tafetaMaster = row.tafetaId;
-            if (!tafetaMaster || !tafetaMaster._id) {
-              return `<span style="color:#999">N/A</span>`;
-            }
+            if (!row._tafetaMasterId) return `<span style="color:#999">N/A</span>`;
             return `
               <button 
-                onclick="window.location.href='/fairdesk/tafeta/profile/${tafetaMaster._id}'"
+                onclick="window.location.href='/fairdesk/tafeta/profile/${row._tafetaMasterId}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-eye"></i>
               </button>
@@ -92,6 +109,8 @@
           title: "Status",
           field: "status",
           hozAlign: "center",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Filter",
           formatter: function (cell) {
             const val = cell.getValue() || "ACTIVE";
             const isActive = val === "ACTIVE";
@@ -116,35 +135,35 @@
             const row = cell.getRow().getData();
             return `
               <button 
-                onclick="window.location.href='/fairdesk/sales/order?type=TAFETA&client=${encodeURIComponent(row.userId.clientName)}&user=${row.userId._id}&item=${row._id}'"
+                onclick="window.location.href='/fairdesk/sales/order?type=TAFETA&client=${encodeURIComponent(row._clientName)}&user=${row.userId?._id || ""}&item=${row._id}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-cart-plus"></i>
               </button>
             `;
           }
         },
-        { title: "Product ID", field: "tafetaId.tafetaProductId" },
-        { title: "Material Code", field: "tafetaId.tafetaMaterialCode" },
-        { title: "Material Type", field: "tafetaId.tafetaMaterialType" },
-        { title: "Color", field: "tafetaId.tafetaColor" },
-        { title: "GSM", field: "tafetaId.tafetaGsm" },
-        { title: "Width", field: "tafetaId.tafetaWidth" },
-        { title: "Mtrs", field: "tafetaId.tafetaMtrs" },
-        { title: "Core Length", field: "tafetaId.tafetaCoreLen" },
-        { title: "Notch", field: "tafetaId.tafetaNotch" },
-        { title: "Core ID", field: "tafetaId.tafetaCoreId" },
-        { title: "Client Material Code", field: "tafetaClientMaterialCode" },
-        { title: "Client GSM", field: "clientTafetaGsm" },
-        { title: "Mtrs Del", field: "tafetaMtrsDel" },
+        { title: "Product ID", field: "_tafetaProductId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Material Code", field: "_tafetaMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Material Type", field: "_tafetaMaterialType", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Color", field: "_tafetaColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "GSM", field: "_tafetaGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Width", field: "_tafetaWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Mtrs", field: "_tafetaMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Core Length", field: "_tafetaCoreLen", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Notch", field: "_tafetaNotch", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Core ID", field: "_tafetaCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Client Material Code", field: "tafetaClientMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Client GSM", field: "clientTafetaGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Mtrs Del", field: "tafetaMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
         { title: "Rate Per Roll", field: "tafetaRatePerRoll" },
         { title: "Sale Cost", field: "tafetaSaleCost" },
         { title: "Min Qty", field: "tafetaMinQty" },
         { title: "Order Qty", field: "tafetaOdrQty" },
         { title: "Order Freq", field: "tafetaOdrFreq" },
         { title: "Credit Term", field: "tafetaCreditTerm" },
-        { title: "User Name", field: "userId.userName" },
-        { title: "User Contact", field: "userId.userContact" },
-        { title: "Location", field: "userId.hoLocation" },
+        { title: "User Name", field: "_userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "User Contact", field: "_userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        { title: "Location", field: "_userLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
       ],
     });
 
