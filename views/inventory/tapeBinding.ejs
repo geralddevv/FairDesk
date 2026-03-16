@@ -304,6 +304,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Update each dropdown with filtered options (except the one just changed)
       tapeFields.forEach(id => {
+        if (id === changedFieldId) return; // skip the field that triggered the filter
         const choicesInstance = specChoices[id];
         if (!choicesInstance) return;
 

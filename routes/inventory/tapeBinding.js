@@ -124,7 +124,7 @@ router.get("/form/tape-binding/filter-specs", async (req, res) => {
       if (tapePaperCode && excludeKey !== "tapePaperCode") f.tapePaperCode = tapePaperCode;
       if (tapePaperType && excludeKey !== "tapePaperType") f.tapePaperType = tapePaperType;
       if (tapeGsm && excludeKey !== "tapeGsm") f.tapeGsm = Number(tapeGsm);
-      if (tapeWidth && excludeKey !== "tapeWidth") f.tapeWidth = Number(tapeWidth);
+      if (tapeWidth && excludeKey !== "tapeWidth") f.tapeWidth = tapeWidth;
       if (tapeMtrs && excludeKey !== "tapeMtrs") f.tapeMtrs = Number(tapeMtrs);
       if (tapeCoreId && excludeKey !== "tapeCoreId") f.tapeCoreId = Number(tapeCoreId);
       if (tapeFinish && excludeKey !== "tapeFinish") f.tapeFinish = tapeFinish;
@@ -162,7 +162,7 @@ router.get("/form/tape-binding/resolve-tape", async (req, res) => {
       tapePaperCode,
       tapePaperType,
       tapeGsm: Number(tapeGsm),
-      tapeWidth: Number(tapeWidth),
+      tapeWidth,
       tapeMtrs: Number(tapeMtrs),
       tapeCoreId: Number(tapeCoreId),
       tapeFinish: tapeFinish,

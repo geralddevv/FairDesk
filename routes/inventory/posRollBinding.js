@@ -119,7 +119,7 @@ router.get("/form/pos-roll-binding/filter-specs", async (req, res) => {
       if (posPaperCode && excludeKey !== "posPaperCode") f.posPaperCode = posPaperCode;
       if (posPaperType && excludeKey !== "posPaperType") f.posPaperType = posPaperType;
       if (posGsm && excludeKey !== "posGsm") f.posGsm = Number(posGsm);
-      if (posWidth && excludeKey !== "posWidth") f.posWidth = Number(posWidth);
+      if (posWidth && excludeKey !== "posWidth") f.posWidth = posWidth;
       if (posMtrs && excludeKey !== "posMtrs") f.posMtrs = Number(posMtrs);
       if (posCoreId && excludeKey !== "posCoreId") f.posCoreId = Number(posCoreId);
       if (posColor && excludeKey !== "posColor") f.posColor = posColor;
@@ -157,7 +157,7 @@ router.get("/form/pos-roll-binding/resolve-pos-roll", async (req, res) => {
       posPaperCode,
       posPaperType,
       posGsm: Number(posGsm),
-      posWidth: Number(posWidth),
+      posWidth,
       posMtrs: Number(posMtrs),
       posCoreId: Number(posCoreId),
       posColor,

@@ -339,6 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const autoSelected = [];
 
       ttrFields.forEach(id => {
+        if (id === changedFieldId) return; // skip the field that triggered the filter
         const choicesInstance = specChoices[id];
         if (!choicesInstance) return;
 

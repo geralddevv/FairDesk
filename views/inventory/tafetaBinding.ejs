@@ -323,6 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const autoSelected = [];
 
       tafetaFields.forEach(id => {
+        if (id === changedFieldId) return; // skip the field that triggered the filter
         const choicesInstance = specChoices[id];
         if (!choicesInstance) return;
 
