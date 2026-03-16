@@ -954,6 +954,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
       items = (user?.label || []).map((lbl) => ({
         _id: lbl._id,
         displayName: `${lbl.labelId?.labelWidth || ""}x${lbl.labelId?.labelHeight || ""}`,
+        minOrderQty: lbl.labelId?.minOrderQty || 0,
         stock: { locations: [], totalStock: 0 },
       }));
     } else if (type === "TTR") {

@@ -568,7 +568,7 @@
     }
 
     // Check Minimum Order Qty
-    if ((itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA") && selectedOption && selectedOption.customProperties) {
+    if (selectedOption && selectedOption.customProperties) {
       const minQty = parseInt(selectedOption.customProperties.minQty) || 0;
       if (qty < minQty) {
         e.preventDefault();
@@ -703,8 +703,23 @@
          const dd = String(today.getDate()).padStart(2, '0');
          const confirmDateInput = document.getElementById('confirm-date');
          const confirmQtyInput = document.getElementById('confirm-quantity');
+         const invoiceInput = document.getElementById('invoice-number');
+         
          if (confirmDateInput) confirmDateInput.value = `${yyyy}-${mm}-${dd}`;
          if (confirmQtyInput) confirmQtyInput.value = (orderToEdit.quantity - (orderToEdit.dispatchedQuantity || 0));
+         
+         if (invoiceInput) {
+           const currentMonth = today.getMonth() + 1; // 1-12
+           const startYear = currentMonth < 4 ? yyyy - 1 : yyyy;
+           const endYear = startYear + 1;
+           const finYearStr = `${String(startYear).slice(-2)}-${String(endYear).slice(-2)}`;
+           let typePrefix = type || itemTypeChoices.getValue(true) || "";
+           if (typePrefix === "POS_ROLL") typePrefix = "POSROLL";
+           
+           if (typePrefix) {
+             invoiceInput.value = `TECH|${finYearStr}|${typePrefix}|`;
+           }
+         }
 
          // 6. Pre-fill Original Order Fields
          if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;

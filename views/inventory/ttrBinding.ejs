@@ -165,14 +165,15 @@
           <div class="span-full form-subheading">
             <h1>Client Overrides</h1>
           </div>
+
+          <div class="span-six"> ---------------------->---------------------->
+            <label for="ttr-client-type">Client Type</label>
+            <input type="text" id="ttr-client-type" class="form-control" name="clientTtrType" placeholder="Enter Client Type" required />
+          </div>
           
           <div class="span-eight">
             <label for="ttr-client-material-code">Client Material Code</label>
             <input type="text" id="ttr-client-material-code" class="form-control" name="ttrClientMaterialCode" placeholder="Enter Client Material Code" required />
-          </div>
-          <div class="span-six">
-            <label for="ttr-client-gsm">Client GSM</label>
-            <input type="text" id="ttr-client-gsm" class="form-control" name="clientTtrGsm" placeholder="Enter Client GSM" required />
           </div>
 
           <div class="span-six">
@@ -335,6 +336,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (!data) return;
 
+      const autoSelected = [];
+
       ttrFields.forEach(id => {
         const choicesInstance = specChoices[id];
         if (!choicesInstance) return;
@@ -349,14 +352,26 @@ document.addEventListener("DOMContentLoaded", () => {
           selected: String(v) === currentValue,
         }));
 
+        // Auto-select if exactly one option and nothing currently selected
+        if (filteredValues.length === 1 && !currentValue) {
+          newChoices[0].selected = true;
+          autoSelected.push(id);
+        }
+
         choicesInstance.clearStore();
         choicesInstance.setChoices(
-          [{ value: "", label: "Search", disabled: true, selected: !currentValue }, ...newChoices],
+          [{ value: "", label: "Search", disabled: true, selected: !newChoices.some(c => c.selected) }, ...newChoices],
           "value",
           "label",
           true
         );
       });
+
+      // If any fields were auto-selected, re-run filter to cascade
+      if (autoSelected.length > 0) {
+        await filterSpecs(autoSelected[0]);
+        resolveTtr();
+      }
     } catch (err) {
       console.error("Filter specs error:", err);
     }
@@ -526,3 +541,8 @@ function validateTtrBeforeSubmit() {
   return true;
 }
 </script>
+
+
+<!-- edit the client details section to add the client type field
+edit the client details section to show the client items details
+removed unwanted things from client details section -->

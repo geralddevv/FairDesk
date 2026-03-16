@@ -113,20 +113,20 @@
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
           },
-          {
-            title: "Type",
-            field: "clientType",
-            headerSort: false,
-            headerFilter: "select",
-            headerFilterParams: {
-              values: {
-                "": "All",
-                DEALER: "DEALER",
-                CLIENT: "CLIENT",
-              },
-              clearable: true,
-            },
-          },
+          // {
+          //   title: "Type",
+          //   field: "clientType",
+          //   headerSort: false,
+          //   headerFilter: "select",
+          //   headerFilterParams: {
+          //     values: {
+          //       "": "All",
+          //       DEALER: "DEALER",
+          //       CLIENT: "CLIENT",
+          //     },
+          //     clearable: true,
+          //   },
+          // },
           {
             title: "Account Head",
             field: "accountHead",
@@ -139,7 +139,7 @@
             field: "userName",
             formatter: (cell) => {
               return `
-              <span style="cursor:pointer;font-weight:600;text-decoration:underline">
+              <span style="cursor:pointer;font-weight:600;text-decoration:underline;">
                 ${cell.getValue()}
               </span>
             `;
@@ -159,40 +159,41 @@
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
           },
-          {
-            title: "Department",
-            field: "userDepartment",
-            headerSort: false,
-            headerFilter: "input",
-            headerFilterPlaceholder: "Search",
-          },
-          {
-            title: "Contact",
-            field: "userContact",
-            headerSort: false,
-          },
-          {
-            title: "Email",
-            field: "userEmail",
-            headerSort: false,
-          },
-          {
-            title: "Dispatch Type",
-            field: "dispatchType",
-            headerSort: false,
-            headerFilter: "select",
-            headerFilterParams: {
-              values: {
-                "": "All",
-                "Self Dispatch": "Self Dispatch",
-                "Transport": "Transport",
-              },
-              clearable: true,
-            },
-          },
+          // {
+          //   title: "Department",
+          //   field: "userDepartment",
+          //   headerSort: false,
+          //   headerFilter: "input",
+          //   headerFilterPlaceholder: "Search",
+          // },
+          // {
+          //   title: "Contact",
+          //   field: "userContact",
+          //   headerSort: false,
+          // },
+          // {
+          //   title: "Email",
+          //   field: "userEmail",
+          //   headerSort: false,
+          // },
+          // {
+          //   title: "Dispatch Type",
+          //   field: "dispatchType",
+          //   headerSort: false,
+          //   headerFilter: "select",
+          //   headerFilterParams: {
+          //     values: {
+          //       "": "All",
+          //       "Self Dispatch": "Self Dispatch",
+          //       "Transport": "Transport",
+          //     },
+          //     clearable: true,
+          //   },
+          // },
           {
             title: "Labels",
             field: "labelCount",
+            widthGrow: 0,
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.labelCount}</span>`;
@@ -205,6 +206,7 @@
           {
             title: "TTR's",
             field: "ttrCount",
+            widthGrow: 0,
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.ttrCount}</span>`;
@@ -217,6 +219,7 @@
           {
             title: "Tapes",
             field: "tapeCount",
+            widthGrow: 0,
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.tapeCount}</span>`;
@@ -229,6 +232,7 @@
           {
             title: "POS Rolls",
             field: "posRollCount",
+            widthGrow: 0,
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.posRollCount}</span>`;
@@ -241,6 +245,7 @@
           {
             title: "Tafeta",
             field: "tafetaCount",
+            widthGrow: 0,
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.tafetaCount}</span>`;

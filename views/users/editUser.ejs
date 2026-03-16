@@ -31,12 +31,12 @@
 
       <div class="span-six">
         <label for="ho-location">H/O Location</label>
-        <input type="text" id="username-ho-location" class="form-control input-tag" name="hoLocation" value="<%= user.hoLocation %>" placeholder="Enter H/O Location" required />
+        <input type="text" id="username-ho-location" class="form-control input-tag" name="hoLocation" value="<%= user.hoLocation %>" placeholder="Enter H/O Location" disabled />
       </div>
 
       <div class="span-seven">
         <label for="account-head">Account Head</label>
-        <input type="text" id="username-account-head" class="form-control input-tag" name="accountHead" value="<%= user.accountHead %>" placeholder="Enter Account Head" required />
+        <input type="text" id="username-account-head" class="form-control input-tag" name="accountHead" value="<%= user.accountHead %>" placeholder="Enter Account Head" disabled />
       </div>    
 
       <div class="span-full form-subheading">
@@ -156,7 +156,7 @@
       transportInputs.forEach(input => {
         if (isTransport) {
           input.disabled = false;
-          input.required = true;
+          input.required = false;
         } else {
           input.disabled = true;
           input.required = false;

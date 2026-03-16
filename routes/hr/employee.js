@@ -83,7 +83,11 @@ router.post(
       await Employee.create(employeeData);
 
       req.flash("notification", "Employee created successfully!");
-      res.json({ success: true, redirect: "/fairdesk/employee/create" });
+      if (req.xhr || req.headers.accept?.includes("application/json")) {
+        res.json({ success: true, redirect: "/fairdesk/employee/create" });
+      } else {
+        res.redirect("/fairdesk/employee/create");
+      }
     } catch (err) {
       console.error(err);
       res.status(400).json({ success: false, message: err.message });
@@ -155,7 +159,12 @@ router.post(
       await emp.save();
 
       req.flash("notification", "Employee updated successfully!");
-      res.json({ success: true, redirect: `/fairdesk/employee/profile/${emp._id}` });
+      const redirectUrl = "/fairdesk/employee/view";
+      if (req.xhr || req.headers.accept?.includes("application/json")) {
+        res.json({ success: true, redirect: redirectUrl });
+      } else {
+        res.redirect(redirectUrl);
+      }
     } catch (err) {
       console.error(err);
       res.status(400).json({ success: false, message: err.message });

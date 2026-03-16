@@ -201,6 +201,17 @@
 </head>
 
 <body>
+<%
+  function formatDateIN(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+%>
 
 <div class="container">
 
@@ -233,7 +244,7 @@
       <div class="row"><div class="label">Department</div><div class="value"><%= employee.empDept %></div></div>
       <div class="row"><div class="label">Location</div><div class="value"><%= employee.empLoc %></div></div>
       <div class="row"><div class="label">Reporting Manager</div><div class="value"><%= employee.empReportingManager %></div></div>
-      <div class="row"><div class="label">Date of Joining</div><div class="value"><%= employee.empDateOfJoining %></div></div>
+      <div class="row"><div class="label">Date of Joining</div><div class="value"><%= formatDateIN(employee.empDateOfJoining) %></div></div>
     </div>
   </div>
 
@@ -242,7 +253,7 @@
     <h3>Personal Details</h3>
     <div class="divider"></div>
     <div class="rows">
-      <div class="row"><div class="label">Date of Birth</div><div class="value"><%= employee.empDob %></div></div>
+      <div class="row"><div class="label">Date of Birth</div><div class="value"><%= formatDateIN(employee.empDob) %></div></div>
       <div class="row"><div class="label">Gender</div><div class="value"><%= employee.empGender %></div></div>
       <div class="row"><div class="label">Marital Status</div><div class="value"><%= employee.empMartialStatus %></div></div>
       <div class="row"><div class="label">Email</div><div class="value"><%= employee.empEmail %></div></div>
@@ -305,7 +316,7 @@
           <% employee.dependentsDetails.forEach(d => { %>
             <tr>
               <td><%= d.dependentsName %></td>
-              <td><%= d.dependentsDOB %></td>
+              <td><%= formatDateIN(d.dependentsDOB) %></td>
               <td><%= d.dependentsRelation %></td>
             </tr>
           <% }) %>

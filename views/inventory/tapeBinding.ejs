@@ -300,6 +300,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (!data) return;
 
+      const autoSelected = [];
+
       // Update each dropdown with filtered options (except the one just changed)
       tapeFields.forEach(id => {
         const choicesInstance = specChoices[id];
@@ -316,15 +318,27 @@ document.addEventListener("DOMContentLoaded", () => {
           selected: String(v) === currentValue,
         }));
 
+        // Auto-select if exactly one option and nothing currently selected
+        if (filteredValues.length === 1 && !currentValue) {
+          newChoices[0].selected = true;
+          autoSelected.push(id);
+        }
+
         // Clear and repopulate
         choicesInstance.clearStore();
         choicesInstance.setChoices(
-          [{ value: "", label: "Search", disabled: true, selected: !currentValue }, ...newChoices],
+          [{ value: "", label: "Search", disabled: true, selected: !newChoices.some(c => c.selected) }, ...newChoices],
           "value",
           "label",
           true
         );
       });
+
+      // If any fields were auto-selected, re-run filter to cascade
+      if (autoSelected.length > 0) {
+        await filterSpecs(autoSelected[0]);
+        resolveTape();
+      }
     } catch (err) {
       console.error("Filter specs error:", err);
     }

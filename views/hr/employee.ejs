@@ -161,27 +161,27 @@
 
     <div class="span-four">
       <label for="emp-dept">Department</label>
-      <input type="text" id="emp-dept" class="form-control input-tag" name="empDept" value="<%= employee?.empDept || '' %>" placeholder="Enter Department" required/>
+      <input type="text" id="emp-dept" class="form-control input-tag" name="empDept" value="<%= employee?.empDept || '' %>" placeholder="Enter Department" autocomplete="off" required/>
     </div>
 
     <div class="span-six">
       <label for="emp-reporting-manager">Reporting Manager</label>
-      <input type="text" id="emp-reporting-manager" class="form-control input-tag" name="empReportingManager" value="<%= employee?.empReportingManager || '' %>" placeholder="Enter Reporting Manager" required/>
+      <input type="text" id="emp-reporting-manager" class="form-control input-tag" name="empReportingManager" value="<%= employee?.empReportingManager || '' %>" placeholder="Enter Reporting Manager" autocomplete="off" required/>
     </div>
 
     <div class="span-four">
       <label for="emp-profile">Profile</label>
-      <input type="text" id="emp-profile" class="form-control input-tag" name="empProfile" value="<%= employee?.empProfile || '' %>" placeholder="Enter Profile" required/>
+      <input type="text" id="emp-profile" class="form-control input-tag" name="empProfile" value="<%= employee?.empProfile || '' %>" placeholder="Enter Profile" autocomplete="off" required/>
     </div>
 
     <div class="span-five">
       <label for="emp-office-mob">Office Mobile No</label>
-      <input type="text" inputmode="numeric" id="emp-office-mob" class="form-control input-tag" name="empOfficeMob" value="<%= employee?.empOfficeMob || '' %>" placeholder="Enter Office Mobile No"/>
+      <input type="text" inputmode="numeric" id="emp-office-mob" class="form-control input-tag" name="empOfficeMob" value="<%= employee?.empOfficeMob || '' %>" placeholder="Enter Office Mobile No" autocomplete="off"/>
     </div>
 
     <div class="span-six">
       <label for="emp-office-email-id">Office Email ID</label>
-      <input type="email" id="emp-office-email-id" class="form-control input-tag" name="empOfficeEmailId" value="<%= employee?.empOfficeEmailId || '' %>" placeholder="Enter Office Email ID"/>
+      <input type="email" id="emp-office-email-id" class="form-control input-tag" name="empOfficeEmailId" value="<%= employee?.empOfficeEmailId || '' %>" placeholder="Enter Office Email ID" autocomplete="off"/>
     </div>
 
     <div class="span-full form-subheading">
@@ -190,12 +190,12 @@
 
     <div class="span-penta">
       <label for="emp-name">Name</label>
-      <input type="text" id="emp-name" class="form-control input-tag" name="empName" value="<%= employee?.empName || '' %>" placeholder="Enter Name" required />
+      <input type="text" id="emp-name" class="form-control input-tag" name="empName" value="<%= employee?.empName || '' %>" placeholder="Enter Name" autocomplete="off" required />
     </div>
 
     <div class="span-five">
       <label for="emp-dob">D.O.B</label>
-      <input type="date" id="emp-dob" class="form-control input-tag" name="empDob" value="<%= employee?.empDob || '' %>" placeholder="Enter D.O.B required" />
+      <input type="date" id="emp-dob" class="form-control input-tag" name="empDob" value="<%= employee?.empDob || '' %>" placeholder="Enter D.O.B" autocomplete="off" required />
     </div>
 
     <div class="span-five">
@@ -209,27 +209,27 @@
 
     <div class="span-six">
       <label for="emp-mobile1">Mobile No 1</label>
-      <input type="text" inputmode="numeric"  id="emp-mobile1" class="form-control input-tag" name="empMobile1" value="<%= employee?.empMobile1 || '' %>" placeholder="Enter Mobile No 1" required/>
+      <input type="text" inputmode="numeric"  id="emp-mobile1" class="form-control input-tag" name="empMobile1" value="<%= employee?.empMobile1 || '' %>" placeholder="Enter Mobile No 1" autocomplete="off" required/>
     </div>
 
     <div class="span-six">
       <label for="emp-mobile2">Mobile No 2</label>
-      <input type="text" inputmode="numeric" id="emp-mobile2" class="form-control input-tag" name="empMobile2" value="<%= employee?.empMobile2 || '' %>" placeholder="Enter Mobile No 2" />
+      <input type="text" inputmode="numeric" id="emp-mobile2" class="form-control input-tag" name="empMobile2" value="<%= employee?.empMobile2 || '' %>" placeholder="Enter Mobile No 2" autocomplete="off"/>
     </div>
 
     <div class="span-six">
       <label for="emp-emergency-no1">Emergency No 1</label>
-      <input type="text" inputmode="numeric" id="emp-emergency-no1" class="form-control input-tag" name="empEmergencyNo1" value="<%= employee?.empEmergencyNo1 || '' %>" placeholder="Enter emergency No" required/>
+      <input type="text" inputmode="numeric" id="emp-emergency-no1" class="form-control input-tag" name="empEmergencyNo1" value="<%= employee?.empEmergencyNo1 || '' %>" placeholder="Enter emergency No" autocomplete="off" required/>
     </div> 
 
     <div class="span-six">
       <label for="emp-emergency-no2">Emergency No 2</label>
-      <input type="text" inputmode="numeric" id="emp-emergency-no2" class="form-control input-tag" name="empEmergencyNo2" value="<%= employee?.empEmergencyNo2 || '' %>" placeholder="Enter emergency No" />
+      <input type="text" inputmode="numeric" id="emp-emergency-no2" class="form-control input-tag" name="empEmergencyNo2" value="<%= employee?.empEmergencyNo2 || '' %>" placeholder="Enter emergency No" autocomplete="off"/>
     </div>    
 
     <div class="span-seven">
       <label for="emp-email">Email</label>
-      <input type="email" id="emp-email" class="form-control input-tag" name="empEmail" value="<%= employee?.empEmail || '' %>" placeholder="Enter Email" required />
+      <input type="email" id="emp-email" class="form-control input-tag" name="empEmail" value="<%= employee?.empEmail || '' %>" placeholder="Enter Email" autocomplete="off" required />
     </div>
 
     <div class="span-six">
@@ -243,7 +243,7 @@
     
     <div class="span-seven">
       <label for="emp-marriage-anniversary">Marriage Anniv</label>
-      <input type="date" id="emp-marriage-anniversary" class="form-control input-tag" name="empMarriageAnniversary" value="<%= employee?.empMarriageAnniversary || '' %>" placeholder="Enter Marriage Anniversary" />
+      <input type="date" id="emp-marriage-anniversary" class="form-control input-tag" name="empMarriageAnniversary" value="<%= employee?.empMarriageAnniversary || '' %>" placeholder="Enter Marriage Anniversary" autocomplete="off"/>
     </div>
 
     <div class="span-penta">
@@ -255,6 +255,7 @@
         placeholder="Enter Employee Present Address"
         rows="3"
         style="border: 1px solid #044A78; resize: none;"
+        autocomplete="off"
       ><%= employee?.empPresentAddress || '' %></textarea>
     </div>
 
@@ -267,6 +268,7 @@
         placeholder="Enter Employee Permanent Address"
         rows="3"
         style="border: 1px solid #044A78; resize: none;"
+        autocomplete="off"
       ><%= employee?.empPermanentAddress || '' %></textarea>
     </div>
 
@@ -279,6 +281,7 @@
         placeholder="Enter Employee Hobbies & Interests"
         rows="3"
         style="border: 1px solid #044A78; resize: none;"
+        autocomplete="off"
       ><%= employee?.empHobbies || '' %></textarea>
     </div>       
 
@@ -296,7 +299,7 @@
  
     <div class="span-five">
       <label for="emp-aadhaar">Aadhaar</label>
-      <input type="text" inputmode="numeric" id="emp-aadhaar" class="form-control input-tag" name="empAadhaar" value="<%= employee?.empAadhaar || '' %>" placeholder="Enter Aadhaar" />
+      <input type="text" inputmode="numeric" id="emp-aadhaar" class="form-control input-tag" name="empAadhaar" value="<%= employee?.empAadhaar || '' %>" placeholder="Enter Aadhaar" autocomplete="off"/>
     </div>
 
     <div class="span-seven die-remark-div">  
@@ -309,7 +312,7 @@
 
     <div class="span-five">
       <label for="emp-pan">PAN</label>
-      <input type="text" id="emp-pan" class="form-control input-tag" maxlength="10" name="empPan" value="<%= employee?.empPan || '' %>" placeholder="Enter PAN" required />
+      <input type="text" id="emp-pan" class="form-control input-tag" maxlength="10" name="empPan" value="<%= employee?.empPan || '' %>" placeholder="Enter PAN" autocomplete="off" required />
     </div>
 
     <div class="span-seven die-remark-div">  
@@ -326,17 +329,17 @@
 
     <div class="span-dual">
       <label for="emp-bank-name">Bank Name</label>
-      <input type="text" id="emp-bank-name" class="form-control input-tag" name="empBankName" value="<%= employee?.empBankName || '' %>" placeholder="Enter Bank Name" required />
+      <input type="text" id="emp-bank-name" class="form-control input-tag" name="empBankName" value="<%= employee?.empBankName || '' %>" placeholder="Enter Bank Name" autocomplete="off" required />
     </div>
 
     <div class="span-dual">
       <label for="emp-account-holder-name">Account Holder Name</label>
-      <input type="text" id="emp-account-holder-name" class="form-control input-tag" name="empAccountHolderName" value="<%= employee?.empAccountHolderName || '' %>" placeholder="Enter Account Holder Name" required />
+      <input type="text" id="emp-account-holder-name" class="form-control input-tag" name="empAccountHolderName" value="<%= employee?.empAccountHolderName || '' %>" placeholder="Enter Account Holder Name" autocomplete="off" required />
     </div>
 
     <div class="span-dual">
       <label for="emp-acc-no">Account No</label>
-      <input type="text" id="emp-acc-no" class="form-control input-tag" name="empAccNo" value="<%= employee?.empAccNo || '' %>" placeholder="Enter Account No" required />
+      <input type="text" id="emp-acc-no" class="form-control input-tag" name="empAccNo" value="<%= employee?.empAccNo || '' %>" placeholder="Enter Account No" autocomplete="off" required />
     </div>
 
     <div class="span-dual">
@@ -350,37 +353,37 @@
 
     <div class="span-four">
       <label for="emp-pt">PT</label>
-      <input type="number" id="emp-pt" class="form-control input-tag" name="empPT" value="<%= employee?.empPT || '' %>" placeholder="Enter PT" required />
+      <input type="number" id="emp-pt" class="form-control input-tag" name="empPT" value="<%= employee?.empPT || 0 %>" placeholder="Enter PT" autocomplete="off" required />
     </div>    
 
     <div class="span-four">
       <label for="emp-tds">TDS</label>
-      <input type="number" id="emp-tds" class="form-control input-tag" name="empTDS" value="<%= employee?.empTDS || '' %>" placeholder="Enter TDS" required />
+      <input type="number" id="emp-tds" class="form-control input-tag" name="empTDS" value="<%= employee?.empTDS || 0 %>" placeholder="Enter TDS" autocomplete="off" required />
     </div>    
 
     <div class="span-four">
       <label for="emp-lic">LIC</label>
-      <input type="number" id="emp-lic" class="form-control input-tag" name="empLIC" value="<%= employee?.empLIC || '' %>" placeholder="Enter LIC" required />
+      <input type="number" id="emp-lic" class="form-control input-tag" name="empLIC" value="<%= employee?.empLIC || 0 %>" placeholder="Enter LIC" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-medical">Medical</label>
-      <input type="number" id="emp-medical" class="form-control input-tag" name="empMedical" value="<%= employee?.empMedical || '' %>" placeholder="Enter Medical" required />
+      <input type="number" id="emp-medical" class="form-control input-tag" name="empMedical" value="<%= employee?.empMedical || 0 %>" placeholder="Enter Medical" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-nsic">NSIC</label>
-      <input type="number" id="emp-nsic" class="form-control input-tag" name="empNSIC" value="<%= employee?.empNSIC || '' %>" placeholder="Enter NSIC" required />
+      <input type="number" id="emp-nsic" class="form-control input-tag" name="empNSIC" value="<%= employee?.empNSIC || 0 %>" placeholder="Enter NSIC" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-esic">ESIC</label>
-      <input type="number" id="emp-esic" class="form-control input-tag" name="empESIC" value="<%= employee?.empESIC || '' %>" placeholder="Enter ESIC" required />
+      <input type="number" id="emp-esic" class="form-control input-tag" name="empESIC" value="<%= employee?.empESIC || 0 %>" placeholder="Enter ESIC" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-pf">PF</label>
-      <input type="number" id="emp-pf" class="form-control input-tag" name="empPF" value="<%= employee?.empPF || '' %>" placeholder="Enter PF" required />
+      <input type="number" id="emp-pf" class="form-control input-tag" name="empPF" value="<%= employee?.empPF || 0 %>" placeholder="Enter PF" autocomplete="off" required />
     </div>
     
     <div class="span-full form-subheading">
@@ -389,41 +392,41 @@
 
     <div class="span-five">
       <label for="basicSalary">Basic Salary</label>
-      <input type="number" name="basicSalary" value="<%= employee?.basicSalary || '' %>" id="basicSalary" class="form-control input-tag" placeholder="Enter Basic Salary">
+      <input type="number" name="basicSalary" value="<%= employee?.basicSalary || 0 %>" id="basicSalary" class="form-control input-tag" placeholder="Enter Basic Salary" autocomplete="off" />
     </div>
 
     <div class="span-five">
       <label for="railwayPass">Railway Pass</label>
-      <input type="number" name="railwayPass" value="<%= employee?.railwayPass || '' %>" id="railwayPass"  class="form-control input-tag" placeholder="Enter Railway Pass">
+      <input type="number" name="railwayPass" value="<%= employee?.railwayPass || 0 %>" id="railwayPass"  class="form-control input-tag" placeholder="Enter Railway Pass" autocomplete="off" />
     </div>
 
     <div class="span-four">
       <label for="travelling">Travelling</label>
-      <input type="number" name="travelling" value="<%= employee?.travelling || '' %>" id="travelling" class="form-control input-tag" placeholder="Enter Travelling">
+      <input type="number" name="travelling" value="<%= employee?.travelling || 0 %>" id="travelling" class="form-control input-tag" placeholder="Enter Travelling" autocomplete="off" />
     </div>
 
     <div class="span-five">
       <label for="houseRent">House Rent</label>
-      <input type="number" name="houseRent" value="<%= employee?.houseRent || '' %>" id="houseRent" class="form-control input-tag" placeholder="Enter House Rent">
+      <input type="number" name="houseRent" value="<%= employee?.houseRent || 0 %>" id="houseRent" class="form-control input-tag" placeholder="Enter House Rent" autocomplete="off" />
     </div>
     <div class="span-five">
       <label for="staffQuarters">Staff Quaters</label>
-      <input type="number" name="staffQuarters" value="<%= employee?.staffQuarters || '' %>" id="staffQuarters" class="form-control input-tag" placeholder="Enter House Rent">
+      <input type="number" name="staffQuarters" value="<%= employee?.staffQuarters || 0 %>" id="staffQuarters" class="form-control input-tag" placeholder="Enter House Rent" autocomplete="off" />
     </div>
 
     <div class="span-four">
       <label for="otRatePerHour">OT Per Hour</label>
-      <input type="number" name="otRatePerHour" value="<%= employee?.otRatePerHour || '' %>" id="otRatePerHour" class="form-control input-tag" placeholder="Enter OT">
+      <input type="number" name="otRatePerHour" value="<%= employee?.otRatePerHour || 0 %>" id="otRatePerHour" class="form-control input-tag" placeholder="Enter OT" autocomplete="off" />
     </div>
 
     <div class="span-four">
       <label for="bonus">Bonus %</label>
-      <input type="number" name="bonus" value="<%= employee?.bonus || '' %>" id="bonus" class="form-control input-tag" placeholder="Enter Bonus">
+      <input type="number" name="bonus" value="<%= employee?.bonus || 0 %>" id="bonus" class="form-control input-tag" placeholder="Enter Bonus" autocomplete="off" />
     </div>
     
     <div class="span-full form-subheading" style="display: flex; align-items: center;">
         <h1>Dependents Details</h1>
-        <input type="text" id="dependents-count" style="width: 130px; height: 25px; margin-left: 20px;"  maxlength="2" class="form-control" name="dependentsCount" placeholder="Dependents Count"/>
+        <input type="text" id="dependents-count" style="width: 130px; height: 25px; margin-left: 20px;"  maxlength="2" class="form-control" name="dependentsCount" placeholder="Dependents Count" autocomplete="off" />
     </div>
 
     <div class="dependent-headings" style="margin-bottom: 0px; grid-column: span 32; background-color: #044A78; color: white; padding: 10px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center;"> 
