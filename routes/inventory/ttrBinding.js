@@ -119,18 +119,29 @@ router.get("/form/ttr-binding/filter-specs", async (req, res) => {
       ttrWinding,
     } = req.query;
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const buildFilter = (excludeKey) => {
       const f = {};
-      if (ttrType && excludeKey !== "ttrType") f.ttrType = ttrType;
-      if (ttrColor && excludeKey !== "ttrColor") f.ttrColor = ttrColor;
-      if (ttrMaterialCode && excludeKey !== "ttrMaterialCode") f.ttrMaterialCode = ttrMaterialCode;
-      if (ttrWidth && excludeKey !== "ttrWidth") f.ttrWidth = Number(ttrWidth);
-      if (ttrMtrs && excludeKey !== "ttrMtrs") f.ttrMtrs = Number(ttrMtrs);
-      if (ttrInkFace && excludeKey !== "ttrInkFace") f.ttrInkFace = ttrInkFace;
-      if (ttrCoreId && excludeKey !== "ttrCoreId") f.ttrCoreId = ttrCoreId;
-      if (ttrCoreLength && excludeKey !== "ttrCoreLength") f.ttrCoreLength = Number(ttrCoreLength);
-      if (ttrNotch && excludeKey !== "ttrNotch") f.ttrNotch = ttrNotch;
-      if (ttrWinding && excludeKey !== "ttrWinding") f.ttrWinding = ttrWinding;
+      if (ttrType && excludeKey !== "ttrType") f.ttrType = flex(ttrType);
+      if (ttrColor && excludeKey !== "ttrColor") f.ttrColor = flex(ttrColor);
+      if (ttrMaterialCode && excludeKey !== "ttrMaterialCode") f.ttrMaterialCode = flex(ttrMaterialCode);
+      if (ttrWidth && excludeKey !== "ttrWidth") f.ttrWidth = flex(ttrWidth);
+      if (ttrMtrs && excludeKey !== "ttrMtrs") f.ttrMtrs = flex(ttrMtrs);
+      if (ttrInkFace && excludeKey !== "ttrInkFace") f.ttrInkFace = flex(ttrInkFace);
+      if (ttrCoreId && excludeKey !== "ttrCoreId") f.ttrCoreId = flex(ttrCoreId);
+      if (ttrCoreLength && excludeKey !== "ttrCoreLength") f.ttrCoreLength = flex(ttrCoreLength);
+      if (ttrNotch && excludeKey !== "ttrNotch") f.ttrNotch = flex(ttrNotch);
+      if (ttrWinding && excludeKey !== "ttrWinding") f.ttrWinding = flex(ttrWinding);
       return f;
     };
 
@@ -198,17 +209,28 @@ router.get("/form/ttr-binding/resolve-ttr", async (req, res) => {
       return res.status(400).json(null);
     }
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const ttr = await Ttr.findOne({
-      ttrType,
-      ttrColor,
-      ttrMaterialCode,
-      ttrWidth: Number(ttrWidth),
-      ttrMtrs: Number(ttrMtrs),
-      ttrInkFace,
-      ttrCoreId,
-      ttrCoreLength: Number(ttrCoreLength),
-      ttrNotch,
-      ttrWinding,
+      ttrType: flex(ttrType),
+      ttrColor: flex(ttrColor),
+      ttrMaterialCode: flex(ttrMaterialCode),
+      ttrWidth: flex(ttrWidth),
+      ttrMtrs: flex(ttrMtrs),
+      ttrInkFace: flex(ttrInkFace),
+      ttrCoreId: flex(ttrCoreId),
+      ttrCoreLength: flex(ttrCoreLength),
+      ttrNotch: flex(ttrNotch),
+      ttrWinding: flex(ttrWinding),
     }).lean();
 
     if (!ttr) {

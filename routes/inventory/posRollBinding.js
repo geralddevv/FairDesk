@@ -114,15 +114,26 @@ router.get("/form/pos-roll-binding/filter-specs", async (req, res) => {
   try {
     const { posPaperCode, posPaperType, posGsm, posWidth, posMtrs, posCoreId, posColor } = req.query;
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const buildFilter = (excludeKey) => {
       const f = {};
-      if (posPaperCode && excludeKey !== "posPaperCode") f.posPaperCode = posPaperCode;
-      if (posPaperType && excludeKey !== "posPaperType") f.posPaperType = posPaperType;
-      if (posGsm && excludeKey !== "posGsm") f.posGsm = Number(posGsm);
-      if (posWidth && excludeKey !== "posWidth") f.posWidth = posWidth;
-      if (posMtrs && excludeKey !== "posMtrs") f.posMtrs = Number(posMtrs);
-      if (posCoreId && excludeKey !== "posCoreId") f.posCoreId = Number(posCoreId);
-      if (posColor && excludeKey !== "posColor") f.posColor = posColor;
+      if (posPaperCode && excludeKey !== "posPaperCode") f.posPaperCode = flex(posPaperCode);
+      if (posPaperType && excludeKey !== "posPaperType") f.posPaperType = flex(posPaperType);
+      if (posGsm && excludeKey !== "posGsm") f.posGsm = flex(posGsm);
+      if (posWidth && excludeKey !== "posWidth") f.posWidth = flex(posWidth);
+      if (posMtrs && excludeKey !== "posMtrs") f.posMtrs = flex(posMtrs);
+      if (posCoreId && excludeKey !== "posCoreId") f.posCoreId = flex(posCoreId);
+      if (posColor && excludeKey !== "posColor") f.posColor = flex(posColor);
       return f;
     };
 
@@ -153,14 +164,25 @@ router.get("/form/pos-roll-binding/resolve-pos-roll", async (req, res) => {
       return res.status(400).json(null);
     }
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const posRoll = await PosRoll.findOne({
-      posPaperCode,
-      posPaperType,
-      posGsm: Number(posGsm),
-      posWidth,
-      posMtrs: Number(posMtrs),
-      posCoreId: Number(posCoreId),
-      posColor,
+      posPaperCode: flex(posPaperCode),
+      posPaperType: flex(posPaperType),
+      posGsm: flex(posGsm),
+      posWidth: flex(posWidth),
+      posMtrs: flex(posMtrs),
+      posCoreId: flex(posCoreId),
+      posColor: flex(posColor),
     }).lean();
 
     if (!posRoll) {

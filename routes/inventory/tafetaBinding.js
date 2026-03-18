@@ -127,17 +127,28 @@ router.get("/form/tafeta-binding/filter-specs", async (req, res) => {
       tafetaCoreId,
     } = req.query;
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const buildFilter = (excludeKey) => {
       const f = {};
-      if (tafetaMaterialCode && excludeKey !== "tafetaMaterialCode") f.tafetaMaterialCode = tafetaMaterialCode;
-      if (tafetaMaterialType && excludeKey !== "tafetaMaterialType") f.tafetaMaterialType = tafetaMaterialType;
-      if (tafetaColor && excludeKey !== "tafetaColor") f.tafetaColor = tafetaColor;
-      if (tafetaGsm && excludeKey !== "tafetaGsm") f.tafetaGsm = tafetaGsm;
-      if (tafetaWidth && excludeKey !== "tafetaWidth") f.tafetaWidth = tafetaWidth;
-      if (tafetaMtrs && excludeKey !== "tafetaMtrs") f.tafetaMtrs = tafetaMtrs;
-      if (tafetaCoreLen && excludeKey !== "tafetaCoreLen") f.tafetaCoreLen = tafetaCoreLen;
-      if (tafetaNotch && excludeKey !== "tafetaNotch") f.tafetaNotch = tafetaNotch;
-      if (tafetaCoreId && excludeKey !== "tafetaCoreId") f.tafetaCoreId = tafetaCoreId;
+      if (tafetaMaterialCode && excludeKey !== "tafetaMaterialCode") f.tafetaMaterialCode = flex(tafetaMaterialCode);
+      if (tafetaMaterialType && excludeKey !== "tafetaMaterialType") f.tafetaMaterialType = flex(tafetaMaterialType);
+      if (tafetaColor && excludeKey !== "tafetaColor") f.tafetaColor = flex(tafetaColor);
+      if (tafetaGsm && excludeKey !== "tafetaGsm") f.tafetaGsm = flex(tafetaGsm);
+      if (tafetaWidth && excludeKey !== "tafetaWidth") f.tafetaWidth = flex(tafetaWidth);
+      if (tafetaMtrs && excludeKey !== "tafetaMtrs") f.tafetaMtrs = flex(tafetaMtrs);
+      if (tafetaCoreLen && excludeKey !== "tafetaCoreLen") f.tafetaCoreLen = flex(tafetaCoreLen);
+      if (tafetaNotch && excludeKey !== "tafetaNotch") f.tafetaNotch = flex(tafetaNotch);
+      if (tafetaCoreId && excludeKey !== "tafetaCoreId") f.tafetaCoreId = flex(tafetaCoreId);
       return f;
     };
 
@@ -191,16 +202,27 @@ router.get("/form/tafeta-binding/resolve-tafeta", async (req, res) => {
       return res.status(400).json(null);
     }
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const tafeta = await Tafeta.findOne({
-      tafetaMaterialCode,
-      tafetaMaterialType,
-      tafetaColor,
-      tafetaGsm,
-      tafetaWidth,
-      tafetaMtrs,
-      tafetaCoreLen,
-      tafetaNotch,
-      tafetaCoreId,
+      tafetaMaterialCode: flex(tafetaMaterialCode),
+      tafetaMaterialType: flex(tafetaMaterialType),
+      tafetaColor: flex(tafetaColor),
+      tafetaGsm: flex(tafetaGsm),
+      tafetaWidth: flex(tafetaWidth),
+      tafetaMtrs: flex(tafetaMtrs),
+      tafetaCoreLen: flex(tafetaCoreLen),
+      tafetaNotch: flex(tafetaNotch),
+      tafetaCoreId: flex(tafetaCoreId),
     }).lean();
 
     if (!tafeta) {

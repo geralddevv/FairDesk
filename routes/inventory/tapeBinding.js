@@ -118,16 +118,27 @@ router.get("/form/tape-binding/filter-specs", async (req, res) => {
   try {
     const { tapePaperCode, tapePaperType, tapeGsm, tapeWidth, tapeMtrs, tapeCoreId, tapeFinish } = req.query;
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     // Helper to build filter excluding one key so user can change selection
     const buildFilter = (excludeKey) => {
       const f = {};
-      if (tapePaperCode && excludeKey !== "tapePaperCode") f.tapePaperCode = tapePaperCode;
-      if (tapePaperType && excludeKey !== "tapePaperType") f.tapePaperType = tapePaperType;
-      if (tapeGsm && excludeKey !== "tapeGsm") f.tapeGsm = Number(tapeGsm);
-      if (tapeWidth && excludeKey !== "tapeWidth") f.tapeWidth = tapeWidth;
-      if (tapeMtrs && excludeKey !== "tapeMtrs") f.tapeMtrs = Number(tapeMtrs);
-      if (tapeCoreId && excludeKey !== "tapeCoreId") f.tapeCoreId = Number(tapeCoreId);
-      if (tapeFinish && excludeKey !== "tapeFinish") f.tapeFinish = tapeFinish;
+      if (tapePaperCode && excludeKey !== "tapePaperCode") f.tapePaperCode = flex(tapePaperCode);
+      if (tapePaperType && excludeKey !== "tapePaperType") f.tapePaperType = flex(tapePaperType);
+      if (tapeGsm && excludeKey !== "tapeGsm") f.tapeGsm = flex(tapeGsm);
+      if (tapeWidth && excludeKey !== "tapeWidth") f.tapeWidth = flex(tapeWidth);
+      if (tapeMtrs && excludeKey !== "tapeMtrs") f.tapeMtrs = flex(tapeMtrs);
+      if (tapeCoreId && excludeKey !== "tapeCoreId") f.tapeCoreId = flex(tapeCoreId);
+      if (tapeFinish && excludeKey !== "tapeFinish") f.tapeFinish = flex(tapeFinish);
       return f;
     };
 
@@ -158,14 +169,25 @@ router.get("/form/tape-binding/resolve-tape", async (req, res) => {
       return res.status(400).json(null);
     }
 
+    const flex = (val) => {
+      if (!val) return val;
+      if (typeof val !== "string") val = String(val);
+      const strVal = val.trim();
+      const numVal = Number(strVal);
+      if (strVal === "" || isNaN(numVal)) {
+        return strVal;
+      }
+      return { $in: [numVal, strVal] };
+    };
+
     const tape = await Tape.findOne({
-      tapePaperCode,
-      tapePaperType,
-      tapeGsm: Number(tapeGsm),
-      tapeWidth,
-      tapeMtrs: Number(tapeMtrs),
-      tapeCoreId: Number(tapeCoreId),
-      tapeFinish: tapeFinish,
+      tapePaperCode: flex(tapePaperCode),
+      tapePaperType: flex(tapePaperType),
+      tapeGsm: flex(tapeGsm),
+      tapeWidth: flex(tapeWidth),
+      tapeMtrs: flex(tapeMtrs),
+      tapeCoreId: flex(tapeCoreId),
+      tapeFinish: flex(tapeFinish),
     }).lean();
 
     if (!tape) {
