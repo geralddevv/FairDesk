@@ -119,14 +119,17 @@ router.get("/form/tape-binding/filter-specs", async (req, res) => {
     const { tapePaperCode, tapePaperType, tapeGsm, tapeWidth, tapeMtrs, tapeCoreId, tapeFinish } = req.query;
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     // Helper to build filter excluding one key so user can change selection
@@ -170,14 +173,17 @@ router.get("/form/tape-binding/resolve-tape", async (req, res) => {
     }
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const tape = await Tape.findOne({

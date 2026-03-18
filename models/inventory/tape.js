@@ -34,7 +34,7 @@ const tapeSchema = new mongoose.Schema(
     },
 
     tapeWidth: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
       index: true,
     },

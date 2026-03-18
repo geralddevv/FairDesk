@@ -36,6 +36,26 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 });
 
+/* ================= MULTER WRAPPER FOR CLEAN ERRORS ================= */
+const uploadMiddleware = upload.fields([
+  { name: "empPhoto", maxCount: 1 },
+  { name: "empAadhaarImg", maxCount: 1 },
+  { name: "empPanImg", maxCount: 1 },
+]);
+
+const handleUpload = (req, res, next) => {
+  uploadMiddleware(req, res, (err) => {
+    if (err) {
+      if (req.xhr || req.headers.accept?.includes("application/json")) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      req.flash("notification", err.message);
+      return res.redirect("back");
+    }
+    next();
+  });
+};
+
 /* ================= CREATE EMPLOYEE FORM ================= */
 router.get("/create", async (req, res) => {
   const employeeCount = (await Employee.countDocuments()) + 1;
@@ -64,36 +84,28 @@ router.get("/view", async (req, res) => {
 });
 
 /* ================= CREATE EMPLOYEE ================= */
-router.post(
-  "/form",
-  upload.fields([
-    { name: "empPhoto", maxCount: 1 },
-    { name: "empAadhaarImg", maxCount: 1 },
-    { name: "empPanImg", maxCount: 1 },
-  ]),
-  async (req, res) => {
-    try {
-      const employeeData = {
-        ...req.body,
-        empPhoto: req.files?.empPhoto?.[0]?.filename || null,
-        empAadhaarImg: req.files?.empAadhaarImg?.[0]?.filename || null,
-        empPanImg: req.files?.empPanImg?.[0]?.filename || null,
-      };
+router.post("/form", handleUpload, async (req, res) => {
+  try {
+    const employeeData = {
+      ...req.body,
+      empPhoto: req.files?.empPhoto?.[0]?.filename || null,
+      empAadhaarImg: req.files?.empAadhaarImg?.[0]?.filename || null,
+      empPanImg: req.files?.empPanImg?.[0]?.filename || null,
+    };
 
-      await Employee.create(employeeData);
+    await Employee.create(employeeData);
 
-      req.flash("notification", "Employee created successfully!");
-      if (req.xhr || req.headers.accept?.includes("application/json")) {
-        res.json({ success: true, redirect: "/fairdesk/employee/create" });
-      } else {
-        res.redirect("/fairdesk/employee/create");
-      }
-    } catch (err) {
-      console.error(err);
-      res.status(400).json({ success: false, message: err.message });
+    req.flash("notification", "Employee created successfully!");
+    if (req.xhr || req.headers.accept?.includes("application/json")) {
+      res.json({ success: true, redirect: "/fairdesk/employee/create" });
+    } else {
+      res.redirect("/fairdesk/employee/create");
     }
-  },
-);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
 
 /* ================= EMPLOYEE PROFILE VIEW ================= */
 router.get("/profile/:id", async (req, res) => {
@@ -129,47 +141,39 @@ router.get("/edit/:id", async (req, res) => {
 });
 
 /* ================= UPDATE EMPLOYEE ================= */
-router.post(
-  "/edit/:id",
-  upload.fields([
-    { name: "empPhoto", maxCount: 1 },
-    { name: "empAadhaarImg", maxCount: 1 },
-    { name: "empPanImg", maxCount: 1 },
-  ]),
-  async (req, res) => {
-    try {
-      const emp = await Employee.findById(req.params.id);
-      if (!emp) return res.status(400).json({ success: false, message: "Employee not found" });
+router.post("/edit/:id", handleUpload, async (req, res) => {
+  try {
+    const emp = await Employee.findById(req.params.id);
+    if (!emp) return res.status(400).json({ success: false, message: "Employee not found" });
 
-      const replaceFile = (field, folder) => {
-        if (req.files?.[field]) {
-          if (emp[field]) {
-            const oldPath = `images/${folder}/${emp[field]}`;
-            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-          }
-          emp[field] = req.files[field][0].filename;
+    const replaceFile = (field, folder) => {
+      if (req.files?.[field]) {
+        if (emp[field]) {
+          const oldPath = `images/${folder}/${emp[field]}`;
+          if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
         }
-      };
-
-      replaceFile("empPhoto", "empimg");
-      replaceFile("empAadhaarImg", "aadhaar");
-      replaceFile("empPanImg", "pan");
-
-      Object.assign(emp, req.body);
-      await emp.save();
-
-      req.flash("notification", "Employee updated successfully!");
-      const redirectUrl = "/fairdesk/employee/view";
-      if (req.xhr || req.headers.accept?.includes("application/json")) {
-        res.json({ success: true, redirect: redirectUrl });
-      } else {
-        res.redirect(redirectUrl);
+        emp[field] = req.files[field][0].filename;
       }
-    } catch (err) {
-      console.error(err);
-      res.status(400).json({ success: false, message: err.message });
+    };
+
+    replaceFile("empPhoto", "empimg");
+    replaceFile("empAadhaarImg", "aadhaar");
+    replaceFile("empPanImg", "pan");
+
+    Object.assign(emp, req.body);
+    await emp.save();
+
+    req.flash("notification", "Employee updated successfully!");
+    const redirectUrl = "/fairdesk/employee/view";
+    if (req.xhr || req.headers.accept?.includes("application/json")) {
+      res.json({ success: true, redirect: redirectUrl });
+    } else {
+      res.redirect(redirectUrl);
     }
-  },
-);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
 
 export default router;

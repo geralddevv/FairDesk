@@ -128,14 +128,17 @@ router.get("/form/tafeta-binding/filter-specs", async (req, res) => {
     } = req.query;
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const buildFilter = (excludeKey) => {
@@ -203,14 +206,17 @@ router.get("/form/tafeta-binding/resolve-tafeta", async (req, res) => {
     }
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const tafeta = await Tafeta.findOne({

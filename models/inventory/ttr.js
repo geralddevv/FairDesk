@@ -48,7 +48,7 @@ const ttrSchema = new mongoose.Schema(
     },
 
     ttrWidth: {
-      type: Number,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
       index: true,
     },

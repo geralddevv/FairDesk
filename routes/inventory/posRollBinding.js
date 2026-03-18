@@ -42,7 +42,28 @@ router.get("/form/pos-roll-binding", async (req, res) => {
   }
 });
 
-/* POST : Save POS Roll Binding */
+/* TEMPORARY DEBUG ROUTE */
+router.get("/form/pos-roll-binding/debug-dump", async (req, res) => {
+  try {
+    const originalQuery = {
+      posPaperCode: "003",
+      posPaperType: "THERMAL",
+      posGsm: Number("48"),
+      posWidth: "56",
+      posMtrs: Number("20"),
+      posCoreId: Number("0.5"),
+      posColor: "WHITE",
+    };
+
+    const docs = await PosRoll.find(originalQuery).lean();
+    const gsms = await PosRoll.distinct("posGsm", { posPaperCode: "003" });
+
+    res.json({ originalQuery, docs_length: docs.length, gsms });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/form/pos-roll-binding", async (req, res) => {
   try {
     const { userId, posRollId } = req.body;
@@ -115,14 +136,17 @@ router.get("/form/pos-roll-binding/filter-specs", async (req, res) => {
     const { posPaperCode, posPaperType, posGsm, posWidth, posMtrs, posCoreId, posColor } = req.query;
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const buildFilter = (excludeKey) => {
@@ -165,14 +189,17 @@ router.get("/form/pos-roll-binding/resolve-pos-roll", async (req, res) => {
     }
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const posRoll = await PosRoll.findOne({

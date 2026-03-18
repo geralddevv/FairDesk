@@ -82,19 +82,51 @@
 }
 
 /* ================= ANIMATIONS ================= */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+@keyframes slideIn {
+  from { right: -300px; opacity: 0; }
+  to { right: 20px; opacity: 1; }
+}
+@keyframes slideOut {
+  from { right: 20px; opacity: 1; }
+  to { right: -300px; opacity: 0; }
+}
+
+.toast-notification {
+  position: fixed;
+  bottom: 20px;
+  right: -300px;
+  background-color: #d1e7dd;
+  color: #0a3646;
+  padding: 12px 40px 12px 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  border-left: 4px solid #0a3646;
+  display: none;
+  align-items: center;
+}
+
+.toast-close {
+  position: absolute;
+  right: 12px;
+  top: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 18px;
+  color: inherit;
 }
 </style>
 
+<div class="toast-notification" id="toast">
+  <span id="toast-msg"></span>
+  <span class="toast-close" onclick="hideToast()">×</span>
+</div>
 
 <div class="main-content">
     <form
+      id="employeeForm"
       method="post"
       enctype="multipart/form-data"
       action="<%= employee ? `/fairdesk/employee/edit/${employee._id}` : '/fairdesk/employee/form' %>"
@@ -462,6 +494,16 @@
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  /* ================= ADD MANDATORY STARS ================= */
+  const requiredInputs = document.querySelectorAll("input[required], select[required], textarea[required]");
+  requiredInputs.forEach(input => {
+    let label = null;
+    if (input.id) label = document.querySelector(`label[for='${input.id}']`);
+    if (!label && input.parentElement) label = input.parentElement.querySelector("label");
+    if (label && !label.querySelector('.mandatory-star')) {
+      label.insertAdjacentHTML('beforeend', ' <span class="mandatory-star" style="color: red; font-weight: bold;">*</span>');
+    }
+  });
 
   /* ================= MODAL ELEMENTS ================= */
   const modal = document.getElementById("imageModal");
@@ -605,6 +647,72 @@ dependentsCountInput.addEventListener("input", (e) => {
   renderDependents(count);
 });
 
+/* ================= ASYNC FORM SUBMISSION ================= */
+const empForm = document.getElementById("employeeForm");
+if (empForm) {
+  empForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!empForm.checkValidity()) {
+      empForm.reportValidity();
+      return;
+    }
+    
+    const submitBtn = empForm.querySelector(".submit-btn");
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Saving...";
+    submitBtn.disabled = true;
+
+    try {
+      const formData = new FormData(empForm);
+      const action = empForm.getAttribute("action");
+      
+      const res = await fetch(action, {
+        method: "POST",
+        headers: { "Accept": "application/json" },
+        body: formData
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        showToast(data.message || "An error occurred during submission", true);
+      } else {
+        showToast(data.message || "Employee saved successfully!", false);
+        if (data.redirect) {
+          setTimeout(() => window.location.href = data.redirect, 1500);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Network error. Please check your connection and try again.", true);
+    } finally {
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
+  });
+}
 
 });
+
+const toast = document.getElementById("toast");
+const toastMsg = document.getElementById("toast-msg");
+function showToast(message, isError) {
+  if (!toast) return;
+  toastMsg.textContent = message;
+  toast.style.borderLeftColor = isError ? "#dc3545" : "#0a3646";
+  toast.style.backgroundColor = isError ? "#f8d7da" : "#d1e7dd";
+  toast.style.color = isError ? "#842029" : "#0a3646";
+  
+  toast.style.animation = "none";
+  toast.offsetHeight; // trigger reflow
+  toast.style.display = "flex";
+  toast.style.animation = "slideIn 0.5s forwards";
+}
+
+function hideToast() {
+  if (toast) {
+    toast.style.animation = "slideOut 0.5s forwards";
+    setTimeout(() => { toast.style.display = "none"; }, 500);
+  }
+}
 </script>

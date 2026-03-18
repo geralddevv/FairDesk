@@ -120,14 +120,17 @@ router.get("/form/ttr-binding/filter-specs", async (req, res) => {
     } = req.query;
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const buildFilter = (excludeKey) => {
@@ -210,14 +213,17 @@ router.get("/form/ttr-binding/resolve-ttr", async (req, res) => {
     }
 
     const flex = (val) => {
-      if (!val) return val;
-      if (typeof val !== "string") val = String(val);
-      const strVal = val.trim();
-      const numVal = Number(strVal);
-      if (strVal === "" || isNaN(numVal)) {
-        return strVal;
+      if (!val && val !== 0) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
       }
-      return { $in: [numVal, strVal] };
+      return { $in: arr };
     };
 
     const ttr = await Ttr.findOne({
@@ -347,7 +353,7 @@ router.post("/ttr-binding/edit/:id", async (req, res) => {
     const { id } = req.params;
     const {
       ttrClientMaterialCode,
-      clientTtrGsm,
+      clientTtrType,
       ttrMtrsDel,
       ttrRatePerRoll,
       ttrSaleCost,
@@ -365,7 +371,7 @@ router.post("/ttr-binding/edit/:id", async (req, res) => {
     }
 
     binding.ttrClientMaterialCode = ttrClientMaterialCode;
-    binding.clientTtrGsm = clientTtrGsm;
+    binding.clientTtrType = clientTtrType;
     binding.ttrMtrsDel = ttrMtrsDel;
     binding.ttrRatePerRoll = Number(ttrRatePerRoll);
     binding.ttrSaleCost = Number(ttrSaleCost);

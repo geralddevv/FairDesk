@@ -35,7 +35,7 @@ const tafetaSchema = new Schema(
     },
     /* ================= DIMENSIONS & PACKAGING ================= */
     tafetaWidth: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: true,
       trim: true,
       index: true, // often filtered
