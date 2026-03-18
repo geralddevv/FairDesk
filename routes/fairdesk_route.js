@@ -2090,7 +2090,9 @@ router.get("/client/details/:userId", async (req, res) => {
 // ----------------------------------Master display---------------------------------->
 // route for details page.
 router.get("/master/view", async (req, res) => {
-  let jsonData = await Username.find().sort({ clientName: 1 });
+  let jsonData = await Username.find()
+    .select("clientName accountHead userName userLocation label ttr tape posRoll tafeta")
+    .sort({ clientName: 1 });
 
   // console.log(jsonData);
   res.render("users/masterDisp.ejs", {

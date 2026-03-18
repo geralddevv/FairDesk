@@ -211,7 +211,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (!data) return;
 
+      const autoSelected = [];
+
       tafetaFields.forEach(id => {
+        if (id === changedFieldId) return; // skip the field that triggered the filter
         const choicesInstance = specChoices[id];
         if (!choicesInstance) return;
 
@@ -225,14 +228,26 @@ document.addEventListener("DOMContentLoaded", () => {
           selected: String(v) === currentValue,
         }));
 
+        // Auto-select if exactly one option and nothing currently selected
+        if (filteredValues.length === 1 && !currentValue) {
+          newChoices[0].selected = true;
+          autoSelected.push(id);
+        }
+
         choicesInstance.clearStore();
         choicesInstance.setChoices(
-          [{ value: "", label: "Search", disabled: true, selected: !currentValue }, ...newChoices],
+          [{ value: "", label: "Search", disabled: true, selected: !newChoices.some(c => c.selected) }, ...newChoices],
           "value",
           "label",
           true
         );
       });
+
+      // If any fields were auto-selected, re-run filter to cascade
+      if (autoSelected.length > 0) {
+        await filterSpecs(autoSelected[0]);
+        resolveTafeta();
+      }
     } catch (err) {
       console.error("Filter specs error:", err);
     }

@@ -56,8 +56,11 @@
             <input type="text" id="client-location" class="form-control" name="location" placeholder="Enter Location" required />
           </div>
 
-          <div class="span-full form-subheading">
+          <div class="span-full form-subheading" style="display: flex; justify-content: space-between; align-items: center;">
             <h1>Tape Specifications</h1>
+            <button type="button" id="reset-specs-btn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">
+              Reset
+            </button>
           </div>
 
           <div class="span-five">
@@ -237,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
   submitBtn.disabled = true;
 
   /* ================= CHOICES INIT ================= */
-  new Choices(clientSelect, {
+  const clientChoices = new Choices(clientSelect, {
     searchEnabled: true,
     shouldSort: false,
     itemSelectText: "",
@@ -319,8 +322,8 @@ document.addEventListener("DOMContentLoaded", () => {
           selected: String(v) === currentValue,
         }));
 
-        // Auto-select if exactly one option and nothing currently selected
-        if (filteredValues.length === 1 && !currentValue) {
+        // Auto-select if exactly one option and nothing currently selected (and not resetting)
+        if (changedFieldId !== "reset-all" && filteredValues.length === 1 && !currentValue) {
           newChoices[0].selected = true;
           autoSelected.push(id);
         }
@@ -464,6 +467,55 @@ document.addEventListener("DOMContentLoaded", () => {
       resolveTape();
     });
   });
+
+  /* ================= RESET SPECS ================= */
+  const resetSpecsBtn = document.getElementById("reset-specs-btn");
+  if (resetSpecsBtn) {
+    resetSpecsBtn.addEventListener("click", async () => {
+      // Clear underlying values for tape specs & reset their Choices UI
+      tapeFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+        
+        // Also clear the Choices visible selection
+        if (specChoices[id]) {
+          specChoices[id].setChoiceByValue("");
+        }
+      });
+      
+      resetResolvedTape();
+
+      // Clear the overrides if populated
+      const clientPaperCode = document.getElementById("tape-client-paper-code");
+      if (clientPaperCode) clientPaperCode.value = "";
+      const clientGsm = document.getElementById("tape-client-gsm");
+      if (clientGsm) clientGsm.value = "";
+
+      // Clear all other text inputs
+      const otherInputs = [
+        "tape-mtrs-del",
+        "tape-rate-per-roll",
+        "tape-sale-cost",
+        "tape-min-qty",
+        "tape-odr-qty",
+        "tape-odr-freq",
+        "tape-credit-term"
+      ];
+      otherInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+
+      // Reset Client and User dropdowns
+      if (typeof clientChoices !== "undefined") {
+        clientChoices.setChoiceByValue("");
+      }
+      hardResetUserSelection();
+      
+      // Fetch fresh, unfiltered options and apply them to all fields
+      await filterSpecs("reset-all");
+    });
+  }
 
   /* ================= RATE CALC ================= */
   const widthInput = document.getElementById("tape-width");

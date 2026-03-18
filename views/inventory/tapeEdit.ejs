@@ -10,8 +10,11 @@
     novalidate
   >
 
-    <div class="span-full form-subheading gap">
-        <h1>Edit Tape</h1>
+    <div class="span-full form-subheading gap" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin:0;">Edit Tape</h1>
+        <button type="button" id="reset-specs-btn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">
+          Reset
+        </button>
     </div>
 
     <!-- PRODUCT ID -->
@@ -136,5 +139,10 @@
 <script>
   document.getElementById("cancelBtn").addEventListener("click", () => {
     window.location.href = "/fairdesk/tape/profile/<%= tape._id %>";
+  });
+
+  document.getElementById("reset-specs-btn")?.addEventListener("click", () => {
+    const inputs = document.querySelectorAll("form input:not([readonly])");
+    inputs.forEach(input => input.value = "");
   });
 </script>
