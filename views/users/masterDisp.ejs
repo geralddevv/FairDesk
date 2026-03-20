@@ -112,6 +112,7 @@
             headerSort: false,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
+            widthGrow: 2,
           },
           // {
           //   title: "Type",
@@ -133,6 +134,7 @@
             headerSort: false,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
+            widthGrow: 2,
           },
           {
             title: "User Name",
@@ -151,6 +153,7 @@
             headerSort: false,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
+            widthGrow: 2,
           },
           {
             title: "Location",
@@ -158,6 +161,7 @@
             headerSort: false,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
+            widthGrow: 2,
           },
           // {
           //   title: "Department",
@@ -193,7 +197,10 @@
           {
             title: "Labels",
             field: "labelCount",
+            width: 95,
             widthGrow: 0,
+            widthShrink: 0,
+            hozAlign: "center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.labelCount}</span>`;
@@ -206,7 +213,10 @@
           {
             title: "TTR's",
             field: "ttrCount",
+            width: 95,
             widthGrow: 0,
+            widthShrink: 0,
+            hozAlign: "center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.ttrCount}</span>`;
@@ -219,7 +229,10 @@
           {
             title: "Tapes",
             field: "tapeCount",
+            width: 95,
             widthGrow: 0,
+            widthShrink: 0,
+            hozAlign: "center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.tapeCount}</span>`;
@@ -232,7 +245,10 @@
           {
             title: "POS Rolls",
             field: "posRollCount",
+            width: 95,
             widthGrow: 0,
+            widthShrink: 0,
+            hozAlign: "center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.posRollCount}</span>`;
@@ -245,7 +261,10 @@
           {
             title: "Tafeta",
             field: "tafetaCount",
+            width: 95,
             widthGrow: 0,
+            widthShrink: 0,
+            hozAlign: "center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
               return `<span style="cursor:pointer;text-decoration:underline;">${row.tafetaCount}</span>`;

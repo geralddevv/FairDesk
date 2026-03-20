@@ -129,6 +129,7 @@
       id="employeeForm"
       method="post"
       enctype="multipart/form-data"
+      novalidate
       action="<%= employee ? `/fairdesk/employee/edit/${employee._id}` : '/fairdesk/employee/form' %>"
     >
 
@@ -249,31 +250,47 @@
       <input type="text" inputmode="numeric" id="emp-mobile2" class="form-control input-tag" name="empMobile2" value="<%= employee?.empMobile2 || '' %>" placeholder="Enter Mobile No 2" autocomplete="off"/>
     </div>
 
-    <div class="span-six">
+    <div
+      id="emp-emergency-no1-container"
+      class="<%= employee?.empMartialStatus === 'SINGLE' ? 'span-dual' : 'span-six' %>"
+      data-normal-span="span-six"
+    >
       <label for="emp-emergency-no1">Emergency No 1</label>
       <input type="text" inputmode="numeric" id="emp-emergency-no1" class="form-control input-tag" name="empEmergencyNo1" value="<%= employee?.empEmergencyNo1 || '' %>" placeholder="Enter emergency No" autocomplete="off" required/>
     </div> 
 
-    <div class="span-six">
+    <div
+      id="emp-emergency-no2-container"
+      class="<%= employee?.empMartialStatus === 'SINGLE' ? 'span-dual' : 'span-six' %>"
+      data-normal-span="span-six"
+    >
       <label for="emp-emergency-no2">Emergency No 2</label>
       <input type="text" inputmode="numeric" id="emp-emergency-no2" class="form-control input-tag" name="empEmergencyNo2" value="<%= employee?.empEmergencyNo2 || '' %>" placeholder="Enter emergency No" autocomplete="off"/>
     </div>    
 
-    <div class="span-seven">
+    <div
+      id="emp-email-container"
+      class="<%= employee?.empMartialStatus === 'SINGLE' ? 'span-dual' : 'span-seven' %>"
+      data-normal-span="span-seven"
+    >
       <label for="emp-email">Email</label>
-      <input type="email" id="emp-email" class="form-control input-tag" name="empEmail" value="<%= employee?.empEmail || '' %>" placeholder="Enter Email" autocomplete="off" required />
+      <input type="text" id="emp-email" class="form-control input-tag" name="empEmail" value="<%= employee?.empEmail || '' %>" placeholder="Enter Email or NA" autocomplete="off" required />
     </div>
 
-    <div class="span-six">
+    <div
+      id="emp-martial-status-container"
+      class="<%= employee?.empMartialStatus === 'SINGLE' ? 'span-dual' : 'span-six' %>"
+      data-normal-span="span-six"
+    >
       <label for="emp-martial-status">Martial Status</label>
-       <select name="empMartialStatus" class="form-control select-tag" required>
+       <select name="empMartialStatus" id="emp-martial-status" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select</option>
         <option value="SINGLE" <%= employee?.empMartialStatus === 'SINGLE' ? 'selected' : '' %>>SINGLE</option>
         <option value="MARRIED" <%= employee?.empMartialStatus === 'MARRIED' ? 'selected' : '' %>>MARRIED</option>
        </select>
     </div>
     
-    <div class="span-seven">
+    <div class="span-seven" id="marriage-anniv-container" style="display: none;">
       <label for="emp-marriage-anniversary">Marriage Anniv</label>
       <input type="date" id="emp-marriage-anniversary" class="form-control input-tag" name="empMarriageAnniversary" value="<%= employee?.empMarriageAnniversary || '' %>" placeholder="Enter Marriage Anniversary" autocomplete="off"/>
     </div>
@@ -288,6 +305,7 @@
         rows="3"
         style="border: 1px solid #044A78; resize: none;"
         autocomplete="off"
+        oninput="this.value = this.value.toUpperCase()"
       ><%= employee?.empPresentAddress || '' %></textarea>
     </div>
 
@@ -301,6 +319,7 @@
         rows="3"
         style="border: 1px solid #044A78; resize: none;"
         autocomplete="off"
+        oninput="this.value = this.value.toUpperCase()"
       ><%= employee?.empPermanentAddress || '' %></textarea>
     </div>
 
@@ -314,6 +333,7 @@
         rows="3"
         style="border: 1px solid #044A78; resize: none;"
         autocomplete="off"
+        oninput="this.value = this.value.toUpperCase()"
       ><%= employee?.empHobbies || '' %></textarea>
     </div>       
 
@@ -385,37 +405,37 @@
 
     <div class="span-four">
       <label for="emp-pt">PT</label>
-      <input type="number" id="emp-pt" class="form-control input-tag" name="empPT" value="<%= employee?.empPT || 0 %>" placeholder="Enter PT" autocomplete="off" required />
+      <input type="number" step="any" id="emp-pt" class="form-control input-tag" name="empPT" value="<%= employee?.empPT || 0 %>" placeholder="Enter PT" autocomplete="off" required />
     </div>    
 
     <div class="span-four">
       <label for="emp-tds">TDS</label>
-      <input type="number" id="emp-tds" class="form-control input-tag" name="empTDS" value="<%= employee?.empTDS || 0 %>" placeholder="Enter TDS" autocomplete="off" required />
+      <input type="number" step="any" id="emp-tds" class="form-control input-tag" name="empTDS" value="<%= employee?.empTDS || 0 %>" placeholder="Enter TDS" autocomplete="off" required />
     </div>    
 
     <div class="span-four">
       <label for="emp-lic">LIC</label>
-      <input type="number" id="emp-lic" class="form-control input-tag" name="empLIC" value="<%= employee?.empLIC || 0 %>" placeholder="Enter LIC" autocomplete="off" required />
+      <input type="number" step="any" id="emp-lic" class="form-control input-tag" name="empLIC" value="<%= employee?.empLIC || 0 %>" placeholder="Enter LIC" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-medical">Medical</label>
-      <input type="number" id="emp-medical" class="form-control input-tag" name="empMedical" value="<%= employee?.empMedical || 0 %>" placeholder="Enter Medical" autocomplete="off" required />
+      <input type="number" step="any" id="emp-medical" class="form-control input-tag" name="empMedical" value="<%= employee?.empMedical || 0 %>" placeholder="Enter Medical" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-nsic">NSIC</label>
-      <input type="number" id="emp-nsic" class="form-control input-tag" name="empNSIC" value="<%= employee?.empNSIC || 0 %>" placeholder="Enter NSIC" autocomplete="off" required />
+      <input type="number" step="any" id="emp-nsic" class="form-control input-tag" name="empNSIC" value="<%= employee?.empNSIC || 0 %>" placeholder="Enter NSIC" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-esic">ESIC</label>
-      <input type="number" id="emp-esic" class="form-control input-tag" name="empESIC" value="<%= employee?.empESIC || 0 %>" placeholder="Enter ESIC" autocomplete="off" required />
+      <input type="number" step="any" id="emp-esic" class="form-control input-tag" name="empESIC" value="<%= employee?.empESIC || 0 %>" placeholder="Enter ESIC" autocomplete="off" required />
     </div>    
 
     <div class="span-five">
       <label for="emp-pf">PF</label>
-      <input type="number" id="emp-pf" class="form-control input-tag" name="empPF" value="<%= employee?.empPF || 0 %>" placeholder="Enter PF" autocomplete="off" required />
+      <input type="number" step="any" id="emp-pf" class="form-control input-tag" name="empPF" value="<%= employee?.empPF || 0 %>" placeholder="Enter PF" autocomplete="off" required />
     </div>
     
     <div class="span-full form-subheading">
@@ -424,36 +444,36 @@
 
     <div class="span-five">
       <label for="basicSalary">Basic Salary</label>
-      <input type="number" name="basicSalary" value="<%= employee?.basicSalary || 0 %>" id="basicSalary" class="form-control input-tag" placeholder="Enter Basic Salary" autocomplete="off" />
+      <input type="number" step="any" name="basicSalary" value="<%= employee?.basicSalary || 0 %>" id="basicSalary" class="form-control input-tag" placeholder="Enter Basic Salary" autocomplete="off" />
     </div>
 
     <div class="span-five">
       <label for="railwayPass">Railway Pass</label>
-      <input type="number" name="railwayPass" value="<%= employee?.railwayPass || 0 %>" id="railwayPass"  class="form-control input-tag" placeholder="Enter Railway Pass" autocomplete="off" />
+      <input type="number" step="any" name="railwayPass" value="<%= employee?.railwayPass || 0 %>" id="railwayPass"  class="form-control input-tag" placeholder="Enter Railway Pass" autocomplete="off" />
     </div>
 
     <div class="span-four">
       <label for="travelling">Travelling</label>
-      <input type="number" name="travelling" value="<%= employee?.travelling || 0 %>" id="travelling" class="form-control input-tag" placeholder="Enter Travelling" autocomplete="off" />
+      <input type="number" step="any" name="travelling" value="<%= employee?.travelling || 0 %>" id="travelling" class="form-control input-tag" placeholder="Enter Travelling" autocomplete="off" />
     </div>
 
     <div class="span-five">
       <label for="houseRent">House Rent</label>
-      <input type="number" name="houseRent" value="<%= employee?.houseRent || 0 %>" id="houseRent" class="form-control input-tag" placeholder="Enter House Rent" autocomplete="off" />
+      <input type="number" step="any" name="houseRent" value="<%= employee?.houseRent || 0 %>" id="houseRent" class="form-control input-tag" placeholder="Enter House Rent" autocomplete="off" />
     </div>
     <div class="span-five">
       <label for="staffQuarters">Staff Quaters</label>
-      <input type="number" name="staffQuarters" value="<%= employee?.staffQuarters || 0 %>" id="staffQuarters" class="form-control input-tag" placeholder="Enter House Rent" autocomplete="off" />
+      <input type="number" step="any" name="staffQuarters" value="<%= employee?.staffQuarters || 0 %>" id="staffQuarters" class="form-control input-tag" placeholder="Enter House Rent" autocomplete="off" />
     </div>
 
     <div class="span-four">
       <label for="otRatePerHour">OT Per Hour</label>
-      <input type="number" name="otRatePerHour" value="<%= employee?.otRatePerHour || 0 %>" id="otRatePerHour" class="form-control input-tag" placeholder="Enter OT" autocomplete="off" />
+      <input type="number" step="any" name="otRatePerHour" value="<%= employee?.otRatePerHour || 0 %>" id="otRatePerHour" class="form-control input-tag" placeholder="Enter OT" autocomplete="off" />
     </div>
 
     <div class="span-four">
       <label for="bonus">Bonus %</label>
-      <input type="number" name="bonus" value="<%= employee?.bonus || 0 %>" id="bonus" class="form-control input-tag" placeholder="Enter Bonus" autocomplete="off" />
+      <input type="number" step="any" name="bonus" value="<%= employee?.bonus || 0 %>" id="bonus" class="form-control input-tag" placeholder="Enter Bonus" autocomplete="off" />
     </div>
     
     <div class="span-full form-subheading" style="display: flex; align-items: center;">
@@ -494,6 +514,50 @@
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  /* ================= MARRIAGE ANNIVERSARY TOGGLE ================= */
+  const martialStatusSelect = document.getElementById("emp-martial-status");
+  const marriageAnnivContainer = document.getElementById("marriage-anniv-container");
+  const martialLayoutFields = [
+    document.getElementById("emp-emergency-no1-container"),
+    document.getElementById("emp-emergency-no2-container"),
+    document.getElementById("emp-email-container"),
+    document.getElementById("emp-martial-status-container")
+  ].filter(Boolean);
+
+  function updateMartialLayout(status) {
+    const isMarried = status === "MARRIED";
+    const useDualLayout = status !== "MARRIED";
+
+    martialLayoutFields.forEach((field) => {
+      const normalSpan = field.dataset.normalSpan;
+      if (!normalSpan) return;
+
+      field.classList.remove("span-dual", "span-four", "span-five", "span-six", "span-seven", "span-eight", "span-penta", "span-hexa");
+      if (field.id === "emp-martial-status-container") {
+        field.classList.add(isMarried ? normalSpan : "span-dual");
+      } else {
+        field.classList.add(useDualLayout ? "span-dual" : normalSpan);
+      }
+    });
+
+    if (marriageAnnivContainer) {
+      marriageAnnivContainer.style.display = isMarried ? "block" : "none";
+    }
+
+    if (!isMarried) {
+      const annivInput = document.getElementById("emp-marriage-anniversary");
+      if (annivInput) annivInput.value = "";
+    }
+  }
+
+  if (martialStatusSelect) {
+    martialStatusSelect.addEventListener("change", (e) => {
+      updateMartialLayout(e.target.value);
+    });
+
+    updateMartialLayout(martialStatusSelect.value);
+  }
+
   /* ================= ADD MANDATORY STARS ================= */
   const requiredInputs = document.querySelectorAll("input[required], select[required], textarea[required]");
   requiredInputs.forEach(input => {
@@ -502,6 +566,34 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!label && input.parentElement) label = input.parentElement.querySelector("label");
     if (label && !label.querySelector('.mandatory-star')) {
       label.insertAdjacentHTML('beforeend', ' <span class="mandatory-star" style="color: red; font-weight: bold;">*</span>');
+    }
+  });
+
+  /* ================= FORMAT MOBILE NUMBERS ================= */
+  const mobileInputs = [
+    "emp-office-mob",
+    "emp-mobile1",
+    "emp-mobile2",
+    "emp-emergency-no1",
+    "emp-emergency-no2"
+  ];
+  
+  function formatMobileNumber(inputElement) {
+    let value = inputElement.value.replace(/\D/g, "");
+    value = value.substring(0, 10);
+    if (value.length > 5) {
+      value = value.substring(0, 5) + " " + value.substring(5);
+    }
+    inputElement.value = value;
+  }
+
+  mobileInputs.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      // Format on page load for existing DB data
+      formatMobileNumber(input);
+      // Format on user input dynamically
+      input.addEventListener("input", () => formatMobileNumber(input));
     }
   });
 
@@ -653,9 +745,12 @@ if (empForm) {
   empForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!empForm.checkValidity()) {
-      empForm.reportValidity();
+      empForm.classList.add("was-validated");
       return;
     }
+    
+    // Optional: Keep the validated styles while saving
+    empForm.classList.add("was-validated");
     
     const submitBtn = empForm.querySelector(".submit-btn");
     const originalText = submitBtn.textContent;

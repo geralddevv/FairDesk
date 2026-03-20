@@ -1,0 +1,293 @@
+<!-- Link to boilerplate.ejs -->
+<% layout('/layout/boilerplate') -%>
+
+<style>
+  .tape-details-shell {
+    padding: 18px;
+    background: linear-gradient(180deg, #eef5fb 0%, #f7f9fc 100%);
+  }
+
+  .tape-details-card {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 18px 42px rgba(4, 74, 120, 0.12);
+    border: 1px solid rgba(4, 74, 120, 0.12);
+    overflow: hidden;
+  }
+
+  .tape-details-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-end;
+    padding: 24px 24px 22px;
+    background:
+      radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 34%),
+      linear-gradient(135deg, #044a78 0%, #03365a 100%);
+    color: #fff;
+  }
+
+  .header-copy {
+    max-width: 100%;
+    padding-left: 78px;
+  }
+
+  .tape-details-header h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+
+  .tape-details-sub {
+    margin-top: 6px;
+    font-size: 14px;
+    opacity: 0.92;
+    line-height: 1.4;
+  }
+
+  .client-name {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .username-line {
+    display: block;
+    margin-top: 2px;
+    color: rgba(255,255,255,0.86);
+  }
+
+  .tape-details-badge {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .back-link {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+    transition: transform 0.18s ease, background 0.18s ease;
+    z-index: 2;
+  }
+
+  .back-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
+
+  .section-title {
+    margin: 0 0 14px;
+    color: #044a78;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .detail-item {
+    border: 1px solid #e6eaf2;
+    border-radius: 12px;
+    padding: 14px 15px;
+    background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+  }
+
+  .detail-label {
+    font-size: 12px;
+    color: #6b6f8c;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .detail-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2a44;
+    word-break: break-word;
+  }
+
+  .details-section {
+    margin-top: 20px;
+  }
+
+  .details-section:first-of-type {
+    margin-top: 0;
+  }
+
+  .tape-details-body {
+    padding: 22px 24px 24px;
+  }
+
+  .tape-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid #e6eaf2;
+  }
+
+  .tape-table th,
+  .tape-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e6eaf2;
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .tape-table th {
+    color: #044a78;
+    font-weight: 700;
+    background: #f8fbff;
+  }
+
+  .tape-table tbody tr:hover {
+    background: #fbfdff;
+  }
+
+  .tape-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .empty-state {
+    padding: 28px 18px;
+    text-align: center;
+    color: #6b6f8c;
+  }
+
+  .empty-state h3 {
+    margin: 0 0 8px;
+    color: #044a78;
+  }
+
+  @media (max-width: 768px) {
+    .tape-details-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 64px;
+    }
+
+    .header-copy {
+      padding-left: 0;
+    }
+
+    .tape-table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
+</style>
+
+<div class="main-content tape-details-shell">
+  <div class="tape-details-card">
+    <a class="back-link" href="<%= backUrl %>">
+      <i class="fa-solid fa-arrow-left"></i>
+      Back
+    </a>
+    <div class="tape-details-header">
+      <div class="header-copy">
+        <h1>Tape Details</h1>
+        <div class="tape-details-sub">
+          <span class="client-name"><%= primaryBinding?.userId?.clientName || "Client not found" %></span>
+          <span class="username-line">Username: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
+        </div>
+      </div>
+      <div class="tape-details-badge">Client Tape Profile</div>
+    </div>
+
+    <div class="tape-details-body">
+      <div class="details-section">
+        <h3 class="section-title">Tape Master Details</h3>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="detail-label">Paper Code</div>
+            <div class="detail-value"><%= tape.tapePaperCode || "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Paper Type</div>
+            <div class="detail-value"><%= tape.tapePaperType || "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">GSM</div>
+            <div class="detail-value"><%= tape.tapeGsm ?? "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Adhesive GSM</div>
+            <div class="detail-value"><%= tape.tapeAdhesiveGsm ?? "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Width</div>
+            <div class="detail-value"><%= tape.tapeWidth ?? "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Meters</div>
+            <div class="detail-value"><%= tape.tapeMtrs ?? "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Core ID</div>
+            <div class="detail-value"><%= tape.tapeCoreId ?? "N/A" %></div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Finish</div>
+            <div class="detail-value"><%= tape.tapeFinish || "N/A" %></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="details-section">
+        <h3 class="section-title">Client Tape Details</h3>
+        <% if (tapeBindings.length > 0) { %>
+          <table class="tape-table">
+            <thead>
+              <tr>
+                <th>Client Paper Code</th>
+                <th>Client GSM</th>
+                <th>MTRS Delivered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% tapeBindings.forEach(function(binding) { %>
+                <tr>
+                  <td><%= binding.tapeClientPaperCode || "-" %></td>
+                  <td><%= binding.clientTapeGsm ?? "-" %></td>
+                  <td><%= binding.tapeMtrsDel ?? 0 %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="empty-state">
+            <h3>No Client Tape Details Found</h3>
+            <p>This tape does not have any client bindings yet.</p>
+          </div>
+        <% } %>
+      </div>
+
+    </div>
+  </div>
+</div>

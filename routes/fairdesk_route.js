@@ -568,7 +568,26 @@ router.get("/tape/profile/:id", async (req, res) => {
     return res.redirect("back");
   }
 
-  res.render("inventory/tapeView.ejs", { tape });
+  const tapeBindings = await TapeBinding.find({ tapeId: req.params.id })
+    .populate({ path: "userId", select: "userName clientName hoLocation" })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const primaryBinding = tapeBindings[0] || null;
+  const backUrl = primaryBinding?.userId?._id
+    ? `/fairdesk/client/details/${primaryBinding.userId._id}`
+    : "/fairdesk/tape/view";
+
+  res.render("inventory/tapeDetails.ejs", {
+    tape,
+    tapeBindings,
+    primaryBinding,
+    backUrl,
+    title: "Tape Details",
+    CSS: false,
+    JS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // ================= TAPE EDIT =================
