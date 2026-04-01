@@ -7,9 +7,34 @@
 
 <body>
   <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+    <style>
+      .header-action-btn {
+        background-color: #f0f0f0;
+        color: #044a78;
+        padding: 2px 14px; /* Matches Download button padding exactly */
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .header-action-btn:hover {
+        background-color: #e4e4e4;
+      }
+    </style>
+
     <div class="indi-head">
       <h1>Tape Master</h1>
-      <div class="download-btns">
+      <div style="display: flex; gap: 10px; align-items: center">
+        <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/tape-master'">
+          <i class="fa-solid fa-plus" style="margin-right: 4px;"></i> Tape
+        </button>
+
         <div class="download-selector" id="downloadSelector">
           <button class="download-selector__trigger">
             <span>
@@ -153,49 +178,4 @@
       selector.classList.remove("download-selector--active");
     });
   </script>
-
-  <!-- ================= FLOATING ACTION BUTTON ================= -->
-  <style>
-    .fab-capsule {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      background: #044a78;
-      border-radius: 50px;
-      display: flex;
-      align-items: center;
-      padding: 6px 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-    }
-
-    .fab-item {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 42px;
-      height: 42px;
-      color: #fff;
-      text-decoration: none;
-      font-size: 18px;
-      border-radius: 50%;
-      transition: background 0.2s;
-    }
-
-    .fab-item:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-    }
-  </style>
-
-  <div class="fab-capsule">
-    <div
-      title="Add Tape Master"
-      class="fab-item"
-      onclick="window.location.href = '/fairdesk/form/tape-master'"
-      style="cursor: pointer"
-    >
-      <i class="fa-solid fa-plus"></i>
-    </div>
-  </div>
 </body>

@@ -53,6 +53,11 @@ const tapeSalesOrderSchema = new mongoose.Schema(
       default: 0,
     },
 
+    poNumber: {
+      type: String,
+      trim: true,
+    },
+
     estimatedDate: {
       type: Date,
       required: true,

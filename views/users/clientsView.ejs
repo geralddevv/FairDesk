@@ -7,15 +7,45 @@
   <div class="indi-head">
     <h1>Clients</h1>
 
-    <div class="download-selector" id="downloadSelector">
-      <button class="download-selector__trigger">
-        <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
-        <i class="fas fa-chevron-down"></i>
+    <style>
+      .header-action-btn {
+        background-color: #f0f0f0;
+        color: #044a78;
+        padding: 2px 14px; /* Matches Download button padding exactly */
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .header-action-btn:hover {
+        background-color: #e4e4e4;
+      }
+    </style>
+
+    <div style="display: flex; gap: 10px; align-items: center">
+      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/client?tab=user'">
+        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> User
+      </button>
+      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/client?tab=client'">
+        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Client
       </button>
 
-      <div class="download-selector__menu">
-        <div class="download-selector__option" id="download-pdf"><i class="fas fa-file-pdf"></i> PDF</div>
-        <div class="download-selector__option" id="download-xlsx"><i class="fas fa-file-excel"></i> Excel</div>
+      <div class="download-selector" id="downloadSelector">
+        <button class="download-selector__trigger">
+          <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+
+        <div class="download-selector__menu">
+          <div class="download-selector__option" id="download-pdf"><i class="fas fa-file-pdf"></i> PDF</div>
+          <div class="download-selector__option" id="download-xlsx"><i class="fas fa-file-excel"></i> Excel</div>
+        </div>
       </div>
     </div>
   </div>
@@ -181,12 +211,33 @@
           openClientModal(row._id);
         },
       },
-      { title: "Type", field: "clientType" },
-      { title: "HO Location", field: "hoLocation" },
-      { title: "Account Head", field: "accountHead" },
+      {
+        title: "Type",
+        field: "clientType",
+        headerSort: false,
+        headerFilter: "select",
+        headerFilterParams: {
+          values: { "": "All", DEALER: "DEALER", CLIENT: "CLIENT" },
+        },
+        width: 100,
+      },
+      { title: "HO Location", field: "hoLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Account Head", field: "accountHead", headerFilter: "input", headerFilterPlaceholder: "Search" },
       {
         title: "Status",
         field: "clientStatus",
+        headerFilter: "select",
+        headerFilterParams: {
+          values: {
+            "": "All",
+            ACTIVE: "ACTIVE",
+            INACTIVE: "INACTIVE",
+            "FOLLOW UP": "FOLLOW UP",
+            BLACKLISTED: "BLACKLISTED",
+            ADVANCED: "ADVANCED",
+            OTHERS: "OTHERS",
+          },
+        },
         formatter: (cell) => {
           const v = cell.getValue();
           const color = v === "ACTIVE" ? "#28a745" : "#dc3545";
@@ -236,68 +287,3 @@
     document.getElementById("clientModal").style.display = "none";
   }
 </script>
-
-<!-- ================= FLOATING ACTION BUTTONS ================= -->
-<style>
-  .fab-capsule {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
-    background: #044a78;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    padding: 6px 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-  }
-
-  .fab-item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    height: 42px;
-    color: #fff;
-    text-decoration: none;
-    font-size: 18px;
-    border-radius: 50%;
-    transition:
-      background 0.2s,
-      transform 0.2s;
-  }
-
-  .fab-item:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: scale(1.05);
-    color: #fff;
-  }
-
-  .fab-divider {
-    width: 2px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.2);
-    margin: 0 8px;
-    border-radius: 2px;
-  }
-</style>
-
-<div class="fab-capsule">
-  <div
-    title="Add Client"
-    class="fab-item"
-    onclick="window.location.href = '/fairdesk/form/client?tab=client'"
-    style="cursor: pointer"
-  >
-    <i class="fa-solid fa-building"></i>
-  </div>
-  <div class="fab-divider"></div>
-  <div
-    title="Add User"
-    class="fab-item"
-    onclick="window.location.href = '/fairdesk/form/client?tab=user'"
-    style="cursor: pointer"
-  >
-    <i class="fa-solid fa-user-plus"></i>
-  </div>
-</div>

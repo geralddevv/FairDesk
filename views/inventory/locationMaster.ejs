@@ -38,7 +38,7 @@
               display: inline-flex;
               align-items: center;
               gap: 8px;
-              padding: 6px 10px 6px 14px;
+              padding: 6px 14px;
               background: #e0f2fe;
               color: #044A78;
               border-radius: 6px;
@@ -47,13 +47,6 @@
               border: 1px solid #bae6fd;
             ">
               <%= loc.locationName %>
-              <i class="fa-solid fa-xmark" 
-                onclick="confirmDelete('<%= loc._id %>', '<%= loc.locationName %>')"
-                style="cursor:pointer; color:#ef4444; font-size:13px; padding:2px 4px; border-radius:4px; transition:background 0.2s;"
-                onmouseover="this.style.background='#fee2e2'" 
-                onmouseout="this.style.background='transparent'"
-                title="Delete <%= loc.locationName %>">
-              </i>
             </span>
           <% }) %>
         </div>

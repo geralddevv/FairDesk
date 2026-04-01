@@ -21,7 +21,7 @@
       <h1>Order Details</h1>
     </div>
 
-    <div class="span-eight">
+    <div class="span-seven">
       <label for="item-type">Item Type</label>
       <select name="itemType" id="item-type" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select Item Type</option>
@@ -33,7 +33,7 @@
       </select>
     </div>
 
-    <div class="span-eight">
+    <div class="span-six">
       <label for="client-name">Client Name</label>
       <select name="clientName" id="client-name" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select Client</option>
@@ -43,7 +43,7 @@
       </select>
     </div>
 
-    <div class="span-eight">
+    <div class="span-six">
       <label for="user-name">User Name</label>
       <select name="userId" id="user-name" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select User</option>
@@ -51,7 +51,14 @@
       <input type="hidden" name="userName" id="user-name-hidden" />
     </div>
 
-    <div class="span-eight">
+    <div class="span-six">
+      <label for="user-location">Location</label>
+      <select id="user-location" name="userLocation" class="form-control select-tag">
+        <option value="" disabled selected hidden>Location</option>
+      </select>
+    </div>
+
+    <div class="span-seven">
       <label for="item-select">Select Item</label>
       <select name="itemId" id="item-select" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select Item</option>
@@ -63,13 +70,18 @@
       <h1>Order Info</h1>
     </div>
 
-    <div class="span-eight">
+    <div class="span-five">
       <label for="quantity">Order Quantity</label>
       <input type="number" id="quantity" name="quantity" class="form-control" min="1" placeholder="Enter quantity" required />
     </div>
 
-    <div class="span-eight">
-      <label for="estimated-date">Estimated Delivery Date</label>
+    <div class="span-five">
+      <label for="po-number">PO Number</label>
+      <input type="text" id="po-number" name="poNumber" class="form-control" placeholder="Enter PO number" required />
+    </div>    
+
+    <div class="span-six">
+      <label for="estimated-date">Est Delivery Date</label>
       <input type="date" id="estimated-date" name="estimatedDate" class="form-control" required />
     </div>
 
@@ -311,19 +323,61 @@
   const itemTypeSelect = document.getElementById("item-type");
   const itemSelect = document.getElementById("item-select");
   const sourceLocationInput = document.getElementById("source-location");
+  const locationSelect = document.getElementById("user-location");
+  const poNumberInput = document.getElementById("po-number");
   const quantityInput = document.getElementById("quantity");
   const estimatedDateInput = document.getElementById("estimated-date");
   const remarksInput = document.getElementById("remarks");
 
-  let clientChoices, userChoices, itemTypeChoices, itemChoices;
+  let clientChoices, userChoices, locationChoices, itemTypeChoices, itemChoices;
 
   document.addEventListener("DOMContentLoaded", () => {
     // Initialize Choices.js for select fields
     clientChoices = new Choices(clientSelect, { searchEnabled: true, itemSelectText: "" });
     userChoices = new Choices(userSelect, { searchEnabled: true, itemSelectText: "" });
+    locationChoices = new Choices(locationSelect, { searchEnabled: false, itemSelectText: "", shouldSort: false });
     itemTypeChoices = new Choices(itemTypeSelect, { searchEnabled: true, itemSelectText: "" });
     itemChoices = new Choices(itemSelect, { searchEnabled: true, itemSelectText: "" });
   });
+
+  // Reset all downstream fields
+  function resetUsers() {
+    userChoices.clearStore();
+    userChoices.setChoices([{ value: "", label: "Select User", disabled: true, selected: true }], "value", "label", true);
+    userNameHidden.value = "";
+    resetLocation();
+    resetItems();
+  }
+  function resetLocation() {
+    locationChoices.clearStore();
+    locationChoices.setChoices([{ value: "", label: "Location", disabled: true, selected: true }], "value", "label", true);
+  }
+  function resetItems() {
+    itemChoices.clearStore();
+    itemChoices.setChoices([{ value: "", label: "Select Item", disabled: true, selected: true }], "value", "label", true);
+    document.getElementById("stock-display").style.display = "none";
+  }
+
+  // Load clients filtered by item type
+  async function loadClients(itemType) {
+    clientChoices.clearStore();
+    clientChoices.setChoices([{ value: "", label: "Loading...", disabled: true, selected: true }], "value", "label", true);
+    resetUsers();
+    try {
+      const res = await fetch(`/fairdesk/sales/clients/${itemType}`);
+      const clientNames = await res.json();
+      clientChoices.clearStore();
+      clientChoices.setChoices(
+        [{ value: "", label: "Select Client", disabled: true, selected: true },
+         ...clientNames.map(name => ({ value: name, label: name }))],
+        "value", "label", true
+      );
+    } catch (err) {
+      console.error("Failed to load clients:", err);
+      clientChoices.clearStore();
+      clientChoices.setChoices([{ value: "", label: "Error loading clients", disabled: true, selected: true }], "value", "label", true);
+    }
+  }
 
   // Load users when client changes
   async function loadUsers(clientName, targetUserId = null, targetItemId = null) {
@@ -331,9 +385,8 @@
 
     userChoices.clearStore();
     userChoices.setChoices([{ value: "", label: "Loading...", disabled: true, selected: true }], "value", "label", true);
-    
-    itemChoices.clearStore();
-    itemChoices.setChoices([{ value: "", label: "Select Item", disabled: true, selected: true }], "value", "label", true);
+    resetLocation();
+    resetItems();
 
     try {
       const res = await fetch(`/fairdesk/form/labels/${encodeURIComponent(clientName)}`);
@@ -344,7 +397,7 @@
         value: user._id,
         label: user.userName,
         selected: user._id === targetUserId || (users.length === 1 && !targetUserId),
-        customProperties: { name: user.userName }
+        customProperties: { name: user.userName, location: user.userLocation || "" }
       }));
 
       userChoices.clearStore();
@@ -360,10 +413,12 @@
         const selected = users.find(u => u._id === targetUserId);
         if (selected) {
           userNameHidden.value = selected.userName || "";
+          setLocationFromUser(selected);
           await loadItems(targetItemId);
         }
       } else if (users.length === 1) {
         userNameHidden.value = users[0].userName;
+        setLocationFromUser(users[0]);
         await loadItems();
       }
     } catch (err) {
@@ -537,20 +592,41 @@
     document.getElementById("stock-warning").style.display = "none";
   }
 
-  // Event Listeners
-  clientSelect.addEventListener("change", () => loadUsers(clientSelect.value));
+  // Helper: set the Location choices field from a user object
+  function setLocationFromUser(user) {
+    if (!locationChoices) return;
+    const loc = user?.userLocation || "";
+    locationChoices.clearStore();
+    locationChoices.setChoices(
+      loc ? [{ value: loc, label: loc, selected: true }] : [{ value: "", label: "N/A", disabled: true, selected: true }],
+      "value", "label", true
+    );
+  }
 
+  // ======= EVENT LISTENERS (Smart Cascading Filter) =======
+
+  // 1. Item Type → filter clients, reset everything downstream
+  itemTypeSelect.addEventListener("change", () => {
+    const itemType = itemTypeSelect.value;
+    if (itemType) loadClients(itemType);
+  });
+
+  // 2. Client → load filtered users, reset user/location/item
+  clientSelect.addEventListener("change", () => {
+    resetUsers();
+    loadUsers(clientSelect.value);
+  });
+
+  // 3. User → auto-fill location, reset + load items
   userSelect.addEventListener("change", () => {
     const selected = userChoices.getValue();
     userNameHidden.value = selected?.customProperties?.name || selected?.label || "";
+    setLocationFromUser({ userLocation: selected?.customProperties?.location || "" });
+    resetItems();
     loadItems();
   });
 
-  itemTypeSelect.addEventListener("change", () => {
-    loadItems();
-    document.getElementById("stock-display").style.display = "none";
-  });
-  
+  // 4. Item → update stock display
   itemSelect.addEventListener("change", updateStockDisplay);
   quantityInput.addEventListener("input", checkStockWarning);
 
@@ -722,6 +798,8 @@
          }
 
          // 6. Pre-fill Original Order Fields
+         if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
+         if (orderToEdit.userId?.userLocation) setLocationFromUser(orderToEdit.userId);
          if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
          if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
          if (orderToEdit.estimatedDate) {
@@ -762,6 +840,8 @@
 
     // Pre-fill specific order fields if editing (STANDARD MODE)
     if (orderToEdit && !confirmMode) {
+      if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
+      if (orderToEdit.userId?.userLocation) setLocationFromUser(orderToEdit.userId);
       if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
       if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
       if (orderToEdit.estimatedDate) {

@@ -1,190 +1,380 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>TTR Profile</title>
-  <link rel="stylesheet" href="/css/common.css">
+<!-- Link to boilerplate.ejs -->
+<% layout('/layout/boilerplate') -%>
 
-    <style>
-      :root {
-        --primary: #044A78;
-        --secondary: #2f335c;
-        --bg: #f4f6f9;
-        --card: #ffffff;
-        --muted: #6b6f8c;
-        --line: #e2e5f1;
-      }
+<style>
+  .tape-details-shell {
+    padding: 18px;
+    background: linear-gradient(180deg, #eef5fb 0%, #f7f9fc 100%);
+  }
 
-      body {
-        font-family: "Segoe UI", system-ui, sans-serif;
-        background: var(--bg);
-        margin: 0;
-        padding: 28px;
-        color: var(--primary);
-      }
+  .tape-details-card {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 18px 42px rgba(4, 74, 120, 0.12);
+    border: 1px solid rgba(4, 74, 120, 0.12);
+    overflow: hidden;
+  }
 
-      .container {
-        max-width: 1000px;
-        margin: auto;
-        background: var(--card);
-        padding: 36px;
-        border-radius: 12px;
-        box-shadow: 0 14px 34px rgba(26, 26, 46, 0.12);
-      }
+  .tape-details-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-end;
+    padding: 24px 24px 22px;
+    background:
+      radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 34%),
+      linear-gradient(135deg, #044a78 0%, #03365a 100%);
+    color: #fff;
+  }
 
-      .header {
-        display: flex;
-        align-items: center;
-        padding-bottom: 24px;
-        border-bottom: 2px solid var(--primary);
-      }
+  .header-copy {
+    max-width: 100%;
+    /* padding-left: 78px;   */
+  }
 
-      .title h2 {
-        margin: 0;
-        font-size: 26px;
-        font-weight: 600;
-      }
+  .tape-details-header h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
 
-      .meta {
-        font-size: 14px;
-        color: var(--muted);
-        margin-top: 4px;
-      }
+  .tape-details-sub {
+    margin-top: 6px;
+    font-size: 15px;
+    opacity: 0.92;
+    line-height: 1.4;
+  }
 
-      .edit-btn {
-        margin-left: auto;
-        padding: 8px 16px;
-        background: var(--primary);
-        color: #fff;
-        border-radius: 6px;
-        text-decoration: none;
-        font-size: 14px;
-        transition: 0.2s;
-      }
+  .client-name {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
 
-      .edit-btn:hover {
-        background: #0f1020;
-      }
+  .username-line {
+    display: block;
+    margin-top: 2px;
+    color: rgba(255,255,255,0.86);
+  }
 
-      .section {
-        margin-top: 32px;
-      }
+  .tape-details-badge {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 999px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+  }
 
-      .section h3 {
-        font-size: 15px;
-        color: var(--secondary);
-        margin-bottom: 10px;
-      }
+  .back-link {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+    transition: transform 0.18s ease, background 0.18s ease;
+    z-index: 2;
+  }
 
-      .divider {
-        height: 2px;
-        background: var(--line);
-        margin-bottom: 16px;
-      }
+  .back-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
 
-      .row {
-        display: grid;
-        grid-template-columns: 200px 1fr;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--line);
-        font-size: 14px;
-      }
+  .section-title {
+    margin: 0 0 14px;
+    color: #044a78;
+    font-size: 17px;
+    font-weight: 700;
+  }
 
-      .row:last-child {
-        border-bottom: none;
-      }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
 
-      .label {
-        color: var(--muted);
-        font-weight: 600;
-      }
-    </style>
-  </head>
+  .detail-item {
+    border: 1px solid #e6eaf2;
+    border-radius: 12px;
+    padding: 14px 15px;
+    background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+  }
 
-  <body>
-    <div class="container">
-      <!-- HEADER -->
-      <div class="header">
-        <div class="title">
-          <h2><%= ttr.ttrProductId %></h2>
-          <div class="meta">TTR Master Record</div>
+  .detail-label {
+    font-size: 12px;
+    color: #6b6f8c;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .detail-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2a44;
+    word-break: break-word;
+  }
+
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e6eaf2;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .diff-table th,
+  .diff-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e6eaf2;
+    text-align: left;
+    font-size: 13px;
+    vertical-align: top;
+  }
+
+  .diff-table th {
+    background: #f4f7ff;
+    color: #044a78;
+    font-weight: 700;
+  }
+
+  .diff-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .diff-table .key-col {
+    width: 32%;
+    color: #5a6586;
+    font-weight: 600;
+  }
+
+  .diff-table .resolved {
+    font-weight: 700;
+    color: #1f2a44;
+  }
+
+  .diff-pill {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid #cdd8ee;
+    background: #f1f6ff;
+    color: #2f4674;
+  }
+
+  .details-section {
+    margin-top: 20px;
+  }
+
+  .details-section:first-of-type {
+    margin-top: 0;
+  }
+
+  .tape-details-body {
+    padding: 22px 24px 24px;
+  }
+
+  .tape-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid #e6eaf2;
+  }
+
+  .tape-table th,
+  .tape-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e6eaf2;
+    text-align: left;
+    font-size: 14px;
+  }
+
+  .tape-table th {
+    color: #044a78;
+    font-weight: 700;
+    background: #f8fbff;
+  }
+
+  .tape-table tbody tr:hover {
+    background: #fbfdff;
+  }
+
+  .tape-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .empty-state {
+    padding: 28px 18px;
+    text-align: center;
+    color: #6b6f8c;
+  }
+
+  .empty-state h3 {
+    margin: 0 0 8px;
+    color: #044a78;
+  }
+
+  @media (max-width: 768px) {
+    .tape-details-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 64px;
+    }
+
+    .header-copy {
+      padding-left: 0;
+    }
+
+    .tape-table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+  }
+</style>
+
+<div class="main-content tape-details-shell">
+  <% const latestBinding = primaryBinding || null; %>
+  <% const resolvedMaterialCode = latestBinding?.ttrClientMaterialCode || ttr.ttrMaterialCode || "N/A"; %>
+  <% const resolvedType = latestBinding?.clientTtrType || ttr.ttrType || "N/A"; %>
+  <div class="tape-details-card">
+    <div class="tape-details-header">
+      <div class="header-copy">
+        <h1>TTR Details</h1>
+        <div class="tape-details-sub">
+          <span class="client-name"><%= primaryBinding?.userId?.clientName || "Client not found" %></span>
+          <span class="username-line">User: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
         </div>
+      </div>
+      <div class="tape-details-badge">Client TTR Profile</div>
+    </div>
 
-        <a href="/fairdesk/ttr/edit/<%= ttr._id %>" class="edit-btn">Edit</a>
+    <div class="tape-details-body">
+      <div class="details-section">
+        <h3 class="section-title">TTR Details (Fairtech - Client)</h3>
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th class="key-col">Field</th>
+              <th>Fairtech</th>
+              <th>Client</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="key-col">Material Code</td>
+              <td><%= ttr.ttrMaterialCode || "N/A" %></td>
+              <td class="resolved"><%= resolvedMaterialCode %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Type</td>
+              <td><%= ttr.ttrType || "N/A" %></td>
+              <td class="resolved"><%= resolvedType %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Color</td>
+              <td><%= ttr.ttrColor || "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrColor || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Ink Face</td>
+              <td><%= ttr.ttrInkFace || "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrInkFace || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Width</td>
+              <td><%= ttr.ttrWidth ?? "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrWidth ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Meters</td>
+              <td><%= ttr.ttrMtrs ?? "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrMtrs ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Core ID</td>
+              <td><%= ttr.ttrCoreId ?? "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrCoreId ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Core Length</td>
+              <td><%= ttr.ttrCoreLength ?? "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrCoreLength ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Notch</td>
+              <td><%= ttr.ttrNotch || "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrNotch || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Winding</td>
+              <td><%= ttr.ttrWinding || "N/A" %></td>
+              <td class="resolved"><%= ttr.ttrWinding || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Minimum Qty</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrMinQty ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Order Qty</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrOdrQty ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Order Frequency</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrOdrFreq || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Credit Term</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrCreditTerm || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Rate Per Roll</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrRatePerRoll ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Sale Cost</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrSaleCost ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Meters Delivered</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.ttrMtrsDel ?? 0 %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Status</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.status || "N/A" %></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- PRODUCT DETAILS -->
-      <div class="section">
-        <h3>Product Details</h3>
-        <div class="divider"></div>
-
-        <div class="row">
-          <div class="label">Type</div>
-          <div><%= ttr.ttrType %></div>
-        </div>
-        <div class="row">
-          <div class="label">Color</div>
-          <div><%= ttr.ttrColor %></div>
-        </div>
-        <div class="row">
-          <div class="label">Material Code</div>
-          <div><%= ttr.ttrMaterialCode %></div>
-        </div>
-        <div class="row">
-          <div class="label">Ink Face</div>
-          <div><%= ttr.ttrInkFace %></div>
-        </div>
-      </div>
-
-      <!-- CATEGORY DETAILS -->
-      <div class="section">
-        <h3>Dimensional Specs</h3>
-        <div class="divider"></div>
-
-        <div class="row">
-          <div class="label">Width</div>
-          <div><%= ttr.ttrWidth %></div>
-        </div>
-        <div class="row">
-          <div class="label">Meters</div>
-          <div><%= ttr.ttrMtrs %></div>
-        </div>
-        <div class="row">
-          <div class="label">Core ID</div>
-          <div><%= ttr.ttrCoreId %></div>
-        </div>
-        <div class="row">
-          <div class="label">Core Length</div>
-          <div><%= ttr.ttrCoreLength %></div>
-        </div>
-        <div class="row">
-          <div class="label">Notch</div>
-          <div><%= ttr.ttrNotch %></div>
-        </div>
-        <div class="row">
-          <div class="label">Winding</div>
-          <div><%= ttr.ttrWinding %></div>
-        </div>
-      </div>
-
-      <!-- META -->
-      <div class="section">
-        <h3>System Info</h3>
-        <div class="divider"></div>
-
-        <div class="row">
-          <div class="label">Created By</div>
-          <div><%= ttr.createdBy %></div>
-        </div>
-        <div class="row">
-          <div class="label">Created At</div>
-          <div><%= ttr.createdAt?.toDateString() %></div>
-        </div>
-      </div>
     </div>
   </div>
-
-
-
-</body>
-</html>
+</div>

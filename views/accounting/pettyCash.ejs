@@ -1,54 +1,70 @@
 <% layout('/layout/boilerplate') -%>
 
 <div class="main-content">
-  <form class="rottary-content" method="post" action="/fairdesk/pettycash/create" >
-
+  <form class="rottary-content" method="post" action="/fairdesk/pettycash/create">
     <!-- ================= FORM HEADING ================= -->
-    <div class="span-full form-heading" style="display: flex; justify-content: space-between; flex-direction: row;" >
-            <div class="span-five" style="display: flex; gap: 6px; justify-content: start; flex-direction: row; width: auto;">
-        <label style="width: auto;">
-          Location
-        </label>
-        <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
+    <div class="span-full form-heading" style="display: flex; justify-content: space-between; flex-direction: row">
+      <div class="span-five" style="display: flex; gap: 6px; justify-content: start; flex-direction: row; width: auto">
+        <label style="width: auto; color: white;"> Location </label>
+        <select name="location" id="locationSelect" class="form-control select-tag" style="width: 130px" required>
           <option value="" disabled selected hidden>Select Location</option>
           <option value="OFFICE">OFFICE</option>
           <option value="UNIT 1">UNIT 1</option>
           <option value="UNIT 2">UNIT 2</option>
         </select>
-
       </div>
       <h1>Petty Cash Entry</h1>
 
       <!-- ================= CURRENT BALANCE ================= -->
-      <!-- ================= CURRENT BALANCE ================= -->
       <div
         class="span-five"
         id="balanceWrap"
-        style="display:flex; gap:6px; justify-content:end; flex-direction:row; width:auto"
+        style="display: flex; gap: 6px; justify-content: end; flex-direction: row; width: auto"
       >
-        <label style="width:auto">Current Balance</label>
-        <input type="number" id="currentBalance" class="form-control input-tag" style="width:100px" value="0" readonly />
-        </div>
+        <label style="width: auto; color: white;">Current Balance</label>
+        <input
+          type="number"
+          id="currentBalance"
+          class="form-control input-tag"
+          style="width: 100px"
+          value="0"
+          readonly
+        />
+      </div>
     </div>
 
     <!-- ================= TRANSACTION TYPE ================= -->
     <div class="span-dual">
       <label>Transaction Type</label>
       <select name="type" id="txnType" class="form-control select-tag" required>
-      <option value="PAID" selected>PAID</option>
-      <option value="RECEIVED">RECEIVED</option>
-    </select>
-    </div>    
+        <option value="PAID" selected>PAID</option>
+        <option value="RECEIVED">RECEIVED</option>
+      </select>
+    </div>
 
     <!-- ================= FROM ================= -->
     <div class="span-dual">
       <label id="fromLabel">From</label>
-      <input type="text" name="from" id="fromInput" class="form-control input-tag" placeholder="Owner / Bank / Office" required />
+      <input
+        type="text"
+        name="from"
+        id="fromInput"
+        class="form-control input-tag"
+        placeholder="Owner / Bank / Office"
+        required
+      />
     </div>
 
     <div class="span-dual" id="toWrap">
       <label>To</label>
-      <input type="text" name="to" id="toInput" class="form-control input-tag" placeholder="Vendor / Expense / Person" required />
+      <input
+        type="text"
+        name="to"
+        id="toInput"
+        class="form-control input-tag"
+        placeholder="Vendor / Expense / Person"
+        required
+      />
     </div>
 
     <!-- ================= AMOUNT ================= -->
@@ -65,11 +81,8 @@
 
     <!-- ================= SUBMIT BUTTON ================= -->
     <div class="span-full btn-grp">
-      <button class="submit-btn" type="submit">
-        Save Petty Cash
-      </button>
+      <button class="submit-btn" type="submit">Save Petty Cash</button>
     </div>
-
   </form>
 </div>
 
@@ -124,6 +137,3 @@
   txnType.addEventListener("change", syncFields);
   syncFields(); // on load
 </script>
-
-
-

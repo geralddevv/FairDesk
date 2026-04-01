@@ -181,6 +181,10 @@
         <option value="OFFICE" <%= employee?.empLoc === 'OFFICE' ? 'selected' : '' %>>OFFICE</option>
         <option value="UNIT 1" <%= employee?.empLoc === 'UNIT 1' ? 'selected' : '' %>>UNIT 1</option>
         <option value="UNIT 2" <%= employee?.empLoc === 'UNIT 2' ? 'selected' : '' %>>UNIT 2</option>
+        <option value="Palghar" <%= employee?.empLoc === 'Palghar' ? 'selected' : '' %>>Palghar</option>
+        <option value="Vapi" <%= employee?.empLoc === 'Vapi' ? 'selected' : '' %>>Vapi</option>
+        <option value="Aurangabad" <%= employee?.empLoc === 'Aurangabad' ? 'selected' : '' %>>Aurangabad</option>
+        <option value="WFH" <%= employee?.empLoc === 'WFH' ? 'selected' : '' %>>WFH</option>
       </select>
     </div>
     
@@ -282,7 +286,7 @@
       class="<%= employee?.empMartialStatus === 'SINGLE' ? 'span-dual' : 'span-six' %>"
       data-normal-span="span-six"
     >
-      <label for="emp-martial-status">Martial Status</label>
+      <label for="emp-martial-status">Marital Status</label>
        <select name="empMartialStatus" id="emp-martial-status" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Select</option>
         <option value="SINGLE" <%= employee?.empMartialStatus === 'SINGLE' ? 'selected' : '' %>>SINGLE</option>
@@ -424,7 +428,7 @@
     </div>    
 
     <div class="span-five">
-      <label for="emp-nsic">NSIC</label>
+      <label for="emp-nsic">NSC</label>
       <input type="number" step="any" id="emp-nsic" class="form-control input-tag" name="empNSIC" value="<%= employee?.empNSIC || 0 %>" placeholder="Enter NSIC" autocomplete="off" required />
     </div>    
 

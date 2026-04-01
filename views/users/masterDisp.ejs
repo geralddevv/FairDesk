@@ -1,14 +1,45 @@
 <!-- Link to boilerplate.ejs -->
 <% layout('/layout/boilerplate') -%>
+<!-- Link to boilerplate.ejs -->
+<% layout('/layout/boilerplate') -%>
 
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
 <body>
   <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+    <style>
+      .header-action-btn {
+        background-color: #f0f0f0;
+        color: #044a78;
+        padding: 2px 14px; /* Matches Download button padding exactly */
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .header-action-btn:hover {
+        background-color: #e4e4e4;
+      }
+    </style>
+
     <div class="indi-head">
       <h1>Client Details</h1>
-      <div class="download-btns">
+
+      <div style="display: flex; gap: 10px; align-items: center">
+        <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/client?tab=user'">
+          <i class="fa-solid fa-plus" style="margin-right: 4px"></i> User
+        </button>
+        <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/client?tab=client'">
+          <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Client
+        </button>
+
         <div class="download-selector" id="downloadSelector">
           <button class="download-selector__trigger">
             <span>
@@ -114,20 +145,16 @@
             headerFilterPlaceholder: "Search",
             widthGrow: 2,
           },
-          // {
-          //   title: "Type",
-          //   field: "clientType",
-          //   headerSort: false,
-          //   headerFilter: "select",
-          //   headerFilterParams: {
-          //     values: {
-          //       "": "All",
-          //       DEALER: "DEALER",
-          //       CLIENT: "CLIENT",
-          //     },
-          //     clearable: true,
-          //   },
-          // },
+          {
+            title: "Type",
+            field: "clientType",
+            headerSort: false,
+            headerFilter: "select",
+            headerFilterParams: {
+              values: { "": "All", DEALER: "DEALER", CLIENT: "CLIENT" },
+            },
+            width: 100,
+          },
           {
             title: "Account Head",
             field: "accountHead",
@@ -163,37 +190,6 @@
             headerFilterPlaceholder: "Search",
             widthGrow: 2,
           },
-          // {
-          //   title: "Department",
-          //   field: "userDepartment",
-          //   headerSort: false,
-          //   headerFilter: "input",
-          //   headerFilterPlaceholder: "Search",
-          // },
-          // {
-          //   title: "Contact",
-          //   field: "userContact",
-          //   headerSort: false,
-          // },
-          // {
-          //   title: "Email",
-          //   field: "userEmail",
-          //   headerSort: false,
-          // },
-          // {
-          //   title: "Dispatch Type",
-          //   field: "dispatchType",
-          //   headerSort: false,
-          //   headerFilter: "select",
-          //   headerFilterParams: {
-          //     values: {
-          //       "": "All",
-          //       "Self Dispatch": "Self Dispatch",
-          //       "Transport": "Transport",
-          //     },
-          //     clearable: true,
-          //   },
-          // },
           {
             title: "Labels",
             field: "labelCount",
@@ -305,68 +301,4 @@
       downloadSelector.classList.remove("download-selector--active");
     });
   </script>
-
-  <!-- ================= FLOATING ACTION BUTTONS ================= -->
-  <style>
-    .fab-capsule {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      background: #044a78;
-      border-radius: 50px;
-      display: flex;
-      align-items: center;
-      padding: 6px 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
-    }
-
-    .fab-item {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 42px;
-      height: 42px;
-      color: #fff;
-      text-decoration: none;
-      font-size: 18px;
-      border-radius: 50%;
-      transition:
-        background 0.2s,
-        transform 0.2s;
-    }
-
-    .fab-item:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
-    }
-
-    .fab-divider {
-      width: 2px;
-      height: 24px;
-      background: rgba(255, 255, 255, 0.2);
-      margin: 0 8px;
-      border-radius: 2px;
-    }
-  </style>
-
-  <div class="fab-capsule">
-    <div
-      title="Add Client"
-      class="fab-item"
-      onclick="window.location.href = '/fairdesk/form/client?tab=client'"
-      style="cursor: pointer"
-    >
-      <i class="fa-solid fa-building"></i>
-    </div>
-    <div class="fab-divider"></div>
-    <div
-      title="Add User"
-      class="fab-item"
-      onclick="window.location.href = '/fairdesk/form/client?tab=user'"
-      style="cursor: pointer"
-    >
-      <i class="fa-solid fa-user-plus"></i>
-    </div>
-  </div>
 </body>

@@ -124,6 +124,64 @@
       .nav-items.active .nav-items-para {
         font-weight: 600;
       }
+
+      /* Side-nav scrollbar width */
+      .side-nav::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .side-nav {
+        scrollbar-width: auto;
+      }
+
+      /* Header nav buttons */
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        justify-content: center;
+        padding: 0 12px;
+        position: relative;
+      }
+
+      nav h1 {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .header-nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 11px;
+        transition: background 0.18s ease, transform 0.18s ease;
+        cursor: pointer;
+      }
+
+      .header-nav:hover {
+        background: rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+      }
+
+      .header-nav.disabled {
+        opacity: 0.55;
+        pointer-events: none;
+      }
+
+      .header-nav-wrap {
+        position: absolute;
+        left: 12px;
+        display: flex;
+        gap: 10px;
+      }
     </style>
   </head>
   <body>
@@ -135,20 +193,28 @@
     <% } %>
 
     <nav>
+      <div class="header-nav-wrap">
+        <button type="button" class="header-nav" id="fdNavBack">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button type="button" class="header-nav" id="fdNavForward">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
       <h1>Fairtech Systems</h1>
     </nav>
     <div class="contain">
       <!-- Navigation bar -->
-      <div class="side-nav nav-panel-toggle">
+      <div class="side-nav">
         <script>
           // Instant sidebar restore — runs synchronously before paint
-          (function() {
-            if (localStorage.getItem('fd_navExpanded') === 'collapsed') {
-              var el = document.querySelector('.side-nav');
-              if (el) el.classList.remove('nav-panel-toggle');
-            }
-          })();
-        </script>
+          (function() {                                                                                                     
+            if (localStorage.getItem('fd_navExpanded') === 'expanded' || !localStorage.getItem('fd_navExpanded')) {                                                   
+              var el = document.querySelector('.side-nav');                                                                 
+              if (el) el.classList.add('nav-panel-toggle');                                                              
+            }                                                                                                               
+          })();                                                                                                             
+        </script> 
         <div title="Expand" class="nav-items nav-toggle">
           <i class="fa-solid fa-bars" style="color: #ffffff"></i>
           <p class="nav-items-para">Navigation</p>

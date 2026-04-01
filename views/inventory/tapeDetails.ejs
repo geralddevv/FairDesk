@@ -30,7 +30,7 @@
 
   .header-copy {
     max-width: 100%;
-    padding-left: 78px;
+    /* padding-left: 78px;   */
   }
 
   .tape-details-header h1 {
@@ -42,7 +42,7 @@
 
   .tape-details-sub {
     margin-top: 6px;
-    font-size: 14px;
+    font-size: 15px;
     opacity: 0.92;
     line-height: 1.4;
   }
@@ -131,6 +131,56 @@
     word-break: break-word;
   }
 
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e6eaf2;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .diff-table th,
+  .diff-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e6eaf2;
+    text-align: left;
+    font-size: 13px;
+    vertical-align: top;
+  }
+
+  .diff-table th {
+    background: #f4f7ff;
+    color: #044a78;
+    font-weight: 700;
+  }
+
+  .diff-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .diff-table .key-col {
+    width: 32%;
+    color: #5a6586;
+    font-weight: 600;
+  }
+
+  .diff-table .resolved {
+    font-weight: 700;
+    color: #1f2a44;
+  }
+
+  .diff-pill {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid #cdd8ee;
+    background: #f1f6ff;
+    color: #2f4674;
+  }
+
   .details-section {
     margin-top: 20px;
   }
@@ -204,17 +254,16 @@
 </style>
 
 <div class="main-content tape-details-shell">
+  <% const latestBinding = primaryBinding || null; %>
+  <% const resolvedPaperCode = latestBinding?.tapeClientPaperCode || tape.tapePaperCode || "N/A"; %>
+  <% const resolvedGsm = (latestBinding?.clientTapeGsm ?? tape.tapeGsm) ?? "N/A"; %>
   <div class="tape-details-card">
-    <a class="back-link" href="<%= backUrl %>">
-      <i class="fa-solid fa-arrow-left"></i>
-      Back
-    </a>
     <div class="tape-details-header">
       <div class="header-copy">
         <h1>Tape Details</h1>
         <div class="tape-details-sub">
           <span class="client-name"><%= primaryBinding?.userId?.clientName || "Client not found" %></span>
-          <span class="username-line">Username: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
+          <span class="username-line">User: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
         </div>
       </div>
       <div class="tape-details-badge">Client Tape Profile</div>
@@ -222,70 +271,98 @@
 
     <div class="tape-details-body">
       <div class="details-section">
-        <h3 class="section-title">Tape Master Details</h3>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <div class="detail-label">Paper Code</div>
-            <div class="detail-value"><%= tape.tapePaperCode || "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Paper Type</div>
-            <div class="detail-value"><%= tape.tapePaperType || "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">GSM</div>
-            <div class="detail-value"><%= tape.tapeGsm ?? "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Adhesive GSM</div>
-            <div class="detail-value"><%= tape.tapeAdhesiveGsm ?? "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Width</div>
-            <div class="detail-value"><%= tape.tapeWidth ?? "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Meters</div>
-            <div class="detail-value"><%= tape.tapeMtrs ?? "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Core ID</div>
-            <div class="detail-value"><%= tape.tapeCoreId ?? "N/A" %></div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Finish</div>
-            <div class="detail-value"><%= tape.tapeFinish || "N/A" %></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="details-section">
-        <h3 class="section-title">Client Tape Details</h3>
-        <% if (tapeBindings.length > 0) { %>
-          <table class="tape-table">
-            <thead>
-              <tr>
-                <th>Client Paper Code</th>
-                <th>Client GSM</th>
-                <th>MTRS Delivered</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% tapeBindings.forEach(function(binding) { %>
-                <tr>
-                  <td><%= binding.tapeClientPaperCode || "-" %></td>
-                  <td><%= binding.clientTapeGsm ?? "-" %></td>
-                  <td><%= binding.tapeMtrsDel ?? 0 %></td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
-        <% } else { %>
-          <div class="empty-state">
-            <h3>No Client Tape Details Found</h3>
-            <p>This tape does not have any client bindings yet.</p>
-          </div>
-        <% } %>
+        <h3 class="section-title">Tape Details (Fairtech - Client)</h3>
+        <table class="diff-table">
+          <thead>
+            <tr>
+              <th class="key-col">Field</th>
+              <th>Fairtech</th>
+              <th>Client</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="key-col">Paper Code</td>
+              <td><%= tape.tapePaperCode || "N/A" %></td>
+              <td class="resolved"><%= resolvedPaperCode %></td>
+            </tr>
+            <tr>
+              <td class="key-col">GSM</td>
+              <td><%= tape.tapeGsm ?? "N/A" %></td>
+              <td class="resolved"><%= resolvedGsm %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Paper Type</td>
+              <td><%= tape.tapePaperType || "N/A" %></td>
+              <td class="resolved"><%= tape.tapePaperType || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Adhesive GSM</td>
+              <td><%= tape.tapeAdhesiveGsm ?? "N/A" %></td>
+              <td class="resolved"><%= tape.tapeAdhesiveGsm ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Width</td>
+              <td><%= tape.tapeWidth ?? "N/A" %></td>
+              <td class="resolved"><%= tape.tapeWidth ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Meters</td>
+              <td><%= tape.tapeMtrs ?? "N/A" %></td>
+              <td class="resolved"><%= tape.tapeMtrs ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Core ID</td>
+              <td><%= tape.tapeCoreId ?? "N/A" %></td>
+              <td class="resolved"><%= tape.tapeCoreId ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Finish</td>
+              <td><%= tape.tapeFinish || "N/A" %></td>
+              <td class="resolved"><%= tape.tapeFinish || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Minimum Qty</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeMinQty ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Order Qty</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeOdrQty ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Order Frequency</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeOdrFreq || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Credit Term</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeCreditTerm || "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Rate Per Roll</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeRatePerRoll ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Sale Cost</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeSaleCost ?? "N/A" %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Meters Delivered</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.tapeMtrsDel ?? 0 %></td>
+            </tr>
+            <tr>
+              <td class="key-col">Status</td>
+              <td>-</td>
+              <td class="resolved"><%= latestBinding?.status || "N/A" %></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
     </div>

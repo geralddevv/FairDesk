@@ -32,7 +32,8 @@ router.post("/create", async (req, res) => {
     /* FETCH EMPLOYEE */
     const emp = await Employee.findById(employeeId);
     if (!emp) {
-      return res.status(400).json({ success: false, message: "Employee not found" });
+      req.flash("error", "Employee not found");
+      return res.redirect("back");
     }
     /* FETCH EMI FROM LOAN MASTER */
     let emiAmount = 0;
@@ -50,7 +51,8 @@ router.post("/create", async (req, res) => {
     });
 
     if (alreadyLogged) {
-      return res.status(400).json({ success: false, message: "Payroll already exists for this employee and month" });
+      req.flash("error", "Payroll already exists for this employee and month");
+      return res.redirect("back");
     }
 
     /* ADVANCE (DEDUCTION RULE) */
@@ -186,10 +188,11 @@ router.post("/create", async (req, res) => {
     }
 
     req.flash("notification", "Payroll created successfully");
-    res.json({ success: true, redirect: "/fairdesk/payroll/create" });
+    return res.redirect("/fairdesk/payroll/view");
   } catch (err) {
     console.error(err);
-    res.status(400).json({ success: false, message: "Failed to create payroll" });
+    req.flash("error", "Failed to create payroll");
+    return res.redirect("back");
   }
 });
 
@@ -265,6 +268,8 @@ router.get("/view", async (req, res) => {
     JS: false,
     title: "Payroll View",
     navigator: "payroll",
+    notification: req.flash("notification"),
+    error: req.flash("error"),
   });
 });
 

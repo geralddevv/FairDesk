@@ -43,7 +43,8 @@ router.post("/create", async (req, res) => {
 
     /* BASIC VALIDATION */
     if (!location || txnAmount <= 0 || !type || (type === "PAID" && !to) || (type === "RECEIVED" && !from)) {
-      return res.status(400).json({ success: false, message: "Invalid petty cash entry" });
+      req.flash("error", "Invalid petty cash entry");
+      return res.redirect("back");
     }
 
     /* UI → INTERNAL TYPE MAP */
@@ -55,7 +56,8 @@ router.post("/create", async (req, res) => {
 
     /* HARD STOP — ETHICAL GUARD */
     if (internalType === "OUTWARD" && txnAmount > openingBalance) {
-      return res.status(400).json({ success: false, message: "Insufficient petty cash balance" });
+      req.flash("error", "Insufficient petty cash balance");
+      return res.redirect("back");
     }
 
     /* NOW IT IS SAFE TO CREATE / UPDATE */
@@ -89,10 +91,11 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "Petty cash updated successfully");
-    return res.json({ success: true, redirect: "/fairdesk/pettycash/create" });
+    return res.redirect("/fairdesk/pettycash/view");
   } catch (err) {
     console.error(err);
-    res.status(400).json({ success: false, message: "Petty cash transaction failed" });
+    req.flash("error", "Petty cash transaction failed");
+    return res.redirect("back");
   }
 });
 
@@ -114,6 +117,8 @@ router.get("/view", async (req, res) => {
       navigator: "pettycash",
       CSS: "tableDisp.css",
       JS: false,
+      notification: req.flash("notification"),
+      error: req.flash("error"),
     });
   } catch (err) {
     console.error(err);

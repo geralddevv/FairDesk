@@ -623,7 +623,26 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     return res.redirect("back");
   }
 
-  res.render("inventory/posRollView.ejs", { posRoll });
+  const posRollBindings = await PosRollBinding.find({ posRollId: req.params.id })
+    .populate({ path: "userId", select: "userName clientName hoLocation" })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const primaryBinding = posRollBindings[0] || null;
+  const backUrl = primaryBinding?.userId?._id
+    ? `/fairdesk/client/details/${primaryBinding.userId._id}`
+    : "/fairdesk/pos-roll/view";
+
+  res.render("inventory/posRollView.ejs", {
+    posRoll,
+    posRollBindings,
+    primaryBinding,
+    backUrl,
+    title: "POS Roll Details",
+    CSS: false,
+    JS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // ================= POS ROLL EDIT =================
@@ -659,7 +678,26 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     return res.redirect("back");
   }
 
-  res.render("inventory/tafetaView.ejs", { tafeta });
+  const tafetaBindings = await TafetaBinding.find({ tafetaId: req.params.id })
+    .populate({ path: "userId", select: "userName clientName hoLocation" })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const primaryBinding = tafetaBindings[0] || null;
+  const backUrl = primaryBinding?.userId?._id
+    ? `/fairdesk/client/details/${primaryBinding.userId._id}`
+    : "/fairdesk/tafeta/view";
+
+  res.render("inventory/tafetaView.ejs", {
+    tafeta,
+    tafetaBindings,
+    primaryBinding,
+    backUrl,
+    title: "Tafeta Details",
+    CSS: false,
+    JS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // ================= TAFETA EDIT =================
@@ -695,7 +733,26 @@ router.get("/ttr/profile/:id", async (req, res) => {
     return res.redirect("back");
   }
 
-  res.render("inventory/ttrView.ejs", { ttr });
+  const ttrBindings = await TtrBinding.find({ ttrId: req.params.id })
+    .populate({ path: "userId", select: "userName clientName hoLocation" })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const primaryBinding = ttrBindings[0] || null;
+  const backUrl = primaryBinding?.userId?._id
+    ? `/fairdesk/client/details/${primaryBinding.userId._id}`
+    : "/fairdesk/ttr/view";
+
+  res.render("inventory/ttrView.ejs", {
+    ttr,
+    ttrBindings,
+    primaryBinding,
+    backUrl,
+    title: "TTR Details",
+    CSS: false,
+    JS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // ----------------------------------Sales Order---------------------------------->
@@ -728,6 +785,29 @@ router.get("/sales/order", async (req, res) => {
 });
 
 // API: Get items by type and user
+// API: Get clients filtered by item type (for smart filter)
+router.get("/sales/clients/:itemType", async (req, res) => {
+  try {
+    const { itemType } = req.params;
+    let bindingModel;
+    if (itemType === "TAPE")          bindingModel = TapeBinding;
+    else if (itemType === "POS_ROLL") bindingModel = PosRollBinding;
+    else if (itemType === "TAFETA")   bindingModel = TafetaBinding;
+    else if (itemType === "TTR")      bindingModel = TtrBinding;
+    else {
+      const clients = await Client.distinct("clientName");
+      return res.json(clients.sort());
+    }
+    const userIds = await bindingModel.distinct("userId");
+    const users = await Username.find({ _id: { $in: userIds } }).select("clientName").lean();
+    const clientNames = [...new Set(users.map(u => u.clientName).filter(Boolean))].sort();
+    res.json(clientNames);
+  } catch (err) {
+    console.error("Sales clients filter error:", err);
+    res.status(500).json([]);
+  }
+});
+
 router.get("/sales/items/:type/:userId", async (req, res) => {
   try {
     const { type, userId } = req.params;
@@ -1073,7 +1153,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
 // Submit Sales Order (Create or Update)
 router.post("/sales/order", async (req, res) => {
   try {
-    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation } = req.body;
+    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, poNumber } = req.body;
 
     if (itemType === "TAPE") {
       const binding = await TapeBinding.findById(itemId);
@@ -1086,6 +1166,7 @@ router.post("/sales/order", async (req, res) => {
         userId: binding.userId,
         tapeId: binding.tapeId,
         sourceLocation, // Allow updating location if needed
+        poNumber,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1128,6 +1209,7 @@ router.post("/sales/order", async (req, res) => {
         tapeId: binding.posRollId,
         onModel: "PosRoll",
         sourceLocation,
+        poNumber,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1162,6 +1244,7 @@ router.post("/sales/order", async (req, res) => {
         tapeId: binding.tafetaId,
         onModel: "Tafeta",
         sourceLocation,
+        poNumber,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1196,6 +1279,7 @@ router.post("/sales/order", async (req, res) => {
         tapeId: binding.ttrId,
         onModel: "Ttr",
         sourceLocation,
+        poNumber,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1232,7 +1316,7 @@ router.get("/sales/pending", async (req, res) => {
     // For now we only have TapeSalesOrder
     const pendingOrders = await TapeSalesOrder.find({ status: "PENDING" })
       .select(
-        "tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate createdAt sourceLocation remarks status onModel onBindingModel",
+        "tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate createdAt sourceLocation poNumber remarks status onModel onBindingModel",
       )
       .populate({ path: "userId", select: "clientName userName" })
       .populate({
@@ -2110,7 +2194,7 @@ router.get("/client/details/:userId", async (req, res) => {
 // route for details page.
 router.get("/master/view", async (req, res) => {
   let jsonData = await Username.find()
-    .select("clientName accountHead userName userLocation label ttr tape posRoll tafeta")
+    .select("clientName clientType accountHead userName userLocation label ttr tape posRoll tafeta")
     .sort({ clientName: 1 });
 
   // console.log(jsonData);
@@ -2131,7 +2215,9 @@ router.get("/sales/order", async (req, res) => {
 
   if (req.query.orderId) {
     try {
-      orderToEdit = await TapeSalesOrder.findById(req.query.orderId).lean();
+      orderToEdit = await TapeSalesOrder.findById(req.query.orderId)
+        .populate({ path: "userId", select: "clientName userName userLocation" })
+        .lean();
     } catch (err) {
       console.error("Error fetching order to edit:", err);
     }
