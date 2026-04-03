@@ -85,21 +85,26 @@
       placeholder: "No data to display",
       columns: [
         {
+          title: "",
+          width: 50,
+          hozAlign: "center",
+          headerSort: false,
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            if (!row._id) return "";
+            return `
+              <button
+                onclick="window.location.href='/fairdesk/tape/profile/${row._id}'"
+                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            `;
+          }
+        },
+        {
           title: "Product ID",
           field: "tapeProductId",
           minWidth: 180,
-          formatter: (cell) => {
-            const row = cell.getRow().getData();
-            return `
-              <span style="cursor:pointer;font-weight:600;text-decoration:underline">
-                ${cell.getValue()}
-              </span>
-            `;
-          },
-          cellClick: (e, cell) => {
-            const row = cell.getRow().getData();
-            window.location.href = `/fairdesk/tape/profile/${row._id}`;
-          },
           headerFilter: "input",
           headerFilterPlaceholder: "Search",
         },

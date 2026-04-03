@@ -283,117 +283,57 @@
 </style>
 
 <div class="main-content tape-details-shell">
-  <% const latestBinding = primaryBinding || null; %>
-  <% const resolvedPaperCode = latestBinding?.posClientPaperCode || posRoll.posPaperCode || "N/A"; %>
-  <% const resolvedGsm = (latestBinding?.clientPosGsm ?? posRoll.posGsm) ?? "N/A"; %>
   <div class="tape-details-card">
     <div class="tape-details-header">
       <div class="header-copy">
         <h1>POS Roll Details</h1>
-        <div class="tape-details-sub">
-          <span class="client-name"><%= primaryBinding?.userId?.clientName || "Client not found" %></span>
-          <span class="username-line">User: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
-        </div>
       </div>
       <div class="header-actions">
-        <% if (latestBinding?._id) { %>
-          <a
-            class="header-action-link"
-            href="/fairdesk/pos-roll-binding/edit/<%= latestBinding._id %>?returnTo=<%= encodeURIComponent(`/fairdesk/pos-roll/profile/${posRoll._id}`) %>"
-          >
-            <i class="fa-solid fa-pencil"></i>
-            Edit POS Roll Binding
-          </a>
-        <% } %>
+        <a class="header-action-link" href="/fairdesk/pos-roll/edit/<%= posRoll._id %>">
+          <i class="fa-solid fa-pencil"></i>
+          Edit POS Roll
+        </a>
       </div>
     </div>
 
     <div class="tape-details-body">
       <div class="details-section">
-        <h3 class="section-title">POS Roll Details (Fairtech - Client)</h3>
+        <h3 class="section-title">POS Roll Details</h3>
         <table class="diff-table">
           <thead>
             <tr>
               <th class="key-col">Field</th>
-              <th>Fairtech</th>
-              <th>Client</th>
+              <th>Value</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="key-col">Paper Code</td>
-              <td><%= posRoll.posPaperCode || "N/A" %></td>
-              <td class="resolved"><%= resolvedPaperCode %></td>
+              <td class="resolved"><%= posRoll.posPaperCode || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">GSM</td>
-              <td><%= posRoll.posGsm ?? "N/A" %></td>
-              <td class="resolved"><%= resolvedGsm %></td>
+              <td class="resolved"><%= posRoll.posGsm ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Paper Type</td>
-              <td><%= posRoll.posPaperType || "N/A" %></td>
               <td class="resolved"><%= posRoll.posPaperType || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Color</td>
-              <td><%= posRoll.posColor || "N/A" %></td>
               <td class="resolved"><%= posRoll.posColor || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Width</td>
-              <td><%= posRoll.posWidth ?? "N/A" %></td>
               <td class="resolved"><%= posRoll.posWidth ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Meters</td>
-              <td><%= posRoll.posMtrs ?? "N/A" %></td>
               <td class="resolved"><%= posRoll.posMtrs ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Core ID</td>
-              <td><%= posRoll.posCoreId ?? "N/A" %></td>
               <td class="resolved"><%= posRoll.posCoreId ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Minimum Qty</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posMinQty ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Order Qty</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posOdrQty ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Order Frequency</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posOdrFreq || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Credit Term</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posCreditTerm || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Rate Per Roll</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posRatePerRoll ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Sale Cost</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posSaleCost ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Meters Delivered</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.posMtrsDel ?? 0 %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Status</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.status || "N/A" %></td>
             </tr>
           </tbody>
         </table>

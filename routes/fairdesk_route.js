@@ -975,6 +975,30 @@ router.get("/ttr/profile/:id", async (req, res) => {
   });
 });
 
+// ================= TTR EDIT =================
+router.get("/ttr/edit/:id", async (req, res) => {
+  const ttr = await Ttr.findById(req.params.id).lean();
+  if (!ttr) return res.redirect("back");
+
+  res.render("inventory/ttrEdit.ejs", {
+    title: "Edit TTR",
+    CSS: false,
+    JS: false,
+    ttr,
+  });
+});
+
+router.post("/ttr/edit/:id", async (req, res) => {
+  try {
+    await Ttr.findByIdAndUpdate(req.params.id, req.body);
+    req.flash("notification", "TTR updated successfully!");
+    res.json({ success: true, redirect: `/fairdesk/ttr/view` });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // ----------------------------------Sales Order---------------------------------->
 // Centralized Sales Order Form
 router.get("/sales/order", async (req, res) => {

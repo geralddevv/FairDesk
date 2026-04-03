@@ -283,127 +283,65 @@
 </style>
 
 <div class="main-content tape-details-shell">
-  <% const latestBinding = primaryBinding || null; %>
-  <% const resolvedMaterialCode = latestBinding?.tafetaClientMaterialCode || tafeta.tafetaMaterialCode || "N/A"; %>
-  <% const resolvedGsm = (latestBinding?.clientTafetaGsm ?? tafeta.tafetaGsm) ?? "N/A"; %>
   <div class="tape-details-card">
     <div class="tape-details-header">
       <div class="header-copy">
         <h1>Tafeta Details</h1>
-        <div class="tape-details-sub">
-          <span class="client-name"><%= primaryBinding?.userId?.clientName || "Client not found" %></span>
-          <span class="username-line">User: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
-        </div>
       </div>
       <div class="header-actions">
-        <% if (latestBinding?._id) { %>
-          <a
-            class="header-action-link"
-            href="/fairdesk/tafeta-binding/edit/<%= latestBinding._id %>?returnTo=<%= encodeURIComponent(`/fairdesk/tafeta/profile/${tafeta._id}`) %>"
-          >
-            <i class="fa-solid fa-pencil"></i>
-            Edit Tafeta Binding
-          </a>
-        <% } %>
+        <a class="header-action-link" href="/fairdesk/tafeta/edit/<%= tafeta._id %>">
+          <i class="fa-solid fa-pencil"></i>
+          Edit Tafeta
+        </a>
       </div>
     </div>
 
     <div class="tape-details-body">
       <div class="details-section">
-        <h3 class="section-title">Tafeta Details (Fairtech - Client)</h3>
+        <h3 class="section-title">Tafeta Details</h3>
         <table class="diff-table">
           <thead>
             <tr>
               <th class="key-col">Field</th>
-              <th>Fairtech</th>
-              <th>Client</th>
+              <th>Value</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="key-col">Material Code</td>
-              <td><%= tafeta.tafetaMaterialCode || "N/A" %></td>
-              <td class="resolved"><%= resolvedMaterialCode %></td>
+              <td class="resolved"><%= tafeta.tafetaMaterialCode || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">GSM</td>
-              <td><%= tafeta.tafetaGsm ?? "N/A" %></td>
-              <td class="resolved"><%= resolvedGsm %></td>
+              <td class="resolved"><%= tafeta.tafetaGsm ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Material Type</td>
-              <td><%= tafeta.tafetaMaterialType || "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaMaterialType || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Color</td>
-              <td><%= tafeta.tafetaColor || "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaColor || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Width</td>
-              <td><%= tafeta.tafetaWidth ?? "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaWidth ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Meters</td>
-              <td><%= tafeta.tafetaMtrs ?? "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaMtrs ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Core Length</td>
-              <td><%= tafeta.tafetaCoreLen ?? "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaCoreLen ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Notch</td>
-              <td><%= tafeta.tafetaNotch || "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaNotch || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Core ID</td>
-              <td><%= tafeta.tafetaCoreId ?? "N/A" %></td>
               <td class="resolved"><%= tafeta.tafetaCoreId ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Minimum Qty</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaMinQty ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Order Qty</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaOdrQty ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Order Frequency</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaOdrFreq || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Credit Term</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaCreditTerm || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Rate Per Roll</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaRatePerRoll ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Sale Cost</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaSaleCost ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Meters Delivered</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.tafetaMtrsDel ?? 0 %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Status</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.status || "N/A" %></td>
             </tr>
           </tbody>
         </table>

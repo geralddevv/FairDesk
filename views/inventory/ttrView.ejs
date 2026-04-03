@@ -284,132 +284,69 @@
 </style>
 
 <div class="main-content tape-details-shell">
-  <% const latestBinding = primaryBinding || null; %>
-  <% const resolvedMaterialCode = latestBinding?.ttrClientMaterialCode || ttr.ttrMaterialCode || "N/A"; %>
-  <% const resolvedType = latestBinding?.clientTtrType || ttr.ttrType || "N/A"; %>
   <div class="tape-details-card">
     <div class="tape-details-header">
       <div class="header-copy">
         <h1>TTR Details</h1>
-        <div class="tape-details-sub">
-          <span class="client-name"><%= primaryBinding?.userId?.clientName || "Client not found" %></span>
-          <span class="username-line">User: <%= primaryBinding?.userId?.userName || "Username not found" %></span>
-        </div>
       </div>
       <div class="header-actions">
-        <% if (latestBinding?._id) { %>
-          <a
-            class="header-action-link"
-            href="/fairdesk/ttr-binding/edit/<%= latestBinding._id %>?returnTo=<%= encodeURIComponent(`/fairdesk/ttr/profile/${ttr._id}`) %>"
-          >
-            <i class="fa-solid fa-pencil"></i>
-            Edit TTR Binding
-          </a>
-        <% } %>
+        <a class="header-action-link" href="/fairdesk/ttr/edit/<%= ttr._id %>">
+          <i class="fa-solid fa-pencil"></i>
+          Edit TTR
+        </a>
       </div>
     </div>
 
     <div class="tape-details-body">
       <div class="details-section">
-        <h3 class="section-title">TTR Details (Fairtech - Client)</h3>
+        <h3 class="section-title">TTR Details</h3>
         <table class="diff-table">
           <thead>
             <tr>
               <th class="key-col">Field</th>
-              <th>Fairtech</th>
-              <th>Client</th>
+              <th>Value</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td class="key-col">Material Code</td>
-              <td><%= ttr.ttrMaterialCode || "N/A" %></td>
-              <td class="resolved"><%= resolvedMaterialCode %></td>
+              <td class="resolved"><%= ttr.ttrMaterialCode || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Type</td>
-              <td><%= ttr.ttrType || "N/A" %></td>
-              <td class="resolved"><%= resolvedType %></td>
+              <td class="resolved"><%= ttr.ttrType || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Color</td>
-              <td><%= ttr.ttrColor || "N/A" %></td>
               <td class="resolved"><%= ttr.ttrColor || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Ink Face</td>
-              <td><%= ttr.ttrInkFace || "N/A" %></td>
               <td class="resolved"><%= ttr.ttrInkFace || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Width</td>
-              <td><%= ttr.ttrWidth ?? "N/A" %></td>
               <td class="resolved"><%= ttr.ttrWidth ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Meters</td>
-              <td><%= ttr.ttrMtrs ?? "N/A" %></td>
               <td class="resolved"><%= ttr.ttrMtrs ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Core ID</td>
-              <td><%= ttr.ttrCoreId ?? "N/A" %></td>
               <td class="resolved"><%= ttr.ttrCoreId ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Core Length</td>
-              <td><%= ttr.ttrCoreLength ?? "N/A" %></td>
               <td class="resolved"><%= ttr.ttrCoreLength ?? "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Notch</td>
-              <td><%= ttr.ttrNotch || "N/A" %></td>
               <td class="resolved"><%= ttr.ttrNotch || "N/A" %></td>
             </tr>
             <tr>
               <td class="key-col">Winding</td>
-              <td><%= ttr.ttrWinding || "N/A" %></td>
               <td class="resolved"><%= ttr.ttrWinding || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Minimum Qty</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrMinQty ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Order Qty</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrOdrQty ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Order Frequency</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrOdrFreq || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Credit Term</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrCreditTerm || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Rate Per Roll</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrRatePerRoll ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Sale Cost</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrSaleCost ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Meters Delivered</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.ttrMtrsDel ?? 0 %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Status</td>
-              <td>-</td>
-              <td class="resolved"><%= latestBinding?.status || "N/A" %></td>
             </tr>
           </tbody>
         </table>

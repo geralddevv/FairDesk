@@ -82,6 +82,20 @@
       placeholder: "No data to display",
       columns: [
         {
+          title: "",
+          formatter: function (cell) {
+            const row = cell.getRow().getData();
+            if (!row._id) return "";
+            return `
+              <button
+                onclick="window.location.href='/fairdesk/ttr/profile/${row._id}'"
+                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            `;
+          }
+        },
+        {
           title: "Product ID",
           field: "ttrProductId",
           headerFilter: "input",
