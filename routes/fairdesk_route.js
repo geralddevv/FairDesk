@@ -66,10 +66,42 @@ router.get("/form/client", async (req, res) => {
 // Route to handle CLIENT form submission
 router.post("/form/client", async (req, res) => {
   try {
-    let formData = req.body;
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const clientId = String(req.body.clientId || "").trim();
+    const clientName = String(req.body.clientName || "").trim();
+    const clientGst = String(req.body.clientGst || "").trim();
+    const clientPan = String(req.body.clientPan || "").trim();
+
+    // Prevent duplicates (clientId is unique, but also guard by name / GST / PAN).
+    const alreadyExists = await Client.exists({
+      $or: [
+        clientId ? { clientId } : null,
+        clientName ? { clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i") } : null,
+        clientGst ? { clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i") } : null,
+        clientPan ? { clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i") } : null,
+      ].filter(Boolean),
+    });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "client already exist" });
+    }
+
+    const formData = {
+      clientId,
+      clientName,
+      clientType: String(req.body.clientType || "").trim(),
+      clientStatus: String(req.body.clientStatus || "").trim(),
+      hoLocation: String(req.body.hoLocation || "").trim(),
+      accountHead: String(req.body.accountHead || "").trim(),
+      clientGst,
+      clientMsme: String(req.body.clientMsme || "").trim(),
+      clientGumasta: String(req.body.clientGumasta || "").trim(),
+      clientPan,
+    };
+
     await Client.create(formData);
     req.flash("notification", "Client created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/form/client" });
+    res.json({ success: true, redirect: "/fairdesk/client/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });
@@ -86,15 +118,48 @@ router.get("/form/client/:name", async (req, res) => {
 // Route to handle USER form submission
 router.post("/form/user", async (req, res) => {
   try {
-    let { objectId } = req.body;
-    let newUser = await Username.create(req.body);
-    let client = await Client.findOne({ _id: objectId });
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const { objectId } = req.body;
+    const client = await Client.findOne({ _id: objectId });
+    if (!client) {
+      return res.status(400).json({ success: false, message: "Invalid client selected" });
+    }
+
+    const clientId = String(req.body.clientId || "").trim();
+    const userName = String(req.body.userName || "").trim();
+    const userContact = String(req.body.userContact || "").trim();
+    const userEmail = String(req.body.userEmail || "")
+      .trim()
+      .toLowerCase();
+
+    // Prevent duplicate users by email/contact globally and username within the same client.
+    const existingUser = await Username.exists({
+      $or: [
+        userEmail ? { userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i") } : null,
+        userContact ? { userContact } : null,
+        clientId && userName
+          ? { clientId, userName: new RegExp(`^${escapeRegex(userName)}$`, "i") }
+          : null,
+      ].filter(Boolean),
+    });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "user already exist" });
+    }
+
+    const newUser = await Username.create({
+      ...req.body,
+      clientId,
+      userName,
+      userContact,
+      userEmail,
+    });
 
     client.users.push(newUser);
     await client.save();
 
     req.flash("notification", "User created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/form/client" });
+    res.json({ success: true, redirect: "/fairdesk/master/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });
@@ -233,25 +298,63 @@ router.get("/form/ttr", async (req, res) => {
 router.post("/form/ttr", async (req, res) => {
   console.log("TTR MASTER BODY", req.body);
   try {
+    const flex = (val) => {
+      // Helps match DB values regardless of string/number casting and stray whitespace.
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    // Prevent duplicates based on TTR specs (productId is always unique).
+    const alreadyExists = await Ttr.exists({
+      ttrType: flex(req.body.ttrType),
+      ttrColor: flex(req.body.ttrColor),
+      ttrMaterialCode: flex(req.body.ttrMaterialCode),
+      ttrWidth: flex(req.body.ttrWidth),
+      ttrMtrs: Number(req.body.ttrMtrs),
+      ttrInkFace: flex(req.body.ttrInkFace),
+      ttrCoreId: flex(req.body.ttrCoreId),
+      ttrCoreLength: Number(req.body.ttrCoreLength),
+      ttrNotch: flex(req.body.ttrNotch),
+      ttrWinding: flex(req.body.ttrWinding),
+    });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "ttr already exist" });
+    }
+
+    const widthRaw = req.body.ttrWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
     const data = {
       ttrProductId: req.body.ttrProductId,
-      ttrType: req.body.ttrType,
-      ttrColor: req.body.ttrColor,
-      ttrMaterialCode: req.body.ttrMaterialCode,
-      ttrWidth: Number(req.body.ttrWidth),
+      ttrType: String(req.body.ttrType).trim(),
+      ttrColor: String(req.body.ttrColor).trim(),
+      ttrMaterialCode: String(req.body.ttrMaterialCode).trim(),
+      ttrWidth: widthVal,
       ttrMtrs: Number(req.body.ttrMtrs),
-      ttrInkFace: req.body.ttrInkFace,
-      ttrCoreId: req.body.ttrCoreId,
+      ttrInkFace: String(req.body.ttrInkFace).trim(),
+      ttrCoreId: String(req.body.ttrCoreId).trim(),
       ttrCoreLength: Number(req.body.ttrCoreLength),
-      ttrNotch: req.body.ttrNotch,
-      ttrWinding: req.body.ttrWinding,
+      ttrNotch: String(req.body.ttrNotch).trim(),
+      ttrWinding: String(req.body.ttrWinding).trim(),
       createdBy: req.user?.username || "SYSTEM",
     };
 
     await Ttr.create(data);
 
     req.flash("notification", "TTR created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/form/ttr" });
+    res.json({ success: true, redirect: "/fairdesk/ttr/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });
@@ -306,23 +409,59 @@ router.get("/form/tape-master", async (req, res) => {
 router.post("/form/tape-master", async (req, res) => {
   console.log("TAPE MASTER BODY", req.body);
   try {
-    const data = {
-      tapeProductId: req.body.tapeProductId,
-      tapePaperCode: req.body.tapePaperCode,
+    const flex = (val) => {
+      // Helps match DB values regardless of string/number casting and stray whitespace.
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    // Prevent duplicates based on tape specs (productId is always unique).
+    const alreadyExists = await Tape.exists({
+      tapePaperCode: flex(req.body.tapePaperCode),
       tapeGsm: Number(req.body.tapeGsm),
-      tapePaperType: req.body.tapePaperType,
-      tapeWidth: Number(req.body.tapeWidth),
+      tapePaperType: flex(req.body.tapePaperType),
+      tapeWidth: flex(req.body.tapeWidth),
       tapeMtrs: Number(req.body.tapeMtrs),
       tapeCoreId: Number(req.body.tapeCoreId),
-      tapeAdhesiveGsm: Number(req.body.tapeAdhesiveGsm),
-      tapeFinish: req.body.tapeFinish,
+      tapeAdhesiveGsm: flex(req.body.tapeAdhesiveGsm),
+      tapeFinish: flex(req.body.tapeFinish),
+    });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "tape already exist" });
+    }
+
+    const widthRaw = req.body.tapeWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const data = {
+      tapeProductId: req.body.tapeProductId,
+      tapePaperCode: String(req.body.tapePaperCode).trim(),
+      tapeGsm: Number(req.body.tapeGsm),
+      tapePaperType: String(req.body.tapePaperType).trim(),
+      tapeWidth: widthVal,
+      tapeMtrs: Number(req.body.tapeMtrs),
+      tapeCoreId: Number(req.body.tapeCoreId),
+      tapeAdhesiveGsm: String(req.body.tapeAdhesiveGsm).trim(),
+      tapeFinish: String(req.body.tapeFinish).trim(),
       createdBy: req.user?.username || "SYSTEM",
     };
 
     await Tape.create(data);
 
     req.flash("notification", "Tape Master created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/form/tape-master" });
+    res.json({ success: true, redirect: "/fairdesk/tape/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });
@@ -403,13 +542,48 @@ router.get("/form/pos-roll-master", async (req, res) => {
 router.post("/form/pos-roll-master", async (req, res) => {
   console.log("POS ROLL MASTER BODY", req.body);
   try {
+    const flex = (val) => {
+      // Helps match DB values regardless of string/number casting and stray whitespace.
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    // Prevent duplicates based on POS Roll specs (productId is always unique).
+    const alreadyExists = await PosRoll.exists({
+      posPaperCode: flex(req.body.posPaperCode),
+      posPaperType: flex(req.body.posPaperType),
+      posColor: flex(req.body.posColor),
+      posGsm: Number(req.body.posGsm),
+      posWidth: flex(req.body.posWidth),
+      posMtrs: Number(req.body.posMtrs),
+      posCoreId: Number(req.body.posCoreId),
+    });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "pos roll already exist" });
+    }
+
+    const widthRaw = req.body.posWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
     const data = {
       posProductId: req.body.posProductId,
-      posPaperCode: req.body.posPaperCode,
-      posPaperType: req.body.posPaperType,
-      posColor: req.body.posColor,
+      posPaperCode: String(req.body.posPaperCode).trim(),
+      posPaperType: String(req.body.posPaperType).trim(),
+      posColor: String(req.body.posColor).trim(),
       posGsm: Number(req.body.posGsm),
-      posWidth: Number(req.body.posWidth),
+      posWidth: widthVal,
       posMtrs: Number(req.body.posMtrs),
       posCoreId: Number(req.body.posCoreId),
     };
@@ -417,7 +591,7 @@ router.post("/form/pos-roll-master", async (req, res) => {
     await PosRoll.create(data);
 
     req.flash("notification", "POS Roll Master created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/form/pos-roll-master" });
+    res.json({ success: true, redirect: "/fairdesk/pos-roll/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });
@@ -443,23 +617,60 @@ router.get("/form/tafeta-master", async (req, res) => {
 router.post("/form/tafeta-master", async (req, res) => {
   console.log("TAFETA MASTER BODY", req.body);
   try {
+    const flex = (val) => {
+      // Helps match DB values regardless of string/number casting and stray whitespace.
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    // Prevent duplicates based on Tafeta specs (productId is always unique).
+    const alreadyExists = await Tafeta.exists({
+      tafetaMaterialCode: flex(req.body.tafetaMaterialCode),
+      tafetaMaterialType: flex(req.body.tafetaMaterialType),
+      tafetaColor: flex(req.body.tafetaColor),
+      tafetaGsm: flex(req.body.tafetaGsm),
+      tafetaWidth: flex(req.body.tafetaWidth),
+      tafetaMtrs: flex(req.body.tafetaMtrs),
+      tafetaCoreLen: flex(req.body.tafetaCoreLen),
+      tafetaNotch: flex(req.body.tafetaNotch),
+      tafetaCoreId: flex(req.body.tafetaCoreId),
+    });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "tafeta already exist" });
+    }
+
+    const widthRaw = req.body.tafetaWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
     const data = {
       tafetaProductId: req.body.tafetaProductId,
-      tafetaMaterialCode: req.body.tafetaMaterialCode,
-      tafetaMaterialType: req.body.tafetaMaterialType,
-      tafetaColor: req.body.tafetaColor,
-      tafetaGsm: req.body.tafetaGsm,
-      tafetaWidth: req.body.tafetaWidth,
-      tafetaMtrs: req.body.tafetaMtrs,
-      tafetaCoreLen: req.body.tafetaCoreLen,
-      tafetaNotch: req.body.tafetaNotch,
-      tafetaCoreId: req.body.tafetaCoreId,
+      tafetaMaterialCode: String(req.body.tafetaMaterialCode).trim(),
+      tafetaMaterialType: String(req.body.tafetaMaterialType).trim(),
+      tafetaColor: String(req.body.tafetaColor).trim(),
+      tafetaGsm: String(req.body.tafetaGsm).trim(),
+      tafetaWidth: widthVal,
+      tafetaMtrs: String(req.body.tafetaMtrs).trim(),
+      tafetaCoreLen: String(req.body.tafetaCoreLen).trim(),
+      tafetaNotch: String(req.body.tafetaNotch).trim(),
+      tafetaCoreId: String(req.body.tafetaCoreId).trim(),
     };
 
     await Tafeta.create(data);
 
     req.flash("notification", "Tafeta Master created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/form/tafeta-master" });
+    res.json({ success: true, redirect: "/fairdesk/tafeta/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: err.message });
@@ -484,12 +695,21 @@ router.get("/form/location", async (req, res) => {
 // POST: Location Master submission
 router.post("/form/location", async (req, res) => {
   try {
-    await Location.create({ locationName: req.body.locationName });
+    const locationName = String(req.body.locationName || "")
+      .trim()
+      .toUpperCase();
+
+    const alreadyExists = await Location.exists({ locationName });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "location already exist" });
+    }
+
+    await Location.create({ locationName });
     req.flash("notification", "Location created successfully!");
     res.json({ success: true, redirect: "/fairdesk/form/location" });
   } catch (err) {
     console.error(err);
-    const msg = err.code === 11000 ? "This location already exists." : err.message;
+    const msg = err.code === 11000 ? "location already exist" : err.message;
     res.status(400).json({ success: false, message: msg });
   }
 });
@@ -790,17 +1010,19 @@ router.get("/sales/clients/:itemType", async (req, res) => {
   try {
     const { itemType } = req.params;
     let bindingModel;
-    if (itemType === "TAPE")          bindingModel = TapeBinding;
+    if (itemType === "TAPE") bindingModel = TapeBinding;
     else if (itemType === "POS_ROLL") bindingModel = PosRollBinding;
-    else if (itemType === "TAFETA")   bindingModel = TafetaBinding;
-    else if (itemType === "TTR")      bindingModel = TtrBinding;
+    else if (itemType === "TAFETA") bindingModel = TafetaBinding;
+    else if (itemType === "TTR") bindingModel = TtrBinding;
     else {
       const clients = await Client.distinct("clientName");
       return res.json(clients.sort());
     }
     const userIds = await bindingModel.distinct("userId");
-    const users = await Username.find({ _id: { $in: userIds } }).select("clientName").lean();
-    const clientNames = [...new Set(users.map(u => u.clientName).filter(Boolean))].sort();
+    const users = await Username.find({ _id: { $in: userIds } })
+      .select("clientName")
+      .lean();
+    const clientNames = [...new Set(users.map((u) => u.clientName).filter(Boolean))].sort();
     res.json(clientNames);
   } catch (err) {
     console.error("Sales clients filter error:", err);

@@ -308,6 +308,7 @@ router.get("/tafeta-binding/edit/:id", async (req, res) => {
     res.render("inventory/tafetaBindingEdit.ejs", {
       title: "Edit Tafeta Binding",
       binding,
+      returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",
       CSS: false,
       JS: false,
       notification: req.flash("notification"),
@@ -334,6 +335,7 @@ router.post("/tafeta-binding/edit/:id", async (req, res) => {
       tafetaOdrFreq,
       tafetaCreditTerm,
       status,
+      returnTo,
     } = req.body;
 
     const binding = await TafetaBinding.findById(id);
@@ -359,6 +361,11 @@ router.post("/tafeta-binding/edit/:id", async (req, res) => {
     await binding.save();
 
     req.flash("notification", "Tafeta binding updated successfully!");
+
+    if (typeof returnTo === "string" && returnTo.startsWith("/fairdesk/")) {
+      return res.redirect(returnTo);
+    }
+
     res.redirect("/fairdesk/tafeta/view/" + binding.userId);
   } catch (err) {
     console.error("EDIT BINDING POST ERROR:", err);

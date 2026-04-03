@@ -336,6 +336,7 @@ router.get("/ttr-binding/edit/:id", async (req, res) => {
     res.render("inventory/ttrBindingEdit.ejs", {
       title: "Edit TTR Binding",
       binding,
+      returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",
       CSS: false,
       JS: false,
       notification: req.flash("notification"),
@@ -362,6 +363,7 @@ router.post("/ttr-binding/edit/:id", async (req, res) => {
       ttrOdrFreq,
       ttrCreditTerm,
       status,
+      returnTo,
     } = req.body;
 
     const binding = await TtrBinding.findById(id);
@@ -387,6 +389,11 @@ router.post("/ttr-binding/edit/:id", async (req, res) => {
     await binding.save();
 
     req.flash("notification", "TTR binding updated successfully!");
+
+    if (typeof returnTo === "string" && returnTo.startsWith("/fairdesk/")) {
+      return res.redirect(returnTo);
+    }
+
     res.redirect("/fairdesk/ttr/view/" + binding.userId);
   } catch (err) {
     console.error("EDIT BINDING POST ERROR:", err);

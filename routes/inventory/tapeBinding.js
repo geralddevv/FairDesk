@@ -274,6 +274,7 @@ router.get("/tape-binding/edit/:id", async (req, res) => {
     res.render("inventory/tapeBindingEdit.ejs", {
       title: "Edit Tape Binding",
       binding,
+      returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",
       CSS: false,
       JS: false,
       notification: req.flash("notification"),
@@ -300,6 +301,7 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
       tapeOdrFreq,
       tapeCreditTerm,
       status,
+      returnTo,
     } = req.body;
 
     const binding = await TapeBinding.findById(id);
@@ -325,6 +327,11 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
     await binding.save();
 
     req.flash("notification", "Tape binding updated successfully!");
+
+    if (typeof returnTo === "string" && returnTo.startsWith("/fairdesk/")) {
+      return res.redirect(returnTo);
+    }
+
     res.redirect("/fairdesk/tape/view/" + binding.userId);
   } catch (err) {
     console.error("EDIT BINDING POST ERROR:", err);

@@ -289,6 +289,7 @@ router.get("/pos-roll-binding/edit/:id", async (req, res) => {
     res.render("inventory/posRollBindingEdit.ejs", {
       title: "Edit POS Roll Binding",
       binding,
+      returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",
       CSS: false,
       JS: false,
       notification: req.flash("notification"),
@@ -315,6 +316,7 @@ router.post("/pos-roll-binding/edit/:id", async (req, res) => {
       posOdrFreq,
       posCreditTerm,
       status,
+      returnTo,
     } = req.body;
 
     const binding = await PosRollBinding.findById(id);
@@ -340,6 +342,11 @@ router.post("/pos-roll-binding/edit/:id", async (req, res) => {
     await binding.save();
 
     req.flash("notification", "POS Roll binding updated successfully!");
+
+    if (typeof returnTo === "string" && returnTo.startsWith("/fairdesk/")) {
+      return res.redirect(returnTo);
+    }
+
     res.redirect("/fairdesk/pos-roll/view/" + binding.userId);
   } catch (err) {
     console.error("EDIT BINDING POST ERROR:", err);

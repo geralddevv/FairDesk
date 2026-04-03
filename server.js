@@ -20,6 +20,7 @@ import ttrBindingRoutes from "./routes/inventory/ttrBinding.js";
 import { configDotenv } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
+import os from "os";
 
 import session from "express-session";
 import flash from "connect-flash";
@@ -107,7 +108,13 @@ app.use((err, req, res, next) => {
   res.status(err.statusCode || 500).send(err.message || "Something went wrong");
 });
 
-/* 192.168.10.170/ */
+/* Get dynamic IP address */
+const networkInterfaces = os.networkInterfaces();
+const ip =
+  Object.values(networkInterfaces)
+    .flat()
+    .find((info) => info.family === "IPv4" && !info.internal)?.address || "localhost";
+
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running on http://192.168.10.178:${port}`);
+  console.log(`Server running on http://${ip}:${port}`);
 });
