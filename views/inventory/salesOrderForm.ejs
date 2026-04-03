@@ -80,12 +80,22 @@
       <input type="text" id="po-number" name="poNumber" class="form-control" placeholder="Enter PO number" required />
     </div>    
 
+    <div class="span-four">
+      <label for="item-rate">Rate</label>
+      <input type="text" id="item-rate" class="form-control" placeholder="Rate" readonly />
+    </div>
+
+    <div class="span-four">
+      <label for="order-rate">Curr Rate</label>
+      <input type="number" id="order-rate" name="orderRate" class="form-control" placeholder="Enter current rate" step="0.01" />
+    </div>
+
     <div class="span-six">
       <label for="estimated-date">Est Delivery Date</label>
       <input type="date" id="estimated-date" name="estimatedDate" class="form-control" required />
     </div>
 
-    <div class="span-half" style="grid-column: span 16;">
+    <div class="span-half" style="grid-column: span 8;">
       <label for="remarks">Remarks (Optional)</label>
       <input type="text" id="remarks" name="remarks" class="form-control" placeholder="Any special instructions..." />
     </div>
@@ -325,6 +335,8 @@
   const sourceLocationInput = document.getElementById("source-location");
   const locationSelect = document.getElementById("user-location");
   const poNumberInput = document.getElementById("po-number");
+  const rateDisplayInput = document.getElementById("item-rate");
+  const orderRateInput = document.getElementById("order-rate");
   const quantityInput = document.getElementById("quantity");
   const estimatedDateInput = document.getElementById("estimated-date");
   const remarksInput = document.getElementById("remarks");
@@ -356,6 +368,12 @@
     itemChoices.clearStore();
     itemChoices.setChoices([{ value: "", label: "Select Item", disabled: true, selected: true }], "value", "label", true);
     document.getElementById("stock-display").style.display = "none";
+    if (rateDisplayInput) rateDisplayInput.value = "";
+    if (orderRateInput) {
+      orderRateInput.value = "";
+      delete orderRateInput.dataset.userEdited;
+      delete orderRateInput.dataset.fromOrder;
+    }
   }
 
   // Load clients filtered by item type
@@ -453,7 +471,8 @@
         selected: item._id === targetItemId || (items.length === 1 && !targetItemId),
         customProperties: {
           stock: JSON.stringify(item.stock || { totalStock: 0, locations: [] }),
-          minQty: item.minOrderQty || 0
+          minQty: item.minOrderQty || 0,
+          rate: typeof item.rate !== "undefined" ? item.rate : null
         }
       }));
 
@@ -473,9 +492,22 @@
     }
   }
 
+  function updateRateDisplay(selectedOption) {
+    if (!rateDisplayInput) return;
+    const rate = selectedOption?.customProperties?.rate;
+    const hasRate = rate === 0 || rate === "0" || (rate !== null && typeof rate !== "undefined" && rate !== "");
+    rateDisplayInput.value = hasRate ? String(rate) : "";
+
+    if (!orderRateInput) return;
+    if (orderRateInput.dataset.userEdited === "true") return;
+    if (orderRateInput.dataset.fromOrder === "true") return;
+    orderRateInput.value = hasRate ? String(rate) : "";
+  }
+
   async function updateStockDisplay() {
     const selectedOption = itemChoices.getValue(); // Choices.js object
     const stockDisplay = document.getElementById("stock-display");
+    updateRateDisplay(selectedOption);
     
     // Reset location selection
     sourceLocationInput.value = "";
@@ -629,6 +661,11 @@
   // 4. Item → update stock display
   itemSelect.addEventListener("change", updateStockDisplay);
   quantityInput.addEventListener("input", checkStockWarning);
+  if (orderRateInput) {
+    orderRateInput.addEventListener("input", () => {
+      orderRateInput.dataset.userEdited = "true";
+    });
+  }
 
   // Form validation — ensure location is selected for TAPE orders and Min Qty met
   document.querySelector("form").addEventListener("submit", function (e) {
@@ -759,18 +796,31 @@
          }
          
          itemChoices.clearStore();
-         itemChoices.setChoices([{
-            value: itemId,
-            label: tapeName,
-            selected: true,
-            customProperties: {
-               stock: stockInfo ? JSON.stringify(stockInfo) : JSON.stringify({ totalStock: 0, locations: [] }),
-               minQty: orderToEdit.tapeBinding ? (orderToEdit.tapeBinding.tapeMinQty || 0) : 0
-            }
-         }], "value", "label", true);
+          itemChoices.setChoices([{
+             value: itemId,
+             label: tapeName,
+             selected: true,
+             customProperties: {
+                stock: stockInfo ? JSON.stringify(stockInfo) : JSON.stringify({ totalStock: 0, locations: [] }),
+                minQty: orderToEdit.tapeBinding
+                  ? (orderToEdit.tapeBinding.tapeMinQty ??
+                    orderToEdit.tapeBinding.posMinQty ??
+                    orderToEdit.tapeBinding.tafetaMinQty ??
+                    orderToEdit.tapeBinding.ttrMinQty ??
+                    0)
+                  : 0,
+                rate: orderToEdit.tapeBinding
+                  ? (orderToEdit.tapeBinding.tapeRatePerRoll ??
+                    orderToEdit.tapeBinding.posRatePerRoll ??
+                    orderToEdit.tapeBinding.tafetaRatePerRoll ??
+                    orderToEdit.tapeBinding.ttrRatePerRoll ??
+                    0)
+                  : null
+             }
+          }], "value", "label", true);
 
-         // 4. Update Stock Display
-         updateStockDisplay();
+          // 4. Update Stock Display
+          updateStockDisplay();
 
          // 5. Pre-fill confirm fields
          const today = new Date();
@@ -799,6 +849,10 @@
 
          // 6. Pre-fill Original Order Fields
          if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
+         if (orderRateInput && typeof orderToEdit.orderRate !== "undefined" && orderToEdit.orderRate !== null) {
+           orderRateInput.value = String(orderToEdit.orderRate);
+           orderRateInput.dataset.fromOrder = "true";
+         }
          if (orderToEdit.userId?.userLocation) setLocationFromUser(orderToEdit.userId);
          if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
          if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
@@ -816,6 +870,8 @@
          userChoices.disable();
          itemChoices.disable();
          quantityInput.readOnly = true;
+         poNumberInput.readOnly = true;
+         if (orderRateInput) orderRateInput.readOnly = true;
          estimatedDateInput.readOnly = true;
          remarksInput.readOnly = true;
 
@@ -841,6 +897,10 @@
     // Pre-fill specific order fields if editing (STANDARD MODE)
     if (orderToEdit && !confirmMode) {
       if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
+      if (orderRateInput && typeof orderToEdit.orderRate !== "undefined" && orderToEdit.orderRate !== null) {
+        orderRateInput.value = String(orderToEdit.orderRate);
+        orderRateInput.dataset.fromOrder = "true";
+      }
       if (orderToEdit.userId?.userLocation) setLocationFromUser(orderToEdit.userId);
       if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
       if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;

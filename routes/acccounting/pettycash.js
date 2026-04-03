@@ -23,6 +23,67 @@ async function getOrCreatePettyCash(location) {
   return petty;
 }
 
+async function recomputeLogsAndBalance(location, { overrideId = null, overrideDoc = null, deleteId = null } = {}) {
+  const logs = await PettyCashLog.find({ location }).sort({ createdAt: 1, _id: 1 });
+
+  let running = 0;
+  const ops = [];
+
+  for (const log of logs) {
+    if (deleteId && log._id.equals(deleteId)) {
+      continue;
+    }
+
+    const isOverride = overrideId && log._id.equals(overrideId);
+    const effective = isOverride ? { ...log.toObject(), ...overrideDoc } : log;
+
+    const openingBalance = running;
+    const delta = effective.type === "INWARD" ? effective.amount : -effective.amount;
+    const closingBalance = openingBalance + delta;
+
+    if (closingBalance < 0) {
+      throw new Error("Insufficient petty cash balance after update");
+    }
+
+    const update = {};
+    if (openingBalance !== log.openingBalance) update.openingBalance = openingBalance;
+    if (closingBalance !== log.closingBalance) update.closingBalance = closingBalance;
+
+    if (isOverride) {
+      if (effective.amount !== log.amount) update.amount = effective.amount;
+      if (effective.type !== log.type) update.type = effective.type;
+      if (effective.from !== log.from) update.from = effective.from;
+      if (effective.to !== log.to) update.to = effective.to;
+      if ((effective.reason || "") !== (log.reason || "")) update.reason = effective.reason || "";
+    }
+
+    if (Object.keys(update).length) {
+      ops.push({
+        updateOne: {
+          filter: { _id: log._id },
+          update: { $set: update },
+        },
+      });
+    }
+
+    running = closingBalance;
+  }
+
+  if (deleteId) {
+    ops.push({ deleteOne: { filter: { _id: deleteId } } });
+  }
+
+  if (ops.length) {
+    await PettyCashLog.bulkWrite(ops);
+  }
+
+  const petty = await getOrCreatePettyCash(location);
+  petty.currentBalance = running;
+  await petty.save();
+
+  return running;
+}
+
 /* SHOW ENTRY FORM */
 router.get("/create", async (req, res) => {
   res.render("accounting/pettycash", {
@@ -137,6 +198,72 @@ router.get("/logs/:location", async (req, res) => {
     res.json({ history: logs });
   } catch (err) {
     res.status(500).json({ history: [] });
+  }
+});
+
+/* EDIT LOG */
+router.patch("/logs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const log = await PettyCashLog.findById(id);
+
+    if (!log) {
+      return res.status(404).json({ message: "Log not found" });
+    }
+
+    const { amount, type, from, to, reason } = req.body;
+    const txnAmount = Number(amount) || 0;
+
+    if (!["INWARD", "OUTWARD"].includes(type) || txnAmount <= 0) {
+      return res.status(400).json({ message: "Invalid log update" });
+    }
+
+    if (type === "INWARD" && (!from || !from.trim())) {
+      return res.status(400).json({ message: "From is required" });
+    }
+
+    if (type === "OUTWARD" && (!to || !to.trim())) {
+      return res.status(400).json({ message: "To is required" });
+    }
+
+    const overrideDoc = {
+      amount: txnAmount,
+      type,
+      from: type === "INWARD" ? from.trim() : "-",
+      to: type === "OUTWARD" ? to.trim() : "-",
+      reason: (reason || "").trim(),
+    };
+
+    const balance = await recomputeLogsAndBalance(log.location, {
+      overrideId: log._id,
+      overrideDoc,
+    });
+
+    return res.json({ ok: true, balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message || "Failed to update log" });
+  }
+});
+
+/* DELETE LOG */
+router.delete("/logs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const log = await PettyCashLog.findById(id);
+
+    if (!log) {
+      return res.status(404).json({ message: "Log not found" });
+    }
+
+    const balance = await recomputeLogsAndBalance(log.location, {
+      deleteId: log._id,
+    });
+
+    return res.json({ ok: true, balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message || "Failed to delete log" });
   }
 });
 

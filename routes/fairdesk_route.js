@@ -984,7 +984,7 @@ router.get("/sales/order", async (req, res) => {
   const orderPromise = orderId
     ? TapeSalesOrder.findById(orderId)
         .lean()
-        .select("tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate status remarks sourceLocation")
+        .select("tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate status remarks sourceLocation poNumber orderRate onModel onBindingModel")
     : Promise.resolve(null);
 
   const logsPromise = orderId
@@ -1040,7 +1040,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         .populate({
           path: "tape",
           populate: { path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish" },
-          select: "tapeMinQty tapeId",
+          select: "tapeMinQty tapeRatePerRoll tapeId",
         })
         .lean();
 
@@ -1126,6 +1126,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           _id: binding._id,
           displayName: `${binding.tapeId?.tapeProductId || "N/A"} - ${binding.tapeId?.tapePaperCode || ""} ${binding.tapeId?.tapeGsm || ""}gsm`,
           minOrderQty: binding.tapeMinQty || 0,
+          rate: binding.tapeRatePerRoll || 0,
           stock: stockInfo,
         };
       });
@@ -1134,7 +1135,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         .populate({
           path: "posRoll",
           populate: { path: "posRollId", select: "posProductId posPaperCode posGsm posColor" },
-          select: "posMinQty posRollId",
+          select: "posMinQty posRatePerRoll posRollId",
         })
         .lean();
 
@@ -1195,6 +1196,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           _id: binding._id,
           displayName: `${binding.posRollId?.posProductId || "N/A"} - ${binding.posRollId?.posPaperCode || ""} ${binding.posRollId?.posGsm || ""}gsm`,
           minOrderQty: binding.posMinQty || 0,
+          rate: binding.posRatePerRoll || 0,
           stock: stockInfo,
         };
       });
@@ -1203,7 +1205,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         .populate({
           path: "tafeta",
           populate: { path: "tafetaId", select: "tafetaProductId tafetaMaterialCode tafetaGsm tafetaColor" },
-          select: "tafetaMinQty tafetaId",
+          select: "tafetaMinQty tafetaRatePerRoll tafetaId",
         })
         .lean();
 
@@ -1264,6 +1266,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           _id: binding._id,
           displayName: `${binding.tafetaId?.tafetaProductId || "N/A"} - ${binding.tafetaId?.tafetaMaterialCode || ""} ${binding.tafetaId?.tafetaGsm || ""}gsm`,
           minOrderQty: binding.tafetaMinQty || 0,
+          rate: binding.tafetaRatePerRoll || 0,
           stock: stockInfo,
         };
       });
@@ -1276,6 +1279,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         _id: lbl._id,
         displayName: `${lbl.labelId?.labelWidth || ""}x${lbl.labelId?.labelHeight || ""}`,
         minOrderQty: lbl.labelId?.minOrderQty || 0,
+        rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
         stock: { locations: [], totalStock: 0 },
       }));
     } else if (type === "TTR") {
@@ -1283,7 +1287,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         .populate({
           path: "ttr",
           populate: { path: "ttrId", select: "ttrColor ttrWidth ttrMtrs" },
-          select: "ttrMinQty ttrId",
+          select: "ttrMinQty ttrRatePerRoll ttrId",
         })
         .lean();
 
@@ -1360,6 +1364,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           _id: binding._id,
           displayName: `${binding.ttrId?.ttrColor || ""} ${binding.ttrId?.ttrWidth || ""}mm x ${binding.ttrId?.ttrMtrs || ""}m`,
           minOrderQty: binding.ttrMinQty || 0,
+          rate: binding.ttrRatePerRoll || 0,
           stock: stockInfo,
         };
       });
@@ -1375,13 +1380,15 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
 // Submit Sales Order (Create or Update)
 router.post("/sales/order", async (req, res) => {
   try {
-    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, poNumber } = req.body;
+    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, poNumber, orderRate } = req.body;
 
     if (itemType === "TAPE") {
       const binding = await TapeBinding.findById(itemId);
       if (!binding) {
         return res.status(400).json({ success: false, message: "Invalid item selected" });
       }
+      const parsedOrderRate = Number(orderRate);
+      const finalOrderRate = Number.isFinite(parsedOrderRate) ? parsedOrderRate : Number(binding.tapeRatePerRoll) || 0;
 
       const data = {
         tapeBinding: itemId,
@@ -1389,6 +1396,7 @@ router.post("/sales/order", async (req, res) => {
         tapeId: binding.tapeId,
         sourceLocation, // Allow updating location if needed
         poNumber,
+        orderRate: finalOrderRate,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1423,6 +1431,8 @@ router.post("/sales/order", async (req, res) => {
       if (!binding) {
         return res.status(400).json({ success: false, message: "Invalid POS Roll item selected" });
       }
+      const parsedOrderRate = Number(orderRate);
+      const finalOrderRate = Number.isFinite(parsedOrderRate) ? parsedOrderRate : Number(binding.posRatePerRoll) || 0;
 
       const data = {
         tapeBinding: itemId,
@@ -1432,6 +1442,7 @@ router.post("/sales/order", async (req, res) => {
         onModel: "PosRoll",
         sourceLocation,
         poNumber,
+        orderRate: finalOrderRate,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1458,6 +1469,8 @@ router.post("/sales/order", async (req, res) => {
       if (!binding) {
         return res.status(400).json({ success: false, message: "Invalid Tafeta item selected" });
       }
+      const parsedOrderRate = Number(orderRate);
+      const finalOrderRate = Number.isFinite(parsedOrderRate) ? parsedOrderRate : Number(binding.tafetaRatePerRoll) || 0;
 
       const data = {
         tapeBinding: itemId,
@@ -1467,6 +1480,7 @@ router.post("/sales/order", async (req, res) => {
         onModel: "Tafeta",
         sourceLocation,
         poNumber,
+        orderRate: finalOrderRate,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
@@ -1493,6 +1507,8 @@ router.post("/sales/order", async (req, res) => {
       if (!binding) {
         return res.status(400).json({ success: false, message: "Invalid TTR item selected" });
       }
+      const parsedOrderRate = Number(orderRate);
+      const finalOrderRate = Number.isFinite(parsedOrderRate) ? parsedOrderRate : Number(binding.ttrRatePerRoll) || 0;
 
       const data = {
         tapeBinding: itemId,
@@ -1502,6 +1518,7 @@ router.post("/sales/order", async (req, res) => {
         onModel: "Ttr",
         sourceLocation,
         poNumber,
+        orderRate: finalOrderRate,
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,

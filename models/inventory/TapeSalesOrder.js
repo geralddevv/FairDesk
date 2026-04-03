@@ -58,6 +58,12 @@ const tapeSalesOrderSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Rate used to create/update the sales order (can differ from current binding rate)
+    orderRate: {
+      type: Number,
+      default: 0,
+    },
+
     estimatedDate: {
       type: Date,
       required: true,
