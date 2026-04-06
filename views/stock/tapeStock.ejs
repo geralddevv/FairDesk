@@ -28,6 +28,11 @@
     </div>
 
     <!-- ================= TAPE SPECS ================= -->
+    <div class="span-full form-subheading" style="display:flex; justify-content:space-between; align-items:center;">
+      <h1>Tape Specifications</h1>
+      <button type="button" id="resetBtn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">Reset</button>
+    </div>
+
     <div class="span-five">
       <label>Tape ID</label>
       <input type="text" id="resolvedTape" class="form-control input-tag" placeholder="ID will appear here" readonly />
@@ -180,6 +185,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  const initialOptions = {
+    "tape-paper-code": <%- JSON.stringify(paperCodes || []) %>,
+    "tape-paper-type": <%- JSON.stringify(paperTypes || []) %>,
+    "tape-gsm": <%- JSON.stringify(gsms || []) %>,
+    "tape-width": <%- JSON.stringify(widths || []) %>,
+    "tape-mtrs": <%- JSON.stringify(mtrsList || []) %>,
+    "tape-core-id": ["3", "1", "0.5"],
+    "tape-finish": ["MATTE", "GLOSSY"],
+  };
+
   /* ================= SMART FILTER ================= */
   async function filterSpecs(changedFieldId) {
     const params = new URLSearchParams();
@@ -287,6 +302,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= HANDLERS ================= */
+  const resetBtn = document.getElementById("resetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      tapeFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+        const values = initialOptions[id] || [];
+        const newChoices = values.map(v => ({
+          value: String(v),
+          label: String(v),
+        }));
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: true }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+
+      locationSelect.value = "";
+      resolvedTape.value = "";
+      resolvedTapeId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+    });
+  }
+
   tapeFields.forEach(id => {
     document.getElementById(id)?.addEventListener("change", async () => {
       await filterSpecs(id);

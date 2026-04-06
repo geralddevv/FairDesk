@@ -28,13 +28,18 @@
     </div>
 
     <!-- ================= TTR SPECS ================= -->
+    <div class="span-full form-subheading" style="display:flex; justify-content:space-between; align-items:center;">
+      <h1>TTR Specifications</h1>
+      <button type="button" id="resetBtn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">Reset</button>
+    </div>
+
     <div class="span-five">
       <label>TTR ID</label>
       <input type="text" id="resolvedTtr" class="form-control input-tag" placeholder="ID will appear here" readonly />
       <input type="hidden" name="ttrId" id="resolvedTtrId" />
     </div>
 
-    <div class="span-six">
+    <div class="span-seven">
       <label for="ttr-material-code">Material Code</label>
       <select name="ttrMaterialCode" id="ttr-material-code" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
@@ -79,7 +84,7 @@
         <% }) %>
       </select>
     </div>
-    <div class="span-five">
+    <div class="span-seven">
       <label for="ttr-ink-face">Ink Face</label>
       <select name="ttrInkFace" id="ttr-ink-face" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
@@ -88,7 +93,7 @@
         <% }) %>
       </select>
     </div>
-    <div class="span-five">
+    <div class="span-six">
       <label for="ttr-core-id">Core ID</label>
       <select name="ttrCoreId" id="ttr-core-id" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
@@ -106,7 +111,7 @@
         <% }) %>
       </select>
     </div>
-    <div class="span-five">
+    <div class="span-six">
       <label for="ttr-notch">Notch</label>
       <select name="ttrNotch" id="ttr-notch" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
@@ -115,7 +120,7 @@
         <% }) %>
       </select>
     </div>
-    <div class="span-six">
+    <div class="span-seven">
       <label for="ttr-winding">Winding</label>
       <select name="ttrWinding" id="ttr-winding" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
@@ -208,6 +213,19 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  const initialOptions = {
+    "ttr-type": <%- JSON.stringify(types || []) %>,
+    "ttr-color": <%- JSON.stringify(colors || []) %>,
+    "ttr-material-code": <%- JSON.stringify(materialCodes || []) %>,
+    "ttr-width": <%- JSON.stringify(widths || []) %>,
+    "ttr-mtrs": <%- JSON.stringify(mtrsList || []) %>,
+    "ttr-ink-face": <%- JSON.stringify(inkFaces || []) %>,
+    "ttr-core-id": <%- JSON.stringify(coreIds || []) %>,
+    "ttr-core-length": <%- JSON.stringify(coreLengths || []) %>,
+    "ttr-notch": <%- JSON.stringify(notches || []) %>,
+    "ttr-winding": <%- JSON.stringify(windings || []) %>,
+  };
+
   /* ================= SMART FILTER ================= */
   async function filterSpecs(changedFieldId) {
     const params = new URLSearchParams();
@@ -234,7 +252,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const filteredValues = data[apiKey] || [];
         const currentValue = document.getElementById(id)?.value || "";
 
-        const newChoices = filteredValues.map(v => ({
+        const values = filteredValues.slice();
+        const hasCurrent = currentValue && values.some(v => String(v) === String(currentValue));
+        if (currentValue && !hasCurrent) values.unshift(currentValue);
+
+        const newChoices = values.map(v => ({
           value: String(v),
           label: String(v),
           selected: String(v) === currentValue,
@@ -317,6 +339,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= HANDLERS ================= */
+  const resetBtn = document.getElementById("resetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      ttrFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+        const values = initialOptions[id] || [];
+        const newChoices = values.map(v => ({
+          value: String(v),
+          label: String(v),
+        }));
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: true }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+
+      locationSelect.value = "";
+      resolvedTtr.value = "";
+      resolvedTtrId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+    });
+  }
+
   ttrFields.forEach(id => {
     document.getElementById(id)?.addEventListener("change", async () => {
       await filterSpecs(id);

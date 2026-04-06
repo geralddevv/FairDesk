@@ -28,6 +28,11 @@
     </div>
 
     <!-- ================= TAFETA SPECS ================= -->
+    <div class="span-full form-subheading" style="display:flex; justify-content:space-between; align-items:center;">
+      <h1>Tafeta Specifications</h1>
+      <button type="button" id="resetBtn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">Reset</button>
+    </div>
+
     <div class="span-five">
       <label>Tafeta ID</label>
       <input type="text" id="resolvedTafeta" class="form-control input-tag" placeholder="ID will appear here" readonly />
@@ -196,6 +201,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  const initialOptions = {
+    "tafeta-material-code": <%- JSON.stringify(materialCodes || []) %>,
+    "tafeta-material-type": <%- JSON.stringify(materialTypes || []) %>,
+    "tafeta-color": <%- JSON.stringify(colors || []) %>,
+    "tafeta-gsm": <%- JSON.stringify(gsms || []) %>,
+    "tafeta-width": <%- JSON.stringify(widths || []) %>,
+    "tafeta-mtrs": <%- JSON.stringify(mtrsList || []) %>,
+    "tafeta-core-len": <%- JSON.stringify(coreLens || []) %>,
+    "tafeta-notch": <%- JSON.stringify(notches || []) %>,
+    "tafeta-core-id": <%- JSON.stringify(coreIds || []) %>,
+  };
+
   /* ================= SMART FILTER ================= */
   async function filterSpecs(changedFieldId) {
     const params = new URLSearchParams();
@@ -304,6 +321,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= HANDLERS ================= */
+  const resetBtn = document.getElementById("resetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      tafetaFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+        const values = initialOptions[id] || [];
+        const newChoices = values.map(v => ({
+          value: String(v),
+          label: String(v),
+        }));
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: true }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+
+      locationSelect.value = "";
+      resolvedTafeta.value = "";
+      resolvedTafetaId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+    });
+  }
+
   tafetaFields.forEach(id => {
     document.getElementById(id)?.addEventListener("change", async () => {
       await filterSpecs(id);

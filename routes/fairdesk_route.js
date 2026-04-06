@@ -1955,6 +1955,8 @@ router.get("/sales/order/logs", async (req, res) => {
 // Update Order Status (with stock deduction / reversal + action logging)
 router.post("/sales/order/status", async (req, res) => {
   try {
+    const accepts = req.headers.accept || "";
+    const wantsJson = req.xhr || accepts.includes("application/json") || accepts.includes("text/json");
     const { orderId, status, cancelReason, invoiceNumber, confirmDate, confirmQuantity } = req.body;
     const order = await TapeSalesOrder.findById(orderId)
       .populate({ path: "tapeId", select: "tapeFinish tapePaperCode tapeGsm" })
@@ -2191,10 +2193,21 @@ router.post("/sales/order/status", async (req, res) => {
     } else {
       req.flash("notification", `Order status updated to ${finalStatus}`);
     }
-    res.json({ success: true, redirect: "/fairdesk/sales/pending" });
+    if (wantsJson) {
+      res.json({ success: true, redirect: "/fairdesk/sales/pending" });
+    } else {
+      res.redirect("/fairdesk/sales/pending");
+    }
   } catch (err) {
     console.error("STATUS UPDATE ERROR:", err);
-    res.status(400).json({ success: false, message: "Failed to update status" });
+    const accepts = req.headers.accept || "";
+    const wantsJson = req.xhr || accepts.includes("application/json") || accepts.includes("text/json");
+    if (wantsJson) {
+      res.status(400).json({ success: false, message: "Failed to update status" });
+    } else {
+      req.flash("notification", "Failed to update status");
+      res.redirect("back");
+    }
   }
 });
 
@@ -2648,7 +2661,7 @@ router.get("/client/details/:userId", async (req, res) => {
 router.get("/master/view", async (req, res) => {
   let jsonData = await Username.find()
     .select("clientName clientType accountHead userName userLocation label ttr tape posRoll tafeta")
-    .sort({ clientName: 1 });
+    .sort({ clientName: 1, userName: 1 });
 
   // console.log(jsonData);
   res.render("users/masterDisp.ejs", {

@@ -193,6 +193,7 @@
     layout: "fitColumns",
     pagination: "local",
     paginationSize: 25,
+    initialSort: [{ column: "clientName", dir: "asc" }],
 
     columns: [
       {
@@ -202,7 +203,12 @@
         headerFilter: true,
 
         formatter: (cell) => {
+          const row = cell.getRow().getData();
+          const hasUsers = Array.isArray(row.users) && row.users.length > 0;
           cell.getElement().classList.add("client-name-cell");
+          if (!hasUsers) {
+            return `<span style="color:#dc2626;font-weight:600;text-decoration:underline;text-decoration-color:#dc2626;">${cell.getValue()}</span>`;
+          }
           return cell.getValue();
         },
 
@@ -214,7 +220,7 @@
       {
         title: "Type",
         field: "clientType",
-        headerSort: false,
+        headerSort: true,
         headerFilter: "select",
         headerFilterParams: {
           values: { "": "All", DEALER: "DEALER", CLIENT: "CLIENT" },
@@ -226,6 +232,7 @@
       {
         title: "Status",
         field: "clientStatus",
+        headerSort: true,
         headerFilter: "select",
         headerFilterParams: {
           values: {

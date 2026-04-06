@@ -19,8 +19,9 @@ router.get("/view", async (req, res) => {
         clientMsme: 1,
         clientGumasta: 1,
         clientStatus: 1,
+        users: 1,
       },
-    );
+    ).sort({ clientName: 1 });
 
     res.render("users/clientsView.ejs", {
       title: "Client View",

@@ -27,6 +27,24 @@
       .header-action-btn:hover {
         background-color: #e4e4e4;
       }
+      .col-count-center .tabulator-col-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .tabulator .tabulator-header .tabulator-col.col-count-center {
+        justify-content: center;
+      }
+      .col-count-center .tabulator-col-title-holder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+      .tabulator-cell.col-count-center {
+        text-align: center;
+        vertical-align: middle;
+      }
     </style>
 
     <div class="indi-head">
@@ -134,13 +152,14 @@
         responsiveLayout: false,
         pagination: "local",
         paginationSize: 30,
+        initialSort: [{ column: "clientName", dir: "asc" }],
         movableColumns: true,
         placeholder: "No data to display",
         columns: [
           {
             title: "Name",
             field: "clientName",
-            headerSort: false,
+            headerSort: true,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
             widthGrow: 2,
@@ -148,7 +167,7 @@
           {
             title: "Type",
             field: "clientType",
-            headerSort: false,
+            headerSort: true,
             headerFilter: "select",
             headerFilterParams: {
               values: { "": "All", DEALER: "DEALER", CLIENT: "CLIENT" },
@@ -158,7 +177,7 @@
           {
             title: "Account Head",
             field: "accountHead",
-            headerSort: false,
+            headerSort: true,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
             widthGrow: 2,
@@ -177,7 +196,7 @@
               const row = cell.getRow().getData();
               window.location.href = `/fairdesk/client/details/${row._id}`;
             },
-            headerSort: false,
+            headerSort: true,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
             widthGrow: 2,
@@ -185,7 +204,7 @@
           {
             title: "Location",
             field: "userLocation",
-            headerSort: false,
+            headerSort: true,
             headerFilter: "input",
             headerFilterPlaceholder: "Search",
             widthGrow: 2,
@@ -197,8 +216,11 @@
             widthGrow: 0,
             widthShrink: 0,
             hozAlign: "center",
+            headerHozAlign: "center",
+            cssClass: "col-count-center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
+              if (!row.labelCount) return "";
               return `<span style="cursor:pointer;text-decoration:underline;">${row.labelCount}</span>`;
             },
             cellClick: (e, cell) => {
@@ -213,8 +235,11 @@
             widthGrow: 0,
             widthShrink: 0,
             hozAlign: "center",
+            headerHozAlign: "center",
+            cssClass: "col-count-center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
+              if (!row.ttrCount) return "";
               return `<span style="cursor:pointer;text-decoration:underline;">${row.ttrCount}</span>`;
             },
             cellClick: (e, cell) => {
@@ -229,8 +254,11 @@
             widthGrow: 0,
             widthShrink: 0,
             hozAlign: "center",
+            headerHozAlign: "center",
+            cssClass: "col-count-center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
+              if (!row.tapeCount) return "";
               return `<span style="cursor:pointer;text-decoration:underline;">${row.tapeCount}</span>`;
             },
             cellClick: (e, cell) => {
@@ -245,8 +273,11 @@
             widthGrow: 0,
             widthShrink: 0,
             hozAlign: "center",
+            headerHozAlign: "center",
+            cssClass: "col-count-center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
+              if (!row.posRollCount) return "";
               return `<span style="cursor:pointer;text-decoration:underline;">${row.posRollCount}</span>`;
             },
             cellClick: (e, cell) => {
@@ -261,8 +292,11 @@
             widthGrow: 0,
             widthShrink: 0,
             hozAlign: "center",
+            headerHozAlign: "center",
+            cssClass: "col-count-center",
             formatter: (cell) => {
               const row = cell.getRow().getData();
+              if (!row.tafetaCount) return "";
               return `<span style="cursor:pointer;text-decoration:underline;">${row.tafetaCount}</span>`;
             },
             cellClick: (e, cell) => {

@@ -28,6 +28,11 @@
     </div>
 
     <!-- ================= POS ROLL SPECS ================= -->
+    <div class="span-full form-subheading" style="display:flex; justify-content:space-between; align-items:center;">
+      <h1>POS Roll Specifications</h1>
+      <button type="button" id="resetBtn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">Reset</button>
+    </div>
+
     <div class="span-five">
       <label>POS Roll ID</label>
       <input type="text" id="resolvedPosRoll" class="form-control input-tag" placeholder="ID will appear here" readonly />
@@ -172,6 +177,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  const initialOptions = {
+    "pos-paper-code": <%- JSON.stringify(paperCodes || []) %>,
+    "pos-paper-type": <%- JSON.stringify(paperTypes || []) %>,
+    "pos-color": <%- JSON.stringify(colors || []) %>,
+    "pos-gsm": <%- JSON.stringify(gsms || []) %>,
+    "pos-width": <%- JSON.stringify(widths || []) %>,
+    "pos-mtrs": <%- JSON.stringify(mtrsList || []) %>,
+    "pos-core-id": <%- JSON.stringify(coreIds || []) %>,
+  };
+
   /* ================= SMART FILTER ================= */
   async function filterSpecs(changedFieldId) {
     const params = new URLSearchParams();
@@ -278,6 +293,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= HANDLERS ================= */
+  const resetBtn = document.getElementById("resetBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      posFields.forEach(id => {
+        const choicesInstance = specChoices[id];
+        if (!choicesInstance) return;
+        const values = initialOptions[id] || [];
+        const newChoices = values.map(v => ({
+          value: String(v),
+          label: String(v),
+        }));
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: true }, ...newChoices],
+          "value",
+          "label",
+          true
+        );
+      });
+
+      locationSelect.value = "";
+      resolvedPosRoll.value = "";
+      resolvedPosRollId.value = "";
+      stockInput.value = 0;
+      submitBtn.disabled = true;
+    });
+  }
+
   posFields.forEach(id => {
     document.getElementById(id)?.addEventListener("change", async () => {
       await filterSpecs(id);
