@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 // import asyncHandler from "express-async-handler";
 import Client from "../models/users/client.js";
 import Username from "../models/users/username.js";
+import Vendor from "../models/users/vendor.js";
+import VendorUser from "../models/users/vendorUser.js";
 import Label from "../models/inventory/labels.js";
 import Ttr from "../models/inventory/ttr.js";
 import Tape from "../models/inventory/tape.js";
@@ -798,7 +800,24 @@ router.get("/tape/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/tape/view";
 
-  res.render("inventory/tapeDetails.ejs", {
+  const rows = [
+    { label: "Paper Code", value: tape.tapePaperCode || "N/A" },
+    { label: "GSM", value: tape.tapeGsm ?? "N/A" },
+    { label: "Paper Type", value: tape.tapePaperType || "N/A" },
+    { label: "Adhesive GSM", value: tape.tapeAdhesiveGsm ?? "N/A" },
+    { label: "Width", value: tape.tapeWidth ?? "N/A" },
+    { label: "Meters", value: tape.tapeMtrs ?? "N/A" },
+    { label: "Core ID", value: tape.tapeCoreId ?? "N/A" },
+    { label: "Finish", value: tape.tapeFinish || "N/A" },
+  ];
+
+  res.render("inventory/itemView.ejs", {
+    pageTitle: "Tape Details",
+    sectionTitle: "Tape Details",
+    valueHeader: "Value",
+    editUrl: `/fairdesk/tape/edit/${tape._id}`,
+    editLabel: "Edit Tape",
+    rows,
     tape,
     tapeBindings,
     primaryBinding,
@@ -853,7 +872,23 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/pos-roll/view";
 
-  res.render("inventory/posRollView.ejs", {
+  const rows = [
+    { label: "Paper Code", value: posRoll.posPaperCode || "N/A" },
+    { label: "GSM", value: posRoll.posGsm ?? "N/A" },
+    { label: "Paper Type", value: posRoll.posPaperType || "N/A" },
+    { label: "Color", value: posRoll.posColor || "N/A" },
+    { label: "Width", value: posRoll.posWidth ?? "N/A" },
+    { label: "Meters", value: posRoll.posMtrs ?? "N/A" },
+    { label: "Core ID", value: posRoll.posCoreId ?? "N/A" },
+  ];
+
+  res.render("inventory/itemView.ejs", {
+    pageTitle: "POS Roll Details",
+    sectionTitle: "POS Roll Details",
+    valueHeader: "Value",
+    editUrl: `/fairdesk/pos-roll/edit/${posRoll._id}`,
+    editLabel: "Edit POS Roll",
+    rows,
     posRoll,
     posRollBindings,
     primaryBinding,
@@ -908,7 +943,25 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/tafeta/view";
 
-  res.render("inventory/tafetaView.ejs", {
+  const rows = [
+    { label: "Material Code", value: tafeta.tafetaMaterialCode || "N/A" },
+    { label: "GSM", value: tafeta.tafetaGsm ?? "N/A" },
+    { label: "Material Type", value: tafeta.tafetaMaterialType || "N/A" },
+    { label: "Color", value: tafeta.tafetaColor || "N/A" },
+    { label: "Width", value: tafeta.tafetaWidth ?? "N/A" },
+    { label: "Meters", value: tafeta.tafetaMtrs ?? "N/A" },
+    { label: "Core Length", value: tafeta.tafetaCoreLen ?? "N/A" },
+    { label: "Notch", value: tafeta.tafetaNotch || "N/A" },
+    { label: "Core ID", value: tafeta.tafetaCoreId ?? "N/A" },
+  ];
+
+  res.render("inventory/itemView.ejs", {
+    pageTitle: "Tafeta Details",
+    sectionTitle: "Tafeta Details",
+    valueHeader: "Value",
+    editUrl: `/fairdesk/tafeta/edit/${tafeta._id}`,
+    editLabel: "Edit Tafeta",
+    rows,
     tafeta,
     tafetaBindings,
     primaryBinding,
@@ -963,7 +1016,26 @@ router.get("/ttr/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/ttr/view";
 
-  res.render("inventory/ttrView.ejs", {
+  const rows = [
+    { label: "Material Code", value: ttr.ttrMaterialCode || "N/A" },
+    { label: "Type", value: ttr.ttrType || "N/A" },
+    { label: "Color", value: ttr.ttrColor || "N/A" },
+    { label: "Ink Face", value: ttr.ttrInkFace || "N/A" },
+    { label: "Width", value: ttr.ttrWidth ?? "N/A" },
+    { label: "Meters", value: ttr.ttrMtrs ?? "N/A" },
+    { label: "Core ID", value: ttr.ttrCoreId ?? "N/A" },
+    { label: "Core Length", value: ttr.ttrCoreLength ?? "N/A" },
+    { label: "Notch", value: ttr.ttrNotch || "N/A" },
+    { label: "Winding", value: ttr.ttrWinding || "N/A" },
+  ];
+
+  res.render("inventory/itemView.ejs", {
+    pageTitle: "TTR Details",
+    sectionTitle: "TTR Details",
+    valueHeader: "Fairtech",
+    editUrl: `/fairdesk/ttr/edit/${ttr._id}`,
+    editLabel: "Edit TTR",
+    rows,
     ttr,
     ttrBindings,
     primaryBinding,
@@ -973,6 +1045,124 @@ router.get("/ttr/profile/:id", async (req, res) => {
     JS: false,
     notification: req.flash("notification"),
   });
+});
+
+// route for vendor form.
+router.get("/form/vendor", async (req, res) => {
+  let vendors = await Vendor.distinct("vendorName");
+  let userCount = await VendorUser.countDocuments();
+  let vendorCount = vendors.length;
+  res.render("users/vendorForm.ejs", {
+    JS: "vendorForm.js",
+    CSS: "tabOpt.css",
+    title: "Vendor Form",
+    vendorCount,
+    userCount,
+    vendors,
+    notification: req.flash("notification"),
+  });
+});
+
+// Route to handle VENDOR form submission
+router.post("/form/vendor", async (req, res) => {
+  try {
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const vendorId = String(req.body.vendorId || "").trim();
+    const vendorName = String(req.body.vendorName || "").trim();
+    const vendorGst = String(req.body.vendorGst || "").trim();
+    const vendorPan = String(req.body.vendorPan || "").trim();
+
+    // Prevent duplicates (vendorId is unique, but also guard by name / GST / PAN).
+    const alreadyExists = await Vendor.exists({
+      $or: [
+        vendorId ? { vendorId } : null,
+        vendorName ? { vendorName: new RegExp(`^${escapeRegex(vendorName)}$`, "i") } : null,
+        vendorGst ? { vendorGst: new RegExp(`^${escapeRegex(vendorGst)}$`, "i") } : null,
+        vendorPan ? { vendorPan: new RegExp(`^${escapeRegex(vendorPan)}$`, "i") } : null,
+      ].filter(Boolean),
+    });
+    if (alreadyExists) {
+      return res.status(400).json({ success: false, message: "vendor already exist" });
+    }
+
+    const formData = {
+      vendorId,
+      vendorName,
+      vendorType: String(req.body.vendorType || "").trim(),
+      vendorStatus: String(req.body.vendorStatus || "").trim(),
+      hoLocation: String(req.body.hoLocation || "").trim(),
+      accountHead: String(req.body.accountHead || "").trim(),
+      vendorGst,
+      vendorMsme: String(req.body.vendorMsme || "").trim(),
+      vendorGumasta: String(req.body.vendorGumasta || "").trim(),
+      vendorPan,
+    };
+
+    await Vendor.create(formData);
+    req.flash("notification", "Vendor created successfully!");
+    res.json({ success: true, redirect: "/fairdesk/form/vendor" });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.get("/form/vendor/:name", async (req, res) => {
+  let vendorData = await Vendor.findOne({ vendorName: req.params.name });
+  let vendorName = vendorData;
+  res.status(200).json(vendorName);
+});
+
+// Route to handle VENDOR USER form submission
+router.post("/form/vendor-user", async (req, res) => {
+  try {
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const { objectId } = req.body;
+    const vendor = await Vendor.findOne({ _id: objectId });
+    if (!vendor) {
+      return res.status(400).json({ success: false, message: "Invalid vendor selected" });
+    }
+
+    const vendorId = String(req.body.vendorId || "").trim();
+    const userName = String(req.body.userName || "").trim();
+    const userContact = String(req.body.userContact || "").trim();
+    const userEmail = String(req.body.userEmail || "")
+      .trim()
+      .toLowerCase();
+
+    // Prevent duplicate users by email/contact globally and username within the same vendor.
+    const existingUser = await VendorUser.exists({
+      $or: [
+        userEmail ? { userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i") } : null,
+        userContact ? { userContact } : null,
+        vendorId && userName
+          ? { vendorId, userName: new RegExp(`^${escapeRegex(userName)}$`, "i") }
+          : null,
+      ].filter(Boolean),
+    });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "vendor user already exist" });
+    }
+
+    const newUser = await VendorUser.create({
+      ...req.body,
+      vendorId,
+      userName,
+      userContact,
+      userEmail,
+    });
+
+    vendor.users.push(newUser);
+    await vendor.save();
+
+    req.flash("notification", "Vendor user created successfully!");
+    res.json({ success: true, redirect: "/fairdesk/form/vendor?tab=user" });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
 });
 
 // ================= TTR EDIT =================
@@ -1618,7 +1808,7 @@ router.get("/sales/order/confirm", async (req, res) => {
     }
 
     const order = await TapeSalesOrder.findById(orderId)
-      .populate({ path: "userId", select: "clientName userName" })
+      .populate({ path: "userId", select: "clientName userName userLocation" })
       .populate({
         path: "tapeId",
         select:

@@ -64,13 +64,13 @@
           title: "",
           formatter: function (cell) {
             const row = cell.getRow().getData();
-            const ttrMaster = row.ttrId;
-            if (!ttrMaster || !ttrMaster._id) {
+            const bindingId = row._id;
+            if (!bindingId) {
               return `<span style="color:#999">N/A</span>`;
             }
             return `
               <button 
-                onclick="window.location.href='/fairdesk/ttr/profile/${ttrMaster._id}'"
+                onclick="window.location.href='/fairdesk/ttr/compare/${bindingId}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-eye"></i>
               </button>

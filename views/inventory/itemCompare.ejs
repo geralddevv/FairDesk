@@ -23,13 +23,14 @@
     align-items: flex-end;
     padding: 24px 24px 22px;
     background:
-      radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 34%),
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
       linear-gradient(135deg, #044a78 0%, #03365a 100%);
     color: #fff;
   }
 
   .header-copy {
     max-width: 100%;
+    /* padding-left: 78px;   */
   }
 
   .tape-details-header h1 {
@@ -56,17 +57,34 @@
   .username-line {
     display: block;
     margin-top: 2px;
-    color: rgba(255,255,255,0.86);
+    color: rgba(255, 255, 255, 0.86);
   }
 
-  .tape-details-badge {
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  .back-link {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
     border-radius: 999px;
-    padding: 8px 12px;
-    white-space: nowrap;
-    font-size: 13px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    text-decoration: none;
     font-weight: 600;
+    backdrop-filter: blur(8px);
+    transition:
+      transform 0.18s ease,
+      background 0.18s ease;
+    z-index: 2;
+  }
+
+  .back-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
   }
 
   .header-actions {
@@ -91,37 +109,14 @@
     font-size: 13px;
     letter-spacing: 0.2px;
     backdrop-filter: blur(8px);
-    transition: background 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background 0.18s ease;
   }
 
   .header-action-link:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.2);
-  }
-
-  .back-link {
-    position: absolute;
-    top: 18px;
-    left: 18px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    color: #fff;
-    text-decoration: none;
-    font-weight: 600;
-    backdrop-filter: blur(8px);
-    transition: transform 0.18s ease, background 0.18s ease;
-    z-index: 2;
-  }
-
-  .back-link:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
   }
 
   .section-title {
@@ -142,7 +137,7 @@
     border-radius: 12px;
     padding: 14px 15px;
     background: linear-gradient(180deg, #fbfcff 0%, #ffffff 100%);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.85);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   }
 
   .detail-label {
@@ -286,59 +281,42 @@
   <div class="tape-details-card">
     <div class="tape-details-header">
       <div class="header-copy">
-        <h1>POS Roll Details</h1>
+        <h1><%= itemTitle %></h1>
+        <div class="tape-details-sub">
+          <span class="client-name"><%= clientName || "Client not found" %></span>
+          <span class="username-line">User: <%= userName || "Username not found" %></span>
+        </div>
       </div>
       <div class="header-actions">
-        <a class="header-action-link" href="/fairdesk/pos-roll/edit/<%= posRoll._id %>">
-          <i class="fa-solid fa-pencil"></i>
-          Edit POS Roll
+        <a class="header-action-link" href="<%= editBindingUrl %>">
+          <i class="fa-solid fa-pen-to-square"></i>
+          Edit Binding
         </a>
       </div>
     </div>
 
     <div class="tape-details-body">
       <div class="details-section">
-        <h3 class="section-title">POS Roll Details</h3>
+        <h3 class="section-title"><%= sectionTitle %></h3>
         <table class="diff-table">
           <thead>
             <tr>
               <th class="key-col">Field</th>
-              <th>Value</th>
+              <th><%= orgLabel %></th>
+              <th><%= clientLabel %></th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="key-col">Paper Code</td>
-              <td class="resolved"><%= posRoll.posPaperCode || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">GSM</td>
-              <td class="resolved"><%= posRoll.posGsm ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Paper Type</td>
-              <td class="resolved"><%= posRoll.posPaperType || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Color</td>
-              <td class="resolved"><%= posRoll.posColor || "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Width</td>
-              <td class="resolved"><%= posRoll.posWidth ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Meters</td>
-              <td class="resolved"><%= posRoll.posMtrs ?? "N/A" %></td>
-            </tr>
-            <tr>
-              <td class="key-col">Core ID</td>
-              <td class="resolved"><%= posRoll.posCoreId ?? "N/A" %></td>
-            </tr>
+            <% compareRows.forEach(row => { %>
+              <tr>
+                <td class="key-col"><%= row.field %></td>
+                <td><%= row.orgValue %></td>
+                <td class="resolved"><%= row.clientValue %></td>
+              </tr>
+            <% }) %>
           </tbody>
         </table>
       </div>
-
     </div>
   </div>
 </div>

@@ -77,10 +77,10 @@
           title: "",
           formatter: function (cell) {
             const row = cell.getRow().getData();
-            if (!row._posMasterId) return `<span style="color:#999">N/A</span>`;
+            if (!row._id) return `<span style="color:#999">N/A</span>`;
             return `
               <button 
-                onclick="window.location.href='/fairdesk/pos-roll/profile/${row._posMasterId}'"
+                onclick="window.location.href='/fairdesk/pos-roll/compare/${row._id}'"
                 style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
                 <i class="fa-solid fa-eye"></i>
               </button>

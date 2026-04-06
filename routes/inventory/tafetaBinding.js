@@ -295,6 +295,71 @@ router.get("/tafeta/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Compare Client Tafeta vs Master */
+router.get("/tafeta/compare/:id", async (req, res) => {
+  try {
+    const binding = await TafetaBinding.findById(req.params.id)
+      .populate({ path: "tafetaId", model: "Tafeta" })
+      .populate({ path: "userId", model: "Username" })
+      .lean();
+
+    if (!binding) {
+      req.flash("notification", "Tafeta binding not found");
+      return res.redirect("back");
+    }
+
+    const tafeta = binding.tafetaId || {};
+    const user = binding.userId || {};
+
+    const compareRows = [
+      {
+        field: "Material Code",
+        orgValue: tafeta.tafetaMaterialCode || "N/A",
+        clientValue: binding.tafetaClientMaterialCode || "N/A",
+      },
+      {
+        field: "Material Type",
+        orgValue: tafeta.tafetaMaterialType || "N/A",
+        clientValue: tafeta.tafetaMaterialType || "N/A",
+      },
+      { field: "Color", orgValue: tafeta.tafetaColor || "N/A", clientValue: tafeta.tafetaColor || "N/A" },
+      { field: "GSM", orgValue: tafeta.tafetaGsm || "N/A", clientValue: binding.clientTafetaGsm || "N/A" },
+      { field: "Width", orgValue: tafeta.tafetaWidth ?? "N/A", clientValue: tafeta.tafetaWidth ?? "N/A" },
+      { field: "Meters", orgValue: tafeta.tafetaMtrs || "N/A", clientValue: tafeta.tafetaMtrs || "N/A" },
+      { field: "Core Length", orgValue: tafeta.tafetaCoreLen || "N/A", clientValue: tafeta.tafetaCoreLen || "N/A" },
+      { field: "Notch", orgValue: tafeta.tafetaNotch || "N/A", clientValue: tafeta.tafetaNotch || "N/A" },
+      { field: "Core ID", orgValue: tafeta.tafetaCoreId || "N/A", clientValue: tafeta.tafetaCoreId || "N/A" },
+      { field: "Minimum Qty", orgValue: "-", clientValue: binding.tafetaMinQty ?? "N/A" },
+      { field: "Order Qty", orgValue: "-", clientValue: binding.tafetaOdrQty ?? "N/A" },
+      { field: "Order Frequency", orgValue: "-", clientValue: binding.tafetaOdrFreq || "N/A" },
+      { field: "Credit Term", orgValue: "-", clientValue: binding.tafetaCreditTerm || "N/A" },
+      { field: "Rate Per Roll", orgValue: "-", clientValue: binding.tafetaRatePerRoll ?? "N/A" },
+      { field: "Sale Cost", orgValue: "-", clientValue: binding.tafetaSaleCost ?? "N/A" },
+      { field: "Meters Delivered", orgValue: "-", clientValue: binding.tafetaMtrsDel ?? "N/A" },
+      { field: "Status", orgValue: "-", clientValue: binding.status || "N/A" },
+    ];
+
+    res.render("inventory/itemCompare.ejs", {
+      title: "Tafeta Compare",
+      CSS: false,
+      JS: false,
+      itemTitle: "Tafeta Details",
+      sectionTitle: "Tafeta Details (Fairtech - Client)",
+      orgLabel: "Fairtech",
+      clientLabel: "Client",
+      editBindingUrl: `/fairdesk/tafeta-binding/edit/${binding._id}`,
+      clientName: user?.clientName || "",
+      userName: user?.userName || "",
+      compareRows,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("TAFETA COMPARE ERROR:", err);
+    req.flash("notification", "Failed to load Tafeta comparison");
+    res.redirect("back");
+  }
+});
+
 /* GET : Load Tafeta Binding Edit Form */
 router.get("/tafeta-binding/edit/:id", async (req, res) => {
   try {

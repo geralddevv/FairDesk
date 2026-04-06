@@ -261,6 +261,62 @@ router.get("/tape/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Compare Client Tape vs Master */
+router.get("/tape/compare/:id", async (req, res) => {
+  try {
+    const binding = await TapeBinding.findById(req.params.id)
+      .populate({ path: "tapeId", model: "Tape" })
+      .populate({ path: "userId", model: "Username" })
+      .lean();
+
+    if (!binding) {
+      req.flash("notification", "Tape binding not found");
+      return res.redirect("back");
+    }
+
+    const tape = binding.tapeId || {};
+    const user = binding.userId || {};
+
+    const compareRows = [
+      { field: "Paper Code", orgValue: tape.tapePaperCode || "N/A", clientValue: binding.tapeClientPaperCode || "N/A" },
+      { field: "GSM", orgValue: tape.tapeGsm ?? "N/A", clientValue: binding.clientTapeGsm ?? "N/A" },
+      { field: "Paper Type", orgValue: tape.tapePaperType || "N/A", clientValue: tape.tapePaperType || "N/A" },
+      { field: "Width", orgValue: tape.tapeWidth ?? "N/A", clientValue: tape.tapeWidth ?? "N/A" },
+      { field: "Meters", orgValue: tape.tapeMtrs ?? "N/A", clientValue: tape.tapeMtrs ?? "N/A" },
+      { field: "Core ID", orgValue: tape.tapeCoreId ?? "N/A", clientValue: tape.tapeCoreId ?? "N/A" },
+      { field: "Finish", orgValue: tape.tapeFinish || "N/A", clientValue: tape.tapeFinish || "N/A" },
+      { field: "Adhesive GSM", orgValue: tape.tapeAdhesiveGsm || "N/A", clientValue: tape.tapeAdhesiveGsm || "N/A" },
+      { field: "Minimum Qty", orgValue: "-", clientValue: binding.tapeMinQty ?? "N/A" },
+      { field: "Order Qty", orgValue: "-", clientValue: binding.tapeOdrQty ?? "N/A" },
+      { field: "Order Frequency", orgValue: "-", clientValue: binding.tapeOdrFreq || "N/A" },
+      { field: "Credit Term", orgValue: "-", clientValue: binding.tapeCreditTerm || "N/A" },
+      { field: "Rate Per Roll", orgValue: "-", clientValue: binding.tapeRatePerRoll ?? "N/A" },
+      { field: "Sale Cost", orgValue: "-", clientValue: binding.tapeSaleCost ?? "N/A" },
+      { field: "Meters Delivered", orgValue: "-", clientValue: binding.tapeMtrsDel ?? 0 },
+      { field: "Status", orgValue: "-", clientValue: binding.status || "N/A" },
+    ];
+
+    res.render("inventory/itemCompare.ejs", {
+      title: "Tape Compare",
+      CSS: false,
+      JS: false,
+      itemTitle: "Tape Details",
+      sectionTitle: "Tape Details (Fairtech - Client)",
+      orgLabel: "Fairtech",
+      clientLabel: "Client",
+      editBindingUrl: `/fairdesk/tape-binding/edit/${binding._id}`,
+      clientName: user?.clientName || "",
+      userName: user?.userName || "",
+      compareRows,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("TAPE COMPARE ERROR:", err);
+    req.flash("notification", "Failed to load Tape comparison");
+    res.redirect("back");
+  }
+});
+
 /* GET : Load Tape Binding Edit Form */
 router.get("/tape-binding/edit/:id", async (req, res) => {
   try {

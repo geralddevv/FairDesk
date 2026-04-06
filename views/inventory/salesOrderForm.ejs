@@ -781,7 +781,10 @@
             value: userId,
             label: orderToEdit.userId.userName || "User",
             selected: true,
-            customProperties: { name: orderToEdit.userId.userName || "User" }
+            customProperties: {
+              name: orderToEdit.userId.userName || "User",
+              location: orderToEdit.userId.userLocation || ""
+            }
          }], "value", "label", true);
          
          userNameHidden.value = orderToEdit.userId.userName || "User";
@@ -793,6 +796,15 @@
             if (t.tapePaperCode) tapeName = t.tapePaperCode + " " + t.tapeGsm + "gsm";
             else if (t.posPaperCode) tapeName = t.posPaperCode + " " + t.posGsm + "gsm";
             else if (t.tafetaMaterialCode) tapeName = t.tafetaMaterialCode + " " + t.tafetaGsm + "gsm";
+            else if (t.ttrProductId) {
+              const parts = [
+                t.ttrProductId,
+                t.ttrWidth ? `${t.ttrWidth}` : null,
+                t.ttrMtrs ? `${t.ttrMtrs}m` : null,
+                t.ttrColor || null
+              ].filter(Boolean);
+              tapeName = parts.join(" ");
+            }
          }
          
          itemChoices.clearStore();

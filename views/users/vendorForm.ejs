@@ -1,0 +1,235 @@
+<!--- Link to boilerplate.ejs -->
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content">
+  <div>
+    <div class="span-full form-subheading gap" style="margin-bottom: 1rem;">
+      <div class="client-switch active">
+        <h1>Create Vendor</h1>
+      </div>
+      <div class="user-switch">
+        <h1>Create Vendor User</h1>
+      </div>
+    </div>       
+    <form class="client-content span-full needs-validation" action="/fairdesk/form/vendor" method="post" autocomplete="off" novalidate>
+    <div class="span-four">
+      <label for="client-id">Vendor Id</label>
+      <input type="text" value="FS | VENDOR | <%= vendorCount + 1 %>" id="client-id" class="form-control input-tag" name="vendorId" placeholder="Enter Vendor ID" readonly required />
+    </div>      
+    <div class="span-seven">
+      <label for="client-name">Vendor Name</label>
+      <input type="text" id="client-name" class="form-control input-tag" name="vendorName" placeholder="Enter Vendor Name" required />
+    </div>
+
+    <div class="span-five">
+      <label for="client-type">Vendor Type</label>
+      <select name="vendorType" id="client-type" class="form-control select-tag" required>
+        <option value="" selected disabled hidden>Select</option>
+        <option value="DEALER">DEALER</option>
+        <option value="CLIENT">CLIENT</option>
+      </select>
+    </div>
+    <div class="span-five">
+      <label for="client-status">Vendor Status</label>
+      <select name="vendorStatus" id="client-status" class="form-control select-tag" required>
+        <!-- <option value="" selected disabled hidden>Select</option> -->
+        <option value="ACTIVE" selected>ACTIVE</option>
+        <option value="INACTIVE">INACTIVE</option>
+        <option value="FOLLOW UP">FOLLOW UP</option>
+        <option value="BLACKLISTED">BLACKLISTED</option>
+        <option value="ADVANCED">ADVANCED</option>
+        <option value="OTHERS">OTHERS</option>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="ho-location">H/O Location</label>
+      <input type="text" id="ho-location" class="form-control input-tag" name="hoLocation" placeholder="Enter H/O Location" required />
+    </div>
+
+    <div class="span-six">
+      <label for="account-head">Account Head</label>
+      <input type="text" id="account-head" class="form-control input-tag" name="accountHead" placeholder="Enter Account Head" required />
+    </div>
+
+    <!-- <div class="span-seven">
+      <label for="owner-name">Owner Name</label>
+      <input type="text" id="owner-name" class="form-control input-tag" name="ownerName" placeholder="Enter Owner Name" />
+    </div>
+
+    <div class="span-six">
+      <label for="owner-mob-no">Owner Mob. No.</label>
+      <input type="text" id="owner-mob-no" class="form-control input-tag" name="ownerMobNo" placeholder="Enter Owner Mob. No." />
+    </div>
+
+    <div class="span-six">
+      <label for="owner-email">Owner Email</label>
+      <input type="email" id="owner-email" class="form-control" name="ownerEmail" placeholder="Enter Owner Email" />
+    </div> -->
+
+    <div class="span-dual">
+      <label for="client-gst">GST</label>
+      <input type="text" maxlength="15" id="client-gst" class="form-control" name="vendorGst" placeholder="Enter GST" required />
+    </div>
+
+    <div class="span-dual">
+      <label for="client-msme">MSME</label>
+      <input type="text" maxlength="15" id="client-msme" class="form-control" name="vendorMsme" placeholder="Enter MSME" required />
+    </div> 
+    <div class="span-dual">
+      <label for="client-gumasta">Gumasta</label>
+      <input type="text" id="client-gumasta" class="form-control" name="vendorGumasta" placeholder="Enter GUMASTA" required />
+    </div> 
+    <div class="span-dual">
+      <label for="client-pan">PAN</label>
+      <input type="text" maxlength="10" id="client-pan" class="form-control" name="vendorPan" placeholder="Enter PAN" required />
+    </div> 
+
+    <div class="span-full btn-grp">
+      <button class="submit-btn" type="submit">Save Vendor Details</button>
+    </div>
+  </form>
+
+  <!---------------------------------------------------------------------------------------------------------------------------------------------->
+    <form action="/fairdesk/form/vendor-user" method="post" class="user-content span-full needs-validation" autocomplete="off" novalidate>
+    <div class="span-full form-subheading">
+      <h1>Vendor Information</h1>
+    </div>
+    <!-- Username -->
+
+    <div class="span-dual">
+      <label for="userform-client-name">Vendor Name</label>
+      <select name="vendorName" id="userform-client-name">
+        <option value="" disabled selected hidden>Search</option>        
+        <% for (vendor of vendors) { %>
+          <option value="<%= vendor %>"><%= vendor %></option>
+        <% } %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="user-client-id">Vendor Id</label>
+      <input id="user-client-id" class="form-control input-tag" name="vendorId" placeholder="Enter Vendor ID" readonly required />
+    </div>    
+
+    <div class="span-six">
+      <label for="client-name">Vendor Type</label>
+      <select name="vendorType" id="username-client-type" class="form-control select-tag" required>
+        <option value="" selected disabled hidden>Select</option>
+        <option value="DEALER">DEALER</option>
+        <option value="CLIENT">CLIENT</option>
+      </select>
+    </div>
+
+    <div class="span-seven">
+      <label for="ho-location">H/O Location</label>
+      <input type="text" id="username-ho-location" class="form-control input-tag" name="hoLocation" placeholder="Enter H/O Location" readonly required />
+    </div>
+
+    <div class="span-seven">
+      <label for="account-head">Account Head</label>
+      <input type="text" id="username-account-head" class="form-control input-tag" name="accountHead" placeholder="Enter Account Head" readonly required />
+    </div>    
+
+    <div class="span-full form-subheading">
+      <h1>Username Information</h1>
+    </div>
+
+    <div class="span-seven">
+      <label for="user-name">Username</label>
+      <input type="text" id="user-name" class="form-control input-tag" name="userName" placeholder="Enter Username" required />
+    </div>
+
+    <div class="span-six">
+      <label for="user-location">Location</label>
+      <input type="text" id="user-location" class="form-control input-tag" name="userLocation" placeholder="Enter Location" required />
+    </div>
+
+    <div class="span-six">
+      <label for="user-department">Department</label>
+      <input type="text" id="user-department" class="form-control input-tag" name="userDepartment" placeholder="Enter Department" required />
+    </div>
+
+    <div class="span-six">
+      <label for="user-contact-no">Contact No</label>
+      <input type="text" id="user-contact-no" class="form-control input-tag" name="userContact" placeholder="Enter Contact No" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="user-email">Email</label>
+      <input type="email" id="user-email" class="form-control" name="userEmail" placeholder="Enter Email" required />
+    </div>
+
+    <div class="span-full">
+      <label for="dispatch-address">Address</label>
+      <textarea  id="dispatch-address"  class="form-control input-tag"  name="dispatchAddress"  placeholder="Enter Address" rows="3" style="border: 1px solid #044A78; resize: none;" required></textarea>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Dispatch Details</h1>
+    </div>
+
+    <div class="span-full form-subheading gap">
+      <div class="hardware active">
+        <h1>Transport</h1>
+      </div>
+      <div class="software">
+        <h1>Self Dispatch</h1>
+      </div>
+    </div>       
+
+    <div class="span-full hardware-options">
+    <div class="span-six">
+      <label for="transport-name">Name</label>
+      <input type="text" id="transport-name" class="form-control input-tag" name="transportName" placeholder="Enter Transport Name" />
+    </div>
+
+    <div class="span-five">
+      <label for="transport-contact">Contact</label>
+      <input type="text" id="transport-contact" class="form-control input-tag" name="transportContact" placeholder="Enter Transport Contact" />
+    </div>
+
+    <div class="span-five">
+      <label for="drop-location">Drop Location</label>
+      <input type="text" id="drop-location" class="form-control input-tag" name="dropLocation" placeholder="Enter Drop Location" />
+    </div>
+
+    <div class="span-five">
+      <label for="delivery-mode">Delivery Mode</label>
+      <select name="deliveryMode" id="delivery-mode" class="form-control select-tag">
+        <option value="" selected disabled hidden>Select</option>
+        <option value="DOOR">DOOR</option>
+        <option value="GODOWN">GODOWN</option>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="delivery-location">Delivery Loc</label>
+      <input type="text" id="delivery-location" class="form-control input-tag" name="deliveryLocation" placeholder="Enter Delivery Location" />
+    </div>
+
+    <div class="span-six">
+      <label for="payment">Payment</label>
+      <select name="vendorPayment" id="payment" class="form-control select-tag">
+        <option value="" selected disabled hidden>Select</option>
+        <option value="PAY">PAY</option>
+        <option value="TO PAY">TO PAY</option>
+      </select>
+    </div>      
+    </div>
+
+    <input type="hidden" name="objectId" id="object-id">
+
+    <div class="span-full software-options">
+          <input type="text" id="self-dispatch" class="form-control input-tag span-full" name="SelfDispatch" value="Self Dispatch" />
+    </div>
+
+    <div class="span-full btn-grp">
+      <button class="submit-btn" type="submit">Save User Details</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/selectize/dist/js/standalone/selectize.min.js"></script>

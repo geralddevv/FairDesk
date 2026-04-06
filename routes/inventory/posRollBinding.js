@@ -276,6 +276,61 @@ router.get("/pos-roll/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Compare Client POS Roll vs Master */
+router.get("/pos-roll/compare/:id", async (req, res) => {
+  try {
+    const binding = await PosRollBinding.findById(req.params.id)
+      .populate({ path: "posRollId", model: "PosRoll" })
+      .populate({ path: "userId", model: "Username" })
+      .lean();
+
+    if (!binding) {
+      req.flash("notification", "POS Roll binding not found");
+      return res.redirect("back");
+    }
+
+    const pos = binding.posRollId || {};
+    const user = binding.userId || {};
+
+    const compareRows = [
+      { field: "Paper Code", orgValue: pos.posPaperCode || "N/A", clientValue: binding.posClientPaperCode || "N/A" },
+      { field: "Paper Type", orgValue: pos.posPaperType || "N/A", clientValue: pos.posPaperType || "N/A" },
+      { field: "Color", orgValue: pos.posColor || "N/A", clientValue: pos.posColor || "N/A" },
+      { field: "GSM", orgValue: pos.posGsm ?? "N/A", clientValue: binding.clientPosGsm ?? "N/A" },
+      { field: "Width", orgValue: pos.posWidth ?? "N/A", clientValue: pos.posWidth ?? "N/A" },
+      { field: "Meters", orgValue: pos.posMtrs ?? "N/A", clientValue: pos.posMtrs ?? "N/A" },
+      { field: "Core ID", orgValue: pos.posCoreId ?? "N/A", clientValue: pos.posCoreId ?? "N/A" },
+      { field: "Minimum Qty", orgValue: "-", clientValue: binding.posMinQty ?? "N/A" },
+      { field: "Order Qty", orgValue: "-", clientValue: binding.posOdrQty ?? "N/A" },
+      { field: "Order Frequency", orgValue: "-", clientValue: binding.posOdrFreq || "N/A" },
+      { field: "Credit Term", orgValue: "-", clientValue: binding.posCreditTerm || "N/A" },
+      { field: "Rate Per Roll", orgValue: "-", clientValue: binding.posRatePerRoll ?? "N/A" },
+      { field: "Sale Cost", orgValue: "-", clientValue: binding.posSaleCost ?? "N/A" },
+      { field: "Meters Delivered", orgValue: "-", clientValue: binding.posMtrsDel ?? 0 },
+      { field: "Status", orgValue: "-", clientValue: binding.status || "N/A" },
+    ];
+
+    res.render("inventory/itemCompare.ejs", {
+      title: "POS Roll Compare",
+      CSS: false,
+      JS: false,
+      itemTitle: "POS Roll Details",
+      sectionTitle: "POS Roll Details (Fairtech - Client)",
+      orgLabel: "Fairtech",
+      clientLabel: "Client",
+      editBindingUrl: `/fairdesk/pos-roll-binding/edit/${binding._id}`,
+      clientName: user?.clientName || "",
+      userName: user?.userName || "",
+      compareRows,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("POS ROLL COMPARE ERROR:", err);
+    req.flash("notification", "Failed to load POS Roll comparison");
+    res.redirect("back");
+  }
+});
+
 /* GET : Load POS Roll Binding Edit Form */
 router.get("/pos-roll-binding/edit/:id", async (req, res) => {
   try {

@@ -323,6 +323,64 @@ router.get("/ttr/view/:id", async (req, res) => {
   }
 });
 
+/* GET : Compare Client TTR vs Master */
+router.get("/ttr/compare/:id", async (req, res) => {
+  try {
+    const binding = await TtrBinding.findById(req.params.id)
+      .populate({ path: "ttrId", model: "Ttr" })
+      .populate({ path: "userId", model: "Username" })
+      .lean();
+
+    if (!binding) {
+      req.flash("notification", "TTR binding not found");
+      return res.redirect("back");
+    }
+
+    const ttr = binding.ttrId || {};
+    const user = binding.userId || {};
+
+    const compareRows = [
+      { field: "Material Code", orgValue: ttr.ttrMaterialCode || "N/A", clientValue: binding.ttrClientMaterialCode || "N/A" },
+      { field: "Type", orgValue: ttr.ttrType || "N/A", clientValue: binding.clientTtrType || "N/A" },
+      { field: "Color", orgValue: ttr.ttrColor || "N/A", clientValue: ttr.ttrColor || "N/A" },
+      { field: "Ink Face", orgValue: ttr.ttrInkFace || "N/A", clientValue: ttr.ttrInkFace || "N/A" },
+      { field: "Width", orgValue: ttr.ttrWidth ?? "N/A", clientValue: ttr.ttrWidth ?? "N/A" },
+      { field: "Meters", orgValue: ttr.ttrMtrs ?? "N/A", clientValue: ttr.ttrMtrs ?? "N/A" },
+      { field: "Core ID", orgValue: ttr.ttrCoreId ?? "N/A", clientValue: ttr.ttrCoreId ?? "N/A" },
+      { field: "Core Length", orgValue: ttr.ttrCoreLength ?? "N/A", clientValue: ttr.ttrCoreLength ?? "N/A" },
+      { field: "Notch", orgValue: ttr.ttrNotch || "N/A", clientValue: ttr.ttrNotch || "N/A" },
+      { field: "Winding", orgValue: ttr.ttrWinding || "N/A", clientValue: ttr.ttrWinding || "N/A" },
+      { field: "Minimum Qty", orgValue: "-", clientValue: binding.ttrMinQty ?? "N/A" },
+      { field: "Order Qty", orgValue: "-", clientValue: binding.ttrOdrQty ?? "N/A" },
+      { field: "Order Frequency", orgValue: "-", clientValue: binding.ttrOdrFreq || "N/A" },
+      { field: "Credit Term", orgValue: "-", clientValue: binding.ttrCreditTerm || "N/A" },
+      { field: "Rate Per Roll", orgValue: "-", clientValue: binding.ttrRatePerRoll ?? "N/A" },
+      { field: "Sale Cost", orgValue: "-", clientValue: binding.ttrSaleCost ?? "N/A" },
+      { field: "Meters Delivered", orgValue: "-", clientValue: binding.ttrMtrsDel ?? 0 },
+      { field: "Status", orgValue: "-", clientValue: binding.status || "N/A" },
+    ];
+
+    res.render("inventory/itemCompare.ejs", {
+      title: "TTR Compare",
+      CSS: false,
+      JS: false,
+      itemTitle: "TTR Details",
+      sectionTitle: "TTR Details (Fairtech - Client)",
+      orgLabel: "Fairtech",
+      clientLabel: "Client",
+      editBindingUrl: `/fairdesk/ttr-binding/edit/${binding._id}`,
+      clientName: user?.clientName || "",
+      userName: user?.userName || "",
+      compareRows,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("TTR COMPARE ERROR:", err);
+    req.flash("notification", "Failed to load TTR comparison");
+    res.redirect("back");
+  }
+});
+
 /* GET : Load TTR Binding Edit Form */
 router.get("/ttr-binding/edit/:id", async (req, res) => {
   try {
