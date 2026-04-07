@@ -203,7 +203,25 @@
 
     <div class="span-six">
       <label for="emp-reporting-manager">Reporting Manager</label>
-      <input type="text" id="emp-reporting-manager" class="form-control input-tag" name="empReportingManager" value="<%= employee?.empReportingManager || '' %>" placeholder="Enter Reporting Manager" autocomplete="off" required/>
+      <select
+        id="emp-reporting-manager"
+        class="form-control select-tag"
+        name="empReportingManager"
+        required
+      >
+        <option value="" disabled <%= !employee?.empReportingManager ? 'selected' : '' %> hidden>Select</option>
+        <% if (employee?.empReportingManager) { %>
+          <% const inList = (employees || []).some(e => e?.empName === employee.empReportingManager); %>
+          <% if (!inList) { %>
+            <option value="<%= employee.empReportingManager %>" selected><%= employee.empReportingManager %></option>
+          <% } %>
+        <% } %>
+        <% (employees || []).forEach(emp => { %>
+          <% if (emp?.empName) { %>
+            <option value="<%= emp.empName %>" <%= employee?.empReportingManager === emp.empName ? 'selected' : '' %>><%= emp.empName %></option>
+          <% } %>
+        <% }) %>
+      </select>
     </div>
 
     <div class="span-four">
@@ -518,6 +536,16 @@
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+  /* ================= REPORTING MANAGER CHOICES ================= */
+  const reportingManagerSelect = document.getElementById("emp-reporting-manager");
+  if (reportingManagerSelect) {
+    new Choices(reportingManagerSelect, {
+      searchEnabled: true,
+      itemSelectText: "",
+      shouldSort: false
+    });
+  }
+
   /* ================= MARRIAGE ANNIVERSARY TOGGLE ================= */
   const martialStatusSelect = document.getElementById("emp-martial-status");
   const marriageAnnivContainer = document.getElementById("marriage-anniv-container");

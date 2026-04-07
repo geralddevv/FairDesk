@@ -164,7 +164,17 @@
   }
 
   function handleVendorChange(vendorName) {
-    if (!vendorName) return;
+    if (!vendorName) {
+      const hoEl = document.getElementById("coordinator-ho-location");
+      const whEl = document.getElementById("coordinator-warehouse-location");
+      const statusEl = document.getElementById("coordinator-vendor-status");
+      const idEl = document.getElementById("object-id");
+      if (hoEl) hoEl.value = "";
+      if (whEl) whEl.value = "";
+      if (statusEl) statusEl.value = "";
+      if (idEl) idEl.value = "";
+      return;
+    }
 
     console.log("Vendor changed (triggered once):", vendorName);
 
@@ -187,9 +197,30 @@
 
 function feedVendorData(data) {
   console.log(data._id);
-  document.getElementById("user-client-id").value = data.vendorId || "";
-  document.getElementById("username-client-type").value = data.vendorType || "";
-  document.getElementById("username-ho-location").value = data.hoLocation || "";
-  document.getElementById("username-account-head").value = data.accountHead || "";
-  document.getElementById("object-id").value = data._id || "";
+  const idEl = document.getElementById("user-client-id");
+  const hoEl = document.getElementById("coordinator-ho-location");
+  const whEl = document.getElementById("coordinator-warehouse-location");
+  const statusEl = document.getElementById("coordinator-vendor-status");
+  const objEl = document.getElementById("object-id");
+
+  if (idEl) idEl.value = data.vendorId || "";
+  if (hoEl) hoEl.value = data.hoLocation || "";
+  if (whEl) whEl.value = data.warehouseLocation || data.hoLocation || "";
+  if (statusEl) statusEl.value = data.vendorStatus || "";
+  if (objEl) objEl.value = data._id || "";
 }
+
+// Commodities extra fields toggle
+document.addEventListener("DOMContentLoaded", () => {
+  const extraWrap = document.getElementById("commodities-extra");
+  if (!extraWrap) return;
+  const commodityChecks = document.querySelectorAll("input[name='commodities']");
+
+  const syncExtraVisibility = () => {
+    const anyChecked = Array.from(commodityChecks).some((cb) => cb.checked);
+    extraWrap.style.display = anyChecked ? "block" : "none";
+  };
+
+  commodityChecks.forEach((cb) => cb.addEventListener("change", syncExtraVisibility));
+  syncExtraVisibility();
+});

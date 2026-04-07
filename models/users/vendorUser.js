@@ -4,9 +4,8 @@ const { Schema } = mongoose;
 const vendorUserSchema = new mongoose.Schema({
   vendorId: { type: String, required: true },
   vendorName: { type: String, required: true },
-  vendorType: { type: String, required: true },
   hoLocation: { type: String, required: true },
-  accountHead: { type: String, required: true },
+  warehouseLocation: { type: String, required: true },
   userName: { type: String, required: true },
   userLocation: { type: String, required: true },
   userDepartment: { type: String, required: true },

@@ -59,6 +59,10 @@ const handleUpload = (req, res, next) => {
 /* ================= CREATE EMPLOYEE FORM ================= */
 router.get("/create", async (req, res) => {
   const employeeCount = (await Employee.countDocuments()) + 1;
+  const employees = await Employee.find({}, "empName")
+    .collation({ locale: "en", strength: 2 })
+    .sort({ empName: 1 })
+    .lean();
 
   res.render("hr/employee.ejs", {
     title: "Employee Details",
@@ -66,6 +70,7 @@ router.get("/create", async (req, res) => {
     JS: false,
     employeeCount,
     employee: null,
+    employees,
     notification: req.flash("notification"),
   });
 });
@@ -130,6 +135,10 @@ router.get("/:id", async (req, res) => {
 router.get("/edit/:id", async (req, res) => {
   const employee = await Employee.findById(req.params.id).lean();
   if (!employee) return res.redirect("back");
+  const employees = await Employee.find({ _id: { $ne: req.params.id } }, "empName")
+    .collation({ locale: "en", strength: 2 })
+    .sort({ empName: 1 })
+    .lean();
 
   res.render("hr/employee.ejs", {
     title: "Edit Employee",
@@ -137,6 +146,7 @@ router.get("/edit/:id", async (req, res) => {
     JS: false,
     employee,
     employeeCount: null,
+    employees,
   });
 });
 

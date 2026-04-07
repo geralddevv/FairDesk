@@ -1089,10 +1089,18 @@ router.post("/form/vendor", async (req, res) => {
     const formData = {
       vendorId,
       vendorName,
-      vendorType: String(req.body.vendorType || "").trim(),
       vendorStatus: String(req.body.vendorStatus || "").trim(),
       hoLocation: String(req.body.hoLocation || "").trim(),
-      accountHead: String(req.body.accountHead || "").trim(),
+      warehouseLocation: String(req.body.warehouseLocation || "").trim(),
+      commodities: Array.isArray(req.body.commodities)
+        ? req.body.commodities.map((c) => String(c).trim()).filter(Boolean)
+        : req.body.commodities
+          ? [String(req.body.commodities).trim()].filter(Boolean)
+          : [],
+      commodityHead: String(req.body.commodityHead || "").trim(),
+      commodityMake: String(req.body.commodityMake || "").trim(),
+      commodityModel: String(req.body.commodityModel || "").trim(),
+      commodityPartNo: String(req.body.commodityPartNo || "").trim(),
       vendorGst,
       vendorMsme: String(req.body.vendorMsme || "").trim(),
       vendorGumasta: String(req.body.vendorGumasta || "").trim(),
