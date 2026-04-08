@@ -162,3 +162,55 @@
     coreLength.value = width.value;
   });
 </script>
+
+<script>
+  const ttrForm = document.querySelector("form.needs-validation");
+  if (ttrForm) {
+    ttrForm.addEventListener("submit", async (e) => {
+      if (ttrForm.dataset.skipDupCheck === "1") {
+        ttrForm.dataset.skipDupCheck = "";
+        return;
+      }
+
+      if (!ttrForm.checkValidity()) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const getVal = (name) => {
+        const el = ttrForm.querySelector(`[name="${name}"]`);
+        return el ? String(el.value || "").trim() : "";
+      };
+
+      const params = new URLSearchParams({
+        ttrType: getVal("ttrType"),
+        ttrColor: getVal("ttrColor"),
+        ttrMaterialCode: getVal("ttrMaterialCode"),
+        ttrWidth: getVal("ttrWidth"),
+        ttrMtrs: getVal("ttrMtrs"),
+        ttrInkFace: getVal("ttrInkFace"),
+        ttrCoreId: getVal("ttrCoreId"),
+        ttrCoreLength: getVal("ttrCoreLength"),
+        ttrNotch: getVal("ttrNotch"),
+        ttrWinding: getVal("ttrWinding"),
+      });
+
+      try {
+        const res = await fetch(`/fairdesk/form/ttr/exists?${params.toString()}`);
+        if (!res.ok) {
+          if (window.showToast) window.showToast("Unable to validate TTR. Please try again.", true);
+          return;
+        }
+        const data = await res.json();
+        if (data.exists) {
+          if (window.showToast) window.showToast("TTR already exist.", true);
+          return;
+        }
+        ttrForm.dataset.skipDupCheck = "1";
+        ttrForm.requestSubmit();
+      } catch (err) {
+        if (window.showToast) window.showToast("Network error while validating TTR.", true);
+      }
+    });
+  }
+</script>

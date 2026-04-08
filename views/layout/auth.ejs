@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fairdesk - <%= title %></title>
+    <link rel="icon" href="/assets/fairfavicon.png" type="image/png" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/common.css?v=5" />
+    <% if (CSS) { %>
+    <link rel="stylesheet" href="/css/<%= CSS %>" />
+    <% } %>
+  </head>
+  <body class="auth-body">
+    <nav>
+      <h1>Fairtech Systems</h1>
+    </nav>
+    <main class="auth-container">
+      <%- body -%>
+    </main>
+  </body>
+</html>

@@ -77,25 +77,108 @@ app.use(flash());
 app.use((req, res, next) => {
   res.locals.notification = req.session.flash?.notification || [];
   res.locals.error = req.session.flash?.error || [];
+  res.locals.authUser = req.session?.authUser || null;
   next();
 });
 
 /* ROUTES */
-app.use("/fairdesk", fairdeskRoute);
-app.use("/fairdesk/payroll", payrollRoute);
-app.use("/fairdesk/loan", loanRoute);
-app.use("/fairdesk/advance", advanceRoute);
-app.use("/fairdesk/employee", employeeRoute);
-app.use("/fairdesk/pettycash", pettycashRoute);
-app.use("/fairdesk", tapeBindingRoutes);
-app.use("/fairdesk", posRollBindingRoutes);
-app.use("/fairdesk", tafetaBindingRoutes);
-app.use("/fairdesk", ttrBindingRoutes);
-app.use("/fairdesk/tapestock", tapeStockRoutes);
-app.use("/fairdesk/posrollstock", posRollStockRoutes);
-app.use("/fairdesk/tafetastock", tafetaStockRoutes);
-app.use("/fairdesk/ttrstock", ttrStockRoutes);
-app.use("/fairdesk/client", clientFormRoute);
+app.get("/", (req, res) => {
+  if (req.session?.authUser) {
+    const role = req.session.authUser.role;
+    if (role === "hr") return res.redirect("/fairdesk/employee/view");
+    if (role === "sales") return res.redirect("/fairdesk/sales/order");
+    return res.redirect("/fairdesk/master/view");
+  }
+  res.render("auth/login", { title: "Login", CSS: "login.css" });
+});
+
+app.get("/login", (req, res) => {
+  if (req.session?.authUser) {
+    const role = req.session.authUser.role;
+    if (role === "hr") return res.redirect("/fairdesk/employee/view");
+    if (role === "sales") return res.redirect("/fairdesk/sales/order");
+    return res.redirect("/fairdesk/master/view");
+  }
+  res.render("auth/login", { title: "Login", CSS: "login.css" });
+});
+
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  const adminUser = process.env.ADMIN_USER;
+  const adminPass = process.env.ADMIN_PASS;
+  const hrUser = process.env.HR_USER;
+  const hrPass = process.env.HR_PASS;
+  const hodUser = process.env.HOD_USER;
+  const hodPass = process.env.HOD_PASS;
+  const salesUser = process.env.SALES_USER;
+  const salesPass = process.env.SALES_PASS;
+
+  if (!username || !password) {
+    return res.status(400).render("auth/login", {
+      title: "Login",
+      CSS: "login.css",
+      username,
+      password,
+      error: ["Please enter your credentials."],
+    });
+  }
+
+  const isAdmin = adminUser && adminPass && username === adminUser && password === adminPass;
+  const isHr = hrUser && hrPass && username === hrUser && password === hrPass;
+  const isHod = hodUser && hodPass && username === hodUser && password === hodPass;
+  const isSales = salesUser && salesPass && username === salesUser && password === salesPass;
+
+  if (!isAdmin && !isHr && !isHod && !isSales) {
+    return res.status(401).render("auth/login", {
+      title: "Login",
+      CSS: "login.css",
+      username,
+      password,
+      error: ["Invalid username or password."],
+    });
+  }
+
+  const role = isAdmin ? "admin" : isHr ? "hr" : isHod ? "hod" : "sales";
+  req.session.authUser = { username, role };
+  if (role === "hr") return res.redirect("/fairdesk/employee/view");
+  if (role === "sales") return res.redirect("/fairdesk/sales/order");
+  return res.redirect("/fairdesk/master/view");
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("fairdesk.sid");
+    res.redirect("/login");
+  });
+});
+
+const requireAuth = (req, res, next) => {
+  if (req.session?.authUser) return next();
+  return res.redirect("/login");
+};
+
+const requireRole = (roles) => (req, res, next) => {
+  const role = req.session?.authUser?.role;
+  if (roles.includes(role)) return next();
+  return res.redirect("/login");
+};
+
+app.use("/fairdesk/payroll", requireAuth, requireRole(["admin", "hr"]), payrollRoute);
+app.use("/fairdesk/loan", requireAuth, requireRole(["admin", "hr"]), loanRoute);
+app.use("/fairdesk/advance", requireAuth, requireRole(["admin", "hr"]), advanceRoute);
+app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr"]), employeeRoute);
+app.use("/fairdesk/pettycash", requireAuth, requireRole(["admin", "hr"]), pettycashRoute);
+
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), fairdeskRoute);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tapeBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), posRollBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tafetaBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), ttrBindingRoutes);
+app.use("/fairdesk/tapestock", requireAuth, requireRole(["admin", "hod", "sales"]), tapeStockRoutes);
+app.use("/fairdesk/posrollstock", requireAuth, requireRole(["admin", "hod", "sales"]), posRollStockRoutes);
+app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaStockRoutes);
+app.use("/fairdesk/ttrstock", requireAuth, requireRole(["admin", "hod", "sales"]), ttrStockRoutes);
+app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales"]), clientFormRoute);
 
 /* 404 */
 app.all("*", (req, res) => {

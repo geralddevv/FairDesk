@@ -182,6 +182,77 @@
         display: flex;
         gap: 10px;
       }
+
+      .header-nav-right {
+        left: auto;
+        right: 12px;
+      }
+
+      .logout-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 9998;
+      }
+
+      .logout-modal.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .logout-dialog {
+        width: min(560px, 94vw);
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid rgba(4, 74, 120, 0.15);
+        box-shadow: 0 24px 60px rgba(4, 74, 120, 0.2);
+        padding: 2.2rem;
+        text-align: left;
+      }
+
+      .logout-title {
+        font-size: 1.45rem;
+        font-weight: 600;
+        color: #03365a;
+        margin: 0 0 0.4rem 0;
+      }
+
+      .logout-text {
+        margin: 0;
+        color: #4b5b6a;
+        font-size: 1.05rem;
+      }
+
+      .logout-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        margin-top: 1.55rem;
+      }
+
+      .logout-btn {
+        border-radius: 999px;
+        padding: 0.65rem 1.25rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border: 1px solid rgba(4, 74, 120, 0.25);
+        background: #ffffff;
+        color: #03365a;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      .logout-btn.primary {
+        background: #044a78;
+        color: #ffffff;
+        border-color: #044a78;
+      }
     </style>
   </head>
   <body>
@@ -201,8 +272,24 @@
           <i class="fa-solid fa-arrow-right"></i>
         </button>
       </div>
+      <div class="header-nav-wrap header-nav-right">
+        <a href="/logout" class="header-nav" id="fdLogout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Logout
+        </a>
+      </div>
       <h1>Fairtech Systems</h1>
     </nav>
+    <div class="logout-modal" id="logoutModal" aria-hidden="true">
+      <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+        <h2 class="logout-title" id="logoutTitle">Log out?</h2>
+        <p class="logout-text">You will need to sign in again to continue.</p>
+        <div class="logout-actions">
+          <button class="logout-btn" type="button" id="logoutCancel">Cancel</button>
+          <a class="logout-btn primary" href="/logout" id="logoutConfirm">Log out</a>
+        </div>
+      </div>
+    </div>
     <div class="contain">
       <!-- Navigation bar -->
       <div class="side-nav">
@@ -220,6 +307,16 @@
           <p class="nav-items-para">Navigation</p>
         </div>
 
+        <% const isAdmin = authUser && authUser.role === "admin"; %>
+        <% const isHr = authUser && authUser.role === "hr"; %>
+        <% const isHod = authUser && authUser.role === "hod"; %>
+        <% const isSales = authUser && authUser.role === "sales"; %>
+        <% const canAdmin = isAdmin || isHod; %>
+        <% const canView = canAdmin || isSales; %>
+        <% const canStock = canAdmin || isSales; %>
+        <% const canOrders = canAdmin || isSales; %>
+
+        <% if (canView) { %>
         <div class="nav-opt-wrap">
           <div title="View" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -254,6 +351,9 @@
           </div>
         </div>
 
+        <% } %>
+
+        <% if (canAdmin) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -385,6 +485,8 @@
             </div>
           </div> -->
 
+        <% } %>
+        <% if (isAdmin || isHr) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -453,6 +555,7 @@
             </div>
           </div>
         </div>
+        <% } %>
 
         <!-- <div class="nav-opt-wrap">
           <div title="View" class="view-toggle nav-items">
@@ -468,6 +571,7 @@
           </div>
         </div> -->
 
+        <% if (canStock) { %>
         <div class="nav-opt-wrap">
           <div title="Orders" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -493,8 +597,9 @@
             </div>
           </div>
         </div>
-        
+        <% } %>
 
+        <% if (canOrders) { %>
         <div class="nav-opt-wrap">
           <div title="Orders" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -508,10 +613,11 @@
             </div>
             <div title="Pending Orders" class="<%= title === 'Pending Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/pending'" style="border-bottom: 2px solid #ffffff9d">
               <i class="fa-solid fa-clock-rotate-left" style="color: #ffffff"></i>
-          <p class="nav-items-para">Pending Orders</p>
-        </div>  
+            <p class="nav-items-para">Pending Orders</p>
+          </div>  
           </div>
         </div>
+        <% } %>
                   
       </div>
 
@@ -562,6 +668,37 @@
         const choicesEl = e.target.closest(".choices");
         if (choicesEl) choicesEl.classList.remove("choices--focused");
       });
+
+      const fdLogout = document.getElementById("fdLogout");
+      const logoutModal = document.getElementById("logoutModal");
+      const logoutCancel = document.getElementById("logoutCancel");
+      const logoutConfirm = document.getElementById("logoutConfirm");
+
+      if (fdLogout) {
+        fdLogout.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (logoutModal) {
+            logoutModal.classList.add("show");
+            logoutModal.setAttribute("aria-hidden", "false");
+          }
+        });
+      }
+
+      if (logoutCancel && logoutModal) {
+        logoutCancel.addEventListener("click", () => {
+          logoutModal.classList.remove("show");
+          logoutModal.setAttribute("aria-hidden", "true");
+        });
+      }
+
+      if (logoutModal) {
+        logoutModal.addEventListener("click", (e) => {
+          if (e.target === logoutModal) {
+            logoutModal.classList.remove("show");
+            logoutModal.setAttribute("aria-hidden", "true");
+          }
+        });
+      }
     </script>
   </body>
 </html>

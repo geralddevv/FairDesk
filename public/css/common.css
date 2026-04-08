@@ -571,6 +571,48 @@ select {
   font-size: 1.25rem;
 }
 
+.primary-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.7rem;
+  padding: 0.6rem 1.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--primary-color);
+  background: linear-gradient(135deg, #0562a0 0%, var(--primary-color) 55%, #03365a 100%);
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 20px rgba(4, 74, 120, 0.25);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.2s ease;
+  cursor: pointer;
+}
+
+.primary-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(4, 74, 120, 0.32);
+}
+
+.primary-action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 16px rgba(4, 74, 120, 0.28);
+}
+
+.primary-action-btn:focus-visible {
+  outline: 3px solid rgba(4, 74, 120, 0.35);
+  outline-offset: 2px;
+}
+
+.primary-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .btn-grp {
   border: 2px solid var(--primary-color);
   justify-content: center;

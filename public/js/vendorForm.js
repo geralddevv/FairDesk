@@ -213,14 +213,22 @@ function feedVendorData(data) {
 // Commodities extra fields toggle
 document.addEventListener("DOMContentLoaded", () => {
   const extraWrap = document.getElementById("commodities-extra");
-  if (!extraWrap) return;
-  const commodityChecks = document.querySelectorAll("input[name='commodities']");
+  const itCheckbox = document.getElementById("commodity-it");
+  if (!extraWrap || !itCheckbox) return;
+
+  const fields = extraWrap.querySelectorAll("input, select, textarea");
 
   const syncExtraVisibility = () => {
-    const anyChecked = Array.from(commodityChecks).some((cb) => cb.checked);
-    extraWrap.style.display = anyChecked ? "block" : "none";
+    const show = itCheckbox.checked === true;
+    extraWrap.style.display = show ? "block" : "none";
+    if (!show) {
+      fields.forEach((el) => {
+        if (el.tagName === "SELECT") el.selectedIndex = 0;
+        else el.value = "";
+      });
+    }
   };
 
-  commodityChecks.forEach((cb) => cb.addEventListener("change", syncExtraVisibility));
+  itCheckbox.addEventListener("change", syncExtraVisibility);
   syncExtraVisibility();
 });

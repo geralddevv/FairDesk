@@ -32,6 +32,37 @@ import TtrStockLog from "../models/inventory/TtrStockLog.js";
 import Location from "../models/system/location.js";
 const router = express.Router();
 
+router.use((req, res, next) => {
+  const role = req.session?.authUser?.role;
+  if (!role) return res.redirect("/login");
+
+  if (role === "admin" || role === "hod") return next();
+
+  if (role === "sales") {
+    const path = req.path || "";
+    if (path.startsWith("/sales/")) return next();
+    if (req.method !== "GET") return res.redirect("/login");
+
+    const allowedViewRoutes = [
+      /^\/master\/view$/,
+      /^\/client\/details\/[^/]+$/,
+      /^\/tape\/view$/,
+      /^\/tape\/profile\/[^/]+$/,
+      /^\/pos-roll\/view$/,
+      /^\/pos-roll\/profile\/[^/]+$/,
+      /^\/tafeta\/view$/,
+      /^\/tafeta\/profile\/[^/]+$/,
+      /^\/ttr\/view$/,
+      /^\/ttr\/profile\/[^/]+$/,
+    ];
+
+    if (allowedViewRoutes.some((re) => re.test(path))) return next();
+    return res.redirect("/login");
+  }
+
+  return res.redirect("/login");
+});
+
 // ----------------------------------RateCalculator---------------------------------->
 // Route for rate calculator.
 
@@ -123,12 +154,25 @@ router.post("/form/user", async (req, res) => {
     const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const { objectId } = req.body;
-    const client = await Client.findOne({ _id: objectId });
+    let client = null;
+    if (objectId) {
+      client = await Client.findOne({ _id: objectId });
+    }
+    if (!client) {
+      const clientIdFallback = String(req.body.clientId || "").trim();
+      const clientNameFallback = String(req.body.clientName || "").trim();
+      if (clientIdFallback) {
+        client = await Client.findOne({ clientId: clientIdFallback });
+      }
+      if (!client && clientNameFallback) {
+        client = await Client.findOne({ clientName: new RegExp(`^${escapeRegex(clientNameFallback)}$`, "i") });
+      }
+    }
     if (!client) {
       return res.status(400).json({ success: false, message: "Invalid client selected" });
     }
 
-    const clientId = String(req.body.clientId || "").trim();
+    const clientId = String(client.clientId || "").trim();
     const userName = String(req.body.userName || "").trim();
     const userContact = String(req.body.userContact || "").trim();
     const userEmail = String(req.body.userEmail || "")
@@ -136,15 +180,18 @@ router.post("/form/user", async (req, res) => {
       .toLowerCase();
 
     // Prevent duplicate users by email/contact globally and username within the same client.
-    const existingUser = await Username.exists({
-      $or: [
-        userEmail ? { userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i") } : null,
-        userContact ? { userContact } : null,
-        clientId && userName
-          ? { clientId, userName: new RegExp(`^${escapeRegex(userName)}$`, "i") }
-          : null,
-      ].filter(Boolean),
-    });
+    const dupChecks = [];
+    if (clientId && userEmail) {
+      dupChecks.push({ clientId, userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i") });
+    }
+    if (clientId && userContact) {
+      dupChecks.push({ clientId, userContact });
+    }
+    if (clientId && userName) {
+      dupChecks.push({ clientId, userName: new RegExp(`^${escapeRegex(userName)}$`, "i") });
+    }
+
+    const existingUser = dupChecks.length ? await Username.exists({ $or: dupChecks }) : false;
     if (existingUser) {
       return res.status(400).json({ success: false, message: "user already exist" });
     }
@@ -152,6 +199,10 @@ router.post("/form/user", async (req, res) => {
     const newUser = await Username.create({
       ...req.body,
       clientId,
+      clientName: client.clientName,
+      clientType: client.clientType,
+      hoLocation: client.hoLocation,
+      accountHead: client.accountHead,
       userName,
       userContact,
       userEmail,
@@ -294,6 +345,83 @@ router.get("/form/ttr", async (req, res) => {
     ttrCount,
     notification: req.flash("notification"),
   });
+});
+
+// GET: Check if TTR already exists (used by client-side precheck)
+router.get("/form/ttr/exists", async (req, res) => {
+  try {
+    const {
+      ttrType,
+      ttrColor,
+      ttrMaterialCode,
+      ttrWidth,
+      ttrMtrs,
+      ttrInkFace,
+      ttrCoreId,
+      ttrCoreLength,
+      ttrNotch,
+      ttrWinding,
+    } = req.query;
+
+    const required = [
+      ttrType,
+      ttrColor,
+      ttrMaterialCode,
+      ttrWidth,
+      ttrMtrs,
+      ttrInkFace,
+      ttrCoreId,
+      ttrCoreLength,
+      ttrNotch,
+      ttrWinding,
+    ];
+    if (required.some((v) => v === undefined || v === null || String(v).trim() === "")) {
+      return res.json({ exists: false });
+    }
+
+    const flex = (val) => {
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    const num = (val) => {
+      const n = Number(String(val).trim());
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const mtrs = num(ttrMtrs);
+    const coreLen = num(ttrCoreLength);
+    if (mtrs === null || coreLen === null) {
+      return res.json({ exists: false });
+    }
+
+    const exists = await Ttr.exists({
+      ttrType: flex(ttrType),
+      ttrColor: flex(ttrColor),
+      ttrMaterialCode: flex(ttrMaterialCode),
+      ttrWidth: flex(ttrWidth),
+      ttrMtrs: mtrs,
+      ttrInkFace: flex(ttrInkFace),
+      ttrCoreId: flex(ttrCoreId),
+      ttrCoreLength: coreLen,
+      ttrNotch: flex(ttrNotch),
+      ttrWinding: flex(ttrWinding),
+    });
+
+    return res.json({ exists: !!exists });
+  } catch (err) {
+    console.error("TTR EXISTS CHECK ERROR:", err);
+    return res.status(500).json({ exists: false });
+  }
 });
 
 // POST: TTR Master submission
@@ -1053,7 +1181,7 @@ router.get("/form/vendor", async (req, res) => {
   let userCount = await VendorUser.countDocuments();
   let vendorCount = vendors.length;
   res.render("users/vendorForm.ejs", {
-    JS: "vendorForm.js",
+    JS: "vendorForm.js?v=2",
     CSS: "tabOpt.css",
     title: "Vendor Form",
     vendorCount,

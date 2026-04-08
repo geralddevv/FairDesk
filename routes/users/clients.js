@@ -3,6 +3,25 @@ import Client from "../../models/users/client.js";
 
 const router = express.Router();
 
+router.use((req, res, next) => {
+  const role = req.session?.authUser?.role;
+  if (!role) return res.redirect("/login");
+
+  if (role === "admin" || role === "hod") return next();
+
+  if (role === "sales") {
+    const path = req.path || "";
+    if (req.method !== "GET") return res.redirect("/login");
+
+    if (path === "/view" || path.startsWith("/api/") || path.startsWith("/profile/")) {
+      return next();
+    }
+    return res.redirect("/login");
+  }
+
+  return res.redirect("/login");
+});
+
 /* ================= CLIENTS VIEW ================= */
 router.get("/view", async (req, res) => {
   try {
