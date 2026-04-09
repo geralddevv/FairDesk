@@ -14,10 +14,11 @@
       <label for="tafeta-product-id">Product ID</label>
       <input
         type="text"
-        value="FS | Tafeta | <%= tafetaCount.toString().padStart(6, '0') %>"
+        value="<%= previewTafetaProductId %>"
         id="tafeta-product-id"
         class="form-control"
         name="tafetaProductId"
+        readonly
         required
       />
     </div>

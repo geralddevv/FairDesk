@@ -209,26 +209,3 @@ function feedVendorData(data) {
   if (statusEl) statusEl.value = data.vendorStatus || "";
   if (objEl) objEl.value = data._id || "";
 }
-
-// Commodities extra fields toggle
-document.addEventListener("DOMContentLoaded", () => {
-  const extraWrap = document.getElementById("commodities-extra");
-  const itCheckbox = document.getElementById("commodity-it");
-  if (!extraWrap || !itCheckbox) return;
-
-  const fields = extraWrap.querySelectorAll("input, select, textarea");
-
-  const syncExtraVisibility = () => {
-    const show = itCheckbox.checked === true;
-    extraWrap.style.display = show ? "block" : "none";
-    if (!show) {
-      fields.forEach((el) => {
-        if (el.tagName === "SELECT") el.selectedIndex = 0;
-        else el.value = "";
-      });
-    }
-  };
-
-  itCheckbox.addEventListener("change", syncExtraVisibility);
-  syncExtraVisibility();
-});

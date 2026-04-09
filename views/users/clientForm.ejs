@@ -14,7 +14,7 @@
     <form class="client-content span-full needs-validation" action="/fairdesk/form/client" method="post" autocomplete="off" novalidate>
     <div class="span-four">
       <label for="client-id">Client Id</label>
-      <input type="text" value="FS | CLIENT | <%= clientCount + 1 %>" id="client-id" class="form-control input-tag" name="clientId" placeholder="Enter Client ID" readonly required />
+      <input type="text" value="<%= previewClientId %>" id="client-id" class="form-control input-tag" name="clientId" placeholder="Enter Client ID" readonly required />
     </div>      
     <div class="span-seven">
       <label for="client-name">Client Name</label>
@@ -110,7 +110,7 @@
     <div class="span-four">
       <label for="user-client-id">Client Id</label>
       <input id="user-client-id" class="form-control input-tag" name="clientId" placeholder="Enter Client ID" readonly required />
-    </div>    
+    </div>
 
     <div class="span-six">
       <label for="client-name">Client Type</label>

@@ -10,10 +10,11 @@
       <label for="ttr-product-id">Product ID</label>
       <input
         type="text"
-        value="FS | TTR | <%= ttrCount.toString().padStart(6, '0') %>"
+        value="<%= previewTtrProductId %>"
         id="ttr-product-id"
         class="form-control"
         name="ttrProductId"
+        readonly
         required
       />
     </div>

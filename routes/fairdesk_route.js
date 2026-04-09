@@ -30,6 +30,7 @@ import PosRollStockLog from "../models/inventory/PosRollStockLog.js";
 import TafetaStockLog from "../models/inventory/TafetaStockLog.js";
 import TtrStockLog from "../models/inventory/TtrStockLog.js";
 import Location from "../models/system/location.js";
+import Counter from "../models/system/counter.js";
 const router = express.Router();
 
 router.use((req, res, next) => {
@@ -82,15 +83,26 @@ router.post("/form/ratecalculator", async (req, res) => {
 // ----------------------------------Client---------------------------------->
 // route for client form.
 router.get("/form/client", async (req, res) => {
+  const getNextClientIdPreview = async () => {
+    const counterDoc = await Counter.findOne({ key: "clientId" }).select("seq").lean();
+    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+
+    // Skip any legacy collisions so preview stays aligned with generator behavior.
+    while (await Client.exists({ clientId: `FS | CLIENT | ${nextSeq}` })) {
+      nextSeq += 1;
+    }
+    return `FS | CLIENT | ${nextSeq}`;
+  };
+
   let clients = await Client.distinct("clientName");
   let userCount = await Username.countDocuments();
-  let clientCount = clients.length;
+  const previewClientId = await getNextClientIdPreview();
   res.render("users/clientForm.ejs", {
     JS: "clientForm.js",
     CSS: "tabOpt.css",
     title: "Client Form",
-    clientCount,
     userCount,
+    previewClientId,
     clients,
     notification: req.flash("notification"),
   });
@@ -100,35 +112,64 @@ router.get("/form/client", async (req, res) => {
 router.post("/form/client", async (req, res) => {
   try {
     const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const generateClientId = async () => {
+      const maxAttempts = 10000;
+      for (let i = 0; i < maxAttempts; i++) {
+        const counter = await Counter.findOneAndUpdate(
+          { key: "clientId" },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        ).lean();
 
-    const clientId = String(req.body.clientId || "").trim();
+        const candidateId = `FS | CLIENT | ${counter.seq}`;
+        const exists = await Client.exists({ clientId: candidateId });
+        if (!exists) return candidateId;
+      }
+      throw new Error("Unable to generate unique client id");
+    };
+
     const clientName = String(req.body.clientName || "").trim();
+    const clientType = String(req.body.clientType || "").trim();
+    const clientStatus = String(req.body.clientStatus || "").trim();
+    const hoLocation = String(req.body.hoLocation || "").trim();
+    const accountHead = String(req.body.accountHead || "").trim();
     const clientGst = String(req.body.clientGst || "").trim();
+    const clientMsme = String(req.body.clientMsme || "").trim();
+    const clientGumasta = String(req.body.clientGumasta || "").trim();
     const clientPan = String(req.body.clientPan || "").trim();
 
-    // Prevent duplicates (clientId is unique, but also guard by name / GST / PAN).
-    const alreadyExists = await Client.exists({
-      $or: [
-        clientId ? { clientId } : null,
-        clientName ? { clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i") } : null,
-        clientGst ? { clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i") } : null,
-        clientPan ? { clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i") } : null,
-      ].filter(Boolean),
-    });
-    if (alreadyExists) {
-      return res.status(400).json({ success: false, message: "client already exist" });
+    // Prevent duplicates only when the full logical client entity matches.
+    // clientId is auto-generated, so it is intentionally excluded from this match.
+    const existingSameEntity = await Client.findOne({
+      clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
+      clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
+      clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
+      hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
+      accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
+      clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
+      clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
+      clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
+      clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
+    })
+      .lean();
+
+    if (existingSameEntity) {
+      return res.status(400).json({
+        success: false,
+        message: "client already exist (same full details)",
+      });
     }
 
     const formData = {
-      clientId,
+      clientId: await generateClientId(),
       clientName,
-      clientType: String(req.body.clientType || "").trim(),
-      clientStatus: String(req.body.clientStatus || "").trim(),
-      hoLocation: String(req.body.hoLocation || "").trim(),
-      accountHead: String(req.body.accountHead || "").trim(),
+      clientType,
+      clientStatus,
+      hoLocation,
+      accountHead,
       clientGst,
-      clientMsme: String(req.body.clientMsme || "").trim(),
-      clientGumasta: String(req.body.clientGumasta || "").trim(),
+      clientMsme,
+      clientGumasta,
       clientPan,
     };
 
@@ -179,21 +220,35 @@ router.post("/form/user", async (req, res) => {
       .trim()
       .toLowerCase();
 
-    // Prevent duplicate users by email/contact globally and username within the same client.
-    const dupChecks = [];
-    if (clientId && userEmail) {
-      dupChecks.push({ clientId, userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i") });
-    }
-    if (clientId && userContact) {
-      dupChecks.push({ clientId, userContact });
-    }
-    if (clientId && userName) {
-      dupChecks.push({ clientId, userName: new RegExp(`^${escapeRegex(userName)}$`, "i") });
-    }
+    // Prevent duplicates only on full identity tuple within the same client.
+    const normalizeName = (s) => String(s || "").trim().toUpperCase();
+    const normalizeEmail = (s) => String(s || "").trim().toLowerCase();
+    const normalizeContact = (s) => String(s || "").replace(/\D/g, "");
 
-    const existingUser = dupChecks.length ? await Username.exists({ $or: dupChecks }) : false;
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "user already exist" });
+    const userNameN = normalizeName(userName);
+    const userEmailN = normalizeEmail(userEmail);
+    const userContactN = normalizeContact(userContact);
+
+    const existingUsers = await Username.find({ clientId })
+      .select("userName userEmail userContact")
+      .lean();
+
+    const duplicateUser = existingUsers.some((u) => {
+      return (
+        userNameN &&
+        userEmailN &&
+        userContactN &&
+        normalizeName(u.userName) === userNameN &&
+        normalizeEmail(u.userEmail) === userEmailN &&
+        normalizeContact(u.userContact) === userContactN
+      );
+    });
+
+    if (duplicateUser) {
+      return res.status(400).json({
+        success: false,
+        message: "user already exist (same client + name + email + contact)",
+      });
     }
 
     const newUser = await Username.create({
@@ -336,13 +391,24 @@ router.post("/form/carequote", async (req, res) => {
 // ----------------------------------TTR---------------------------------->
 // GET: TTR Master form
 router.get("/form/ttr", async (req, res) => {
-  const ttrCount = (await Ttr.countDocuments()) + 1;
+  const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
+  const getNextTtrProductIdPreview = async () => {
+    const counterDoc = await Counter.findOne({ key: "ttrProductId" }).select("seq").lean();
+    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+
+    while (await Ttr.exists({ ttrProductId: formatTtrProductId(nextSeq) })) {
+      nextSeq += 1;
+    }
+    return formatTtrProductId(nextSeq);
+  };
+
+  const previewTtrProductId = await getNextTtrProductIdPreview();
 
   res.render("inventory/ttr.ejs", {
     JS: false,
     CSS: false,
     title: "TTR",
-    ttrCount,
+    previewTtrProductId,
     notification: req.flash("notification"),
   });
 });
@@ -428,6 +494,23 @@ router.get("/form/ttr/exists", async (req, res) => {
 router.post("/form/ttr", async (req, res) => {
   console.log("TTR MASTER BODY", req.body);
   try {
+    const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
+    const generateTtrProductId = async () => {
+      const maxAttempts = 10000;
+      for (let i = 0; i < maxAttempts; i++) {
+        const counter = await Counter.findOneAndUpdate(
+          { key: "ttrProductId" },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        ).lean();
+
+        const candidateId = formatTtrProductId(counter.seq);
+        const exists = await Ttr.exists({ ttrProductId: candidateId });
+        if (!exists) return candidateId;
+      }
+      throw new Error("Unable to generate unique TTR product id");
+    };
+
     const flex = (val) => {
       // Helps match DB values regardless of string/number casting and stray whitespace.
       if (val === undefined || val === null) return val;
@@ -457,7 +540,10 @@ router.post("/form/ttr", async (req, res) => {
       ttrWinding: flex(req.body.ttrWinding),
     });
     if (alreadyExists) {
-      return res.status(400).json({ success: false, message: "ttr already exist" });
+      return res.status(400).json({
+        success: false,
+        message: "ttr already exist (same full details)",
+      });
     }
 
     const widthRaw = req.body.ttrWidth;
@@ -467,7 +553,7 @@ router.post("/form/ttr", async (req, res) => {
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
 
     const data = {
-      ttrProductId: req.body.ttrProductId,
+      ttrProductId: await generateTtrProductId(),
       ttrType: String(req.body.ttrType).trim(),
       ttrColor: String(req.body.ttrColor).trim(),
       ttrMaterialCode: String(req.body.ttrMaterialCode).trim(),
@@ -524,13 +610,24 @@ router.post("/form/ttr", async (req, res) => {
 
 // GET: Tape Master form
 router.get("/form/tape-master", async (req, res) => {
-  const tapeCount = (await Tape.countDocuments()) + 1;
+  const formatTapeId = (n) => `FS | Tape | ${String(n).padStart(6, "0")}`;
+  const getNextTapeIdPreview = async () => {
+    const counterDoc = await Counter.findOne({ key: "tapeProductId" }).select("seq").lean();
+    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+
+    while (await Tape.exists({ tapeProductId: formatTapeId(nextSeq) })) {
+      nextSeq += 1;
+    }
+    return formatTapeId(nextSeq);
+  };
+
+  const previewTapeProductId = await getNextTapeIdPreview();
 
   res.render("inventory/tape.ejs", {
     JS: false,
     CSS: false,
     title: "Tape Master",
-    tapeCount,
+    previewTapeProductId,
     notification: req.flash("notification"),
   });
 });
@@ -539,6 +636,23 @@ router.get("/form/tape-master", async (req, res) => {
 router.post("/form/tape-master", async (req, res) => {
   console.log("TAPE MASTER BODY", req.body);
   try {
+    const formatTapeId = (n) => `FS | Tape | ${String(n).padStart(6, "0")}`;
+    const generateTapeProductId = async () => {
+      const maxAttempts = 10000;
+      for (let i = 0; i < maxAttempts; i++) {
+        const counter = await Counter.findOneAndUpdate(
+          { key: "tapeProductId" },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        ).lean();
+
+        const candidateId = formatTapeId(counter.seq);
+        const exists = await Tape.exists({ tapeProductId: candidateId });
+        if (!exists) return candidateId;
+      }
+      throw new Error("Unable to generate unique tape product id");
+    };
+
     const flex = (val) => {
       // Helps match DB values regardless of string/number casting and stray whitespace.
       if (val === undefined || val === null) return val;
@@ -566,7 +680,10 @@ router.post("/form/tape-master", async (req, res) => {
       tapeFinish: flex(req.body.tapeFinish),
     });
     if (alreadyExists) {
-      return res.status(400).json({ success: false, message: "tape already exist" });
+      return res.status(400).json({
+        success: false,
+        message: "tape already exist (same full details)",
+      });
     }
 
     const widthRaw = req.body.tapeWidth;
@@ -576,7 +693,7 @@ router.post("/form/tape-master", async (req, res) => {
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
 
     const data = {
-      tapeProductId: req.body.tapeProductId,
+      tapeProductId: await generateTapeProductId(),
       tapePaperCode: String(req.body.tapePaperCode).trim(),
       tapeGsm: Number(req.body.tapeGsm),
       tapePaperType: String(req.body.tapePaperType).trim(),
@@ -628,7 +745,30 @@ router.get("/form/edit/user/:userId", async (req, res) => {
 router.post("/form/edit/user/:userId", async (req, res) => {
   try {
     let { userId } = req.params;
-    const updateData = req.body;
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const currentUser = await Username.findById(userId);
+    if (!currentUser) {
+      req.flash("error", "User not found.");
+      return res.redirect("/fairdesk/users/master");
+    }
+
+    const updateData = {
+      userName: String(req.body.userName || "").trim(),
+      userLocation: String(req.body.userLocation || "").trim(),
+      userDepartment: String(req.body.userDepartment || "").trim(),
+      userContact: String(req.body.userContact || "").trim(),
+      userEmail: String(req.body.userEmail || "")
+        .trim()
+        .toLowerCase(),
+      dispatchAddress: String(req.body.dispatchAddress || "").trim(),
+      transportName: String(req.body.transportName || "").trim(),
+      transportContact: String(req.body.transportContact || "").trim(),
+      dropLocation: String(req.body.dropLocation || "").trim(),
+      deliveryMode: String(req.body.deliveryMode || "").trim(),
+      deliveryLocation: String(req.body.deliveryLocation || "").trim(),
+      clientPayment: String(req.body.clientPayment || "").trim(),
+      SelfDispatch: String(req.body.SelfDispatch || "").trim(),
+    };
 
     // Cleanup if self dispatch is enabled, ensure transport fields are empty
     if (updateData.SelfDispatch) {
@@ -640,6 +780,30 @@ router.post("/form/edit/user/:userId", async (req, res) => {
       updateData.clientPayment = "";
     } else {
       updateData.SelfDispatch = "";
+    }
+
+    // Prevent duplicate full-entity user data within the same client.
+    const duplicateUser = await Username.findOne({
+      _id: { $ne: userId },
+      clientId: currentUser.clientId,
+      userName: new RegExp(`^${escapeRegex(updateData.userName)}$`, "i"),
+      userLocation: new RegExp(`^${escapeRegex(updateData.userLocation)}$`, "i"),
+      userDepartment: new RegExp(`^${escapeRegex(updateData.userDepartment)}$`, "i"),
+      userContact: new RegExp(`^${escapeRegex(updateData.userContact)}$`, "i"),
+      userEmail: new RegExp(`^${escapeRegex(updateData.userEmail)}$`, "i"),
+      dispatchAddress: new RegExp(`^${escapeRegex(updateData.dispatchAddress)}$`, "i"),
+      transportName: new RegExp(`^${escapeRegex(updateData.transportName)}$`, "i"),
+      transportContact: new RegExp(`^${escapeRegex(updateData.transportContact)}$`, "i"),
+      dropLocation: new RegExp(`^${escapeRegex(updateData.dropLocation)}$`, "i"),
+      deliveryMode: new RegExp(`^${escapeRegex(updateData.deliveryMode)}$`, "i"),
+      deliveryLocation: new RegExp(`^${escapeRegex(updateData.deliveryLocation)}$`, "i"),
+      clientPayment: new RegExp(`^${escapeRegex(updateData.clientPayment)}$`, "i"),
+      SelfDispatch: new RegExp(`^${escapeRegex(updateData.SelfDispatch)}$`, "i"),
+    }).lean();
+
+    if (duplicateUser) {
+      req.flash("error", "User already exists (same full details).");
+      return res.redirect("back");
     }
 
     await Username.findByIdAndUpdate(userId, updateData, { new: true, runValidators: true });
@@ -657,13 +821,24 @@ router.post("/form/edit/user/:userId", async (req, res) => {
 
 // GET: POS Roll Master form
 router.get("/form/pos-roll-master", async (req, res) => {
-  const posRollCount = (await PosRoll.countDocuments()) + 1;
+  const formatPosProductId = (n) => `FS | POS Roll | ${String(n).padStart(6, "0")}`;
+  const getNextPosProductIdPreview = async () => {
+    const counterDoc = await Counter.findOne({ key: "posProductId" }).select("seq").lean();
+    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+
+    while (await PosRoll.exists({ posProductId: formatPosProductId(nextSeq) })) {
+      nextSeq += 1;
+    }
+    return formatPosProductId(nextSeq);
+  };
+
+  const previewPosProductId = await getNextPosProductIdPreview();
 
   res.render("inventory/posRoll.ejs", {
     JS: false,
     CSS: false,
     title: "POS Roll Master",
-    posRollCount,
+    previewPosProductId,
     notification: req.flash("notification"),
   });
 });
@@ -672,6 +847,23 @@ router.get("/form/pos-roll-master", async (req, res) => {
 router.post("/form/pos-roll-master", async (req, res) => {
   console.log("POS ROLL MASTER BODY", req.body);
   try {
+    const formatPosProductId = (n) => `FS | POS Roll | ${String(n).padStart(6, "0")}`;
+    const generatePosProductId = async () => {
+      const maxAttempts = 10000;
+      for (let i = 0; i < maxAttempts; i++) {
+        const counter = await Counter.findOneAndUpdate(
+          { key: "posProductId" },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        ).lean();
+
+        const candidateId = formatPosProductId(counter.seq);
+        const exists = await PosRoll.exists({ posProductId: candidateId });
+        if (!exists) return candidateId;
+      }
+      throw new Error("Unable to generate unique POS Roll product id");
+    };
+
     const flex = (val) => {
       // Helps match DB values regardless of string/number casting and stray whitespace.
       if (val === undefined || val === null) return val;
@@ -698,7 +890,10 @@ router.post("/form/pos-roll-master", async (req, res) => {
       posCoreId: Number(req.body.posCoreId),
     });
     if (alreadyExists) {
-      return res.status(400).json({ success: false, message: "pos roll already exist" });
+      return res.status(400).json({
+        success: false,
+        message: "pos roll already exist (same full details)",
+      });
     }
 
     const widthRaw = req.body.posWidth;
@@ -708,7 +903,7 @@ router.post("/form/pos-roll-master", async (req, res) => {
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
 
     const data = {
-      posProductId: req.body.posProductId,
+      posProductId: await generatePosProductId(),
       posPaperCode: String(req.body.posPaperCode).trim(),
       posPaperType: String(req.body.posPaperType).trim(),
       posColor: String(req.body.posColor).trim(),
@@ -732,13 +927,24 @@ router.post("/form/pos-roll-master", async (req, res) => {
 
 // GET: Tafeta Master form
 router.get("/form/tafeta-master", async (req, res) => {
-  const tafetaCount = (await Tafeta.countDocuments()) + 1;
+  const formatTafetaProductId = (n) => `FS | Tafeta | ${String(n).padStart(6, "0")}`;
+  const getNextTafetaProductIdPreview = async () => {
+    const counterDoc = await Counter.findOne({ key: "tafetaProductId" }).select("seq").lean();
+    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+
+    while (await Tafeta.exists({ tafetaProductId: formatTafetaProductId(nextSeq) })) {
+      nextSeq += 1;
+    }
+    return formatTafetaProductId(nextSeq);
+  };
+
+  const previewTafetaProductId = await getNextTafetaProductIdPreview();
 
   res.render("inventory/tafeta.ejs", {
     JS: false,
     CSS: false,
     title: "Tafeta Master",
-    tafetaCount,
+    previewTafetaProductId,
     notification: req.flash("notification"),
   });
 });
@@ -747,6 +953,23 @@ router.get("/form/tafeta-master", async (req, res) => {
 router.post("/form/tafeta-master", async (req, res) => {
   console.log("TAFETA MASTER BODY", req.body);
   try {
+    const formatTafetaProductId = (n) => `FS | Tafeta | ${String(n).padStart(6, "0")}`;
+    const generateTafetaProductId = async () => {
+      const maxAttempts = 10000;
+      for (let i = 0; i < maxAttempts; i++) {
+        const counter = await Counter.findOneAndUpdate(
+          { key: "tafetaProductId" },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        ).lean();
+
+        const candidateId = formatTafetaProductId(counter.seq);
+        const exists = await Tafeta.exists({ tafetaProductId: candidateId });
+        if (!exists) return candidateId;
+      }
+      throw new Error("Unable to generate unique Tafeta product id");
+    };
+
     const flex = (val) => {
       // Helps match DB values regardless of string/number casting and stray whitespace.
       if (val === undefined || val === null) return val;
@@ -775,7 +998,10 @@ router.post("/form/tafeta-master", async (req, res) => {
       tafetaCoreId: flex(req.body.tafetaCoreId),
     });
     if (alreadyExists) {
-      return res.status(400).json({ success: false, message: "tafeta already exist" });
+      return res.status(400).json({
+        success: false,
+        message: "tafeta already exist (same full details)",
+      });
     }
 
     const widthRaw = req.body.tafetaWidth;
@@ -785,7 +1011,7 @@ router.post("/form/tafeta-master", async (req, res) => {
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
 
     const data = {
-      tafetaProductId: req.body.tafetaProductId,
+      tafetaProductId: await generateTafetaProductId(),
       tafetaMaterialCode: String(req.body.tafetaMaterialCode).trim(),
       tafetaMaterialType: String(req.body.tafetaMaterialType).trim(),
       tafetaColor: String(req.body.tafetaColor).trim(),
@@ -972,7 +1198,57 @@ router.get("/tape/edit/:id", async (req, res) => {
 
 router.post("/tape/edit/:id", async (req, res) => {
   try {
-    await Tape.findByIdAndUpdate(req.params.id, req.body);
+    const flex = (val) => {
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    const widthRaw = req.body.tapeWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const updateData = {
+      tapePaperCode: String(req.body.tapePaperCode || "").trim(),
+      tapeGsm: Number(req.body.tapeGsm),
+      tapePaperType: String(req.body.tapePaperType || "").trim(),
+      tapeWidth: widthVal,
+      tapeMtrs: Number(req.body.tapeMtrs),
+      tapeCoreId: Number(req.body.tapeCoreId),
+      tapeAdhesiveGsm: String(req.body.tapeAdhesiveGsm || "").trim(),
+      tapeFinish: String(req.body.tapeFinish || "").trim(),
+    };
+
+    const duplicateTape = await Tape.exists({
+      _id: { $ne: req.params.id },
+      tapePaperCode: flex(updateData.tapePaperCode),
+      tapeGsm: updateData.tapeGsm,
+      tapePaperType: flex(updateData.tapePaperType),
+      tapeWidth: flex(updateData.tapeWidth),
+      tapeMtrs: updateData.tapeMtrs,
+      tapeCoreId: updateData.tapeCoreId,
+      tapeAdhesiveGsm: flex(updateData.tapeAdhesiveGsm),
+      tapeFinish: flex(updateData.tapeFinish),
+    });
+
+    if (duplicateTape) {
+      return res.status(400).json({
+        success: false,
+        message: "tape already exist (same full details)",
+      });
+    }
+
+    await Tape.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     req.flash("notification", "Tape updated successfully!");
     res.json({ success: true, redirect: `/fairdesk/tape/view` });
   } catch (err) {
@@ -1043,7 +1319,55 @@ router.get("/pos-roll/edit/:id", async (req, res) => {
 
 router.post("/pos-roll/edit/:id", async (req, res) => {
   try {
-    await PosRoll.findByIdAndUpdate(req.params.id, req.body);
+    const flex = (val) => {
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    const widthRaw = req.body.posWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const updateData = {
+      posPaperCode: String(req.body.posPaperCode || "").trim(),
+      posPaperType: String(req.body.posPaperType || "").trim(),
+      posColor: String(req.body.posColor || "").trim(),
+      posGsm: Number(req.body.posGsm),
+      posWidth: widthVal,
+      posMtrs: Number(req.body.posMtrs),
+      posCoreId: Number(req.body.posCoreId),
+    };
+
+    const duplicatePosRoll = await PosRoll.exists({
+      _id: { $ne: req.params.id },
+      posPaperCode: flex(updateData.posPaperCode),
+      posPaperType: flex(updateData.posPaperType),
+      posColor: flex(updateData.posColor),
+      posGsm: updateData.posGsm,
+      posWidth: flex(updateData.posWidth),
+      posMtrs: updateData.posMtrs,
+      posCoreId: updateData.posCoreId,
+    });
+
+    if (duplicatePosRoll) {
+      return res.status(400).json({
+        success: false,
+        message: "pos roll already exist (same full details)",
+      });
+    }
+
+    await PosRoll.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     req.flash("notification", "POS Roll updated successfully!");
     res.json({ success: true, redirect: `/fairdesk/pos-roll/view` });
   } catch (err) {
@@ -1116,7 +1440,59 @@ router.get("/tafeta/edit/:id", async (req, res) => {
 
 router.post("/tafeta/edit/:id", async (req, res) => {
   try {
-    await Tafeta.findByIdAndUpdate(req.params.id, req.body);
+    const flex = (val) => {
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    const widthRaw = req.body.tafetaWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const updateData = {
+      tafetaMaterialCode: String(req.body.tafetaMaterialCode || "").trim(),
+      tafetaMaterialType: String(req.body.tafetaMaterialType || "").trim(),
+      tafetaColor: String(req.body.tafetaColor || "").trim(),
+      tafetaGsm: String(req.body.tafetaGsm || "").trim(),
+      tafetaWidth: widthVal,
+      tafetaMtrs: String(req.body.tafetaMtrs || "").trim(),
+      tafetaCoreLen: String(req.body.tafetaCoreLen || "").trim(),
+      tafetaNotch: String(req.body.tafetaNotch || "").trim(),
+      tafetaCoreId: String(req.body.tafetaCoreId || "").trim(),
+    };
+
+    const duplicateTafeta = await Tafeta.exists({
+      _id: { $ne: req.params.id },
+      tafetaMaterialCode: flex(updateData.tafetaMaterialCode),
+      tafetaMaterialType: flex(updateData.tafetaMaterialType),
+      tafetaColor: flex(updateData.tafetaColor),
+      tafetaGsm: flex(updateData.tafetaGsm),
+      tafetaWidth: flex(updateData.tafetaWidth),
+      tafetaMtrs: flex(updateData.tafetaMtrs),
+      tafetaCoreLen: flex(updateData.tafetaCoreLen),
+      tafetaNotch: flex(updateData.tafetaNotch),
+      tafetaCoreId: flex(updateData.tafetaCoreId),
+    });
+
+    if (duplicateTafeta) {
+      return res.status(400).json({
+        success: false,
+        message: "tafeta already exist (same full details)",
+      });
+    }
+
+    await Tafeta.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     req.flash("notification", "Tafeta updated successfully!");
     res.json({ success: true, redirect: `/fairdesk/tafeta/view` });
   } catch (err) {
@@ -1225,10 +1601,6 @@ router.post("/form/vendor", async (req, res) => {
         : req.body.commodities
           ? [String(req.body.commodities).trim()].filter(Boolean)
           : [],
-      commodityHead: String(req.body.commodityHead || "").trim(),
-      commodityMake: String(req.body.commodityMake || "").trim(),
-      commodityModel: String(req.body.commodityModel || "").trim(),
-      commodityPartNo: String(req.body.commodityPartNo || "").trim(),
       vendorGst,
       vendorMsme: String(req.body.vendorMsme || "").trim(),
       vendorGumasta: String(req.body.vendorGumasta || "").trim(),
@@ -1268,18 +1640,35 @@ router.post("/form/vendor-user", async (req, res) => {
       .trim()
       .toLowerCase();
 
-    // Prevent duplicate users by email/contact globally and username within the same vendor.
-    const existingUser = await VendorUser.exists({
-      $or: [
-        userEmail ? { userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i") } : null,
-        userContact ? { userContact } : null,
-        vendorId && userName
-          ? { vendorId, userName: new RegExp(`^${escapeRegex(userName)}$`, "i") }
-          : null,
-      ].filter(Boolean),
+    // Prevent duplicates only on full identity tuple within the same vendor.
+    const normalizeName = (s) => String(s || "").trim().toUpperCase();
+    const normalizeEmail = (s) => String(s || "").trim().toLowerCase();
+    const normalizeContact = (s) => String(s || "").replace(/\D/g, "");
+
+    const userNameN = normalizeName(userName);
+    const userEmailN = normalizeEmail(userEmail);
+    const userContactN = normalizeContact(userContact);
+
+    const existingVendorUsers = await VendorUser.find({ vendorId })
+      .select("userName userEmail userContact")
+      .lean();
+
+    const duplicateVendorUser = existingVendorUsers.some((u) => {
+      return (
+        userNameN &&
+        userEmailN &&
+        userContactN &&
+        normalizeName(u.userName) === userNameN &&
+        normalizeEmail(u.userEmail) === userEmailN &&
+        normalizeContact(u.userContact) === userContactN
+      );
     });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "vendor user already exist" });
+
+    if (duplicateVendorUser) {
+      return res.status(400).json({
+        success: false,
+        message: "vendor user already exist (same vendor + name + email + contact)",
+      });
     }
 
     const newUser = await VendorUser.create({
@@ -1316,7 +1705,61 @@ router.get("/ttr/edit/:id", async (req, res) => {
 
 router.post("/ttr/edit/:id", async (req, res) => {
   try {
-    await Ttr.findByIdAndUpdate(req.params.id, req.body);
+    const flex = (val) => {
+      if (val === undefined || val === null) return val;
+      const arr = [val];
+      if (typeof val === "string") {
+        const t = val.trim();
+        if (t !== val) arr.push(t);
+        const n = Number(t);
+        if (t !== "" && !Number.isNaN(n)) arr.push(n);
+      } else {
+        arr.push(String(val));
+      }
+      return { $in: arr };
+    };
+
+    const widthRaw = req.body.ttrWidth;
+    const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
+    const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
+    const widthVal =
+      typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const updateData = {
+      ttrType: String(req.body.ttrType || "").trim(),
+      ttrColor: String(req.body.ttrColor || "").trim(),
+      ttrMaterialCode: String(req.body.ttrMaterialCode || "").trim(),
+      ttrWidth: widthVal,
+      ttrMtrs: Number(req.body.ttrMtrs),
+      ttrInkFace: String(req.body.ttrInkFace || "").trim(),
+      ttrCoreId: String(req.body.ttrCoreId || "").trim(),
+      ttrCoreLength: Number(req.body.ttrCoreLength),
+      ttrNotch: String(req.body.ttrNotch || "").trim(),
+      ttrWinding: String(req.body.ttrWinding || "").trim(),
+    };
+
+    const duplicateTtr = await Ttr.exists({
+      _id: { $ne: req.params.id },
+      ttrType: flex(updateData.ttrType),
+      ttrColor: flex(updateData.ttrColor),
+      ttrMaterialCode: flex(updateData.ttrMaterialCode),
+      ttrWidth: flex(updateData.ttrWidth),
+      ttrMtrs: updateData.ttrMtrs,
+      ttrInkFace: flex(updateData.ttrInkFace),
+      ttrCoreId: flex(updateData.ttrCoreId),
+      ttrCoreLength: updateData.ttrCoreLength,
+      ttrNotch: flex(updateData.ttrNotch),
+      ttrWinding: flex(updateData.ttrWinding),
+    });
+
+    if (duplicateTtr) {
+      return res.status(400).json({
+        success: false,
+        message: "ttr already exist (same full details)",
+      });
+    }
+
+    await Ttr.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
     req.flash("notification", "TTR updated successfully!");
     res.json({ success: true, redirect: `/fairdesk/ttr/view` });
   } catch (err) {

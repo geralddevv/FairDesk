@@ -14,10 +14,11 @@
       <label for="tape-product-id">Product ID</label>
       <input
         type="text"
-        value="FS | Tape | <%= tapeCount.toString().padStart(6, '0') %>"
+        value="<%= previewTapeProductId %>"
         id="tapeproduct-id"
         class="form-control"
         name="tapeProductId"
+        readonly
         required
       />
     </div>

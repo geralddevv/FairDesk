@@ -14,10 +14,11 @@
       <label for="pos-product-id">Product ID</label>
       <input
         type="text"
-        value="FS | POS Roll | <%= posRollCount.toString().padStart(6, '0') %>"
+        value="<%= previewPosProductId %>"
         id="pos-product-id"
         class="form-control"
         name="posProductId"
+        readonly
         required
       />
     </div>

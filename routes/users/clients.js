@@ -95,9 +95,56 @@ router.get("/edit/:id", async (req, res) => {
 /* ================= UPDATE CLIENT ================= */
 router.post("/edit/:id", async (req, res) => {
   try {
-    await Client.findByIdAndUpdate(req.params.id, req.body, {
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const clientName = String(req.body.clientName || "").trim();
+    const clientType = String(req.body.clientType || "").trim();
+    const clientStatus = String(req.body.clientStatus || "").trim();
+    const hoLocation = String(req.body.hoLocation || "").trim();
+    const accountHead = String(req.body.accountHead || "").trim();
+    const clientGst = String(req.body.clientGst || "").trim();
+    const clientMsme = String(req.body.clientMsme || "").trim();
+    const clientGumasta = String(req.body.clientGumasta || "").trim();
+    const clientPan = String(req.body.clientPan || "").trim();
+
+    // Block edit only when another client already has the same full entity.
+    const duplicateClient = await Client.findOne({
+      _id: { $ne: req.params.id },
+      clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
+      clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
+      clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
+      hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
+      accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
+      clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
+      clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
+      clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
+      clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
+    }).lean();
+
+    if (duplicateClient) {
+      return res.status(400).json({
+        success: false,
+        message: "client already exist (same full details)",
+      });
+    }
+
+    await Client.findByIdAndUpdate(
+      req.params.id,
+      {
+        clientName,
+        clientType,
+        clientStatus,
+        hoLocation,
+        accountHead,
+        clientGst,
+        clientMsme,
+        clientGumasta,
+        clientPan,
+      },
+      {
       runValidators: true,
-    });
+      },
+    );
 
     req.flash("notification", "Client updated successfully!");
     res.json({ success: true, redirect: "/fairdesk/client/view" });
