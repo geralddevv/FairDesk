@@ -1,0 +1,139 @@
+<% layout('/layout/boilerplate') %>
+
+<div class="main-content">
+  <form class="needs-validation" autocomplete="off" novalidate>
+    <div class="span-full form-heading">
+      <h1>Vendor Binding</h1>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Vendor Info</h1>
+    </div>
+
+    <div class="span-seven">
+      <label for="vendor-name">Vendor Name</label>
+      <select name="vendorName" id="vendor-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% for (let vendor of vendors) { %>
+          <option value="<%= vendor %>"><%= vendor %></option>
+        <% } %>
+      </select>
+    </div>
+
+    <div class="span-seven">
+      <label for="vendor-user-name">Username</label>
+      <select name="userName" id="vendor-user-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-contact">Contact</label>
+      <input type="text" id="vendor-user-contact" class="form-control" name="userContact" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-location">Location</label>
+      <input type="text" id="vendor-user-location" class="form-control" name="userLocation" placeholder="Will appear here" readonly required />
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const vendorSelect = document.getElementById("vendor-name");
+  const userSelect = document.getElementById("vendor-user-name");
+  const contactInput = document.getElementById("vendor-user-contact");
+  const locationInput = document.getElementById("vendor-user-location");
+
+  const vendorChoices = new Choices(vendorSelect, {
+    searchEnabled: true,
+    shouldSort: false,
+    itemSelectText: "",
+  });
+
+  const userChoices = new Choices(userSelect, {
+    searchEnabled: true,
+    shouldSort: false,
+    itemSelectText: "",
+  });
+
+  function resetUserFields() {
+    contactInput.value = "";
+    locationInput.value = "";
+  }
+
+  function resetUserChoices() {
+    userChoices.removeActiveItems();
+    userChoices.clearChoices();
+    userChoices.setChoices(
+      [{ value: "", label: "Search", disabled: true, selected: true }],
+      "value",
+      "label",
+      true
+    );
+    resetUserFields();
+  }
+
+  function applyUserData(user) {
+    if (!user) {
+      resetUserFields();
+      return;
+    }
+
+    contactInput.value = user.userContact || "";
+    locationInput.value = user.userLocation || "";
+  }
+
+  vendorSelect.addEventListener("change", async () => {
+    const vendorName = vendorSelect.value;
+    resetUserChoices();
+
+    if (!vendorName) return;
+
+    try {
+      const response = await fetch(`/fairdesk/form/vendor-binding/vendor/${encodeURIComponent(vendorName)}`);
+      const vendorData = await response.json();
+      const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
+
+      if (!users.length) return;
+
+      userChoices.setChoices(
+        users.map((user, index) => ({
+          value: user._id,
+          label: user.userName || "",
+          selected: index === 0,
+          customProperties: {
+            contact: user.userContact || "",
+            location: user.userLocation || "",
+          },
+        })),
+        "value",
+        "label",
+        true
+      );
+
+      applyUserData(users[0]);
+    } catch (err) {
+      console.error("Vendor binding fetch failed:", err);
+      resetUserChoices();
+    }
+  });
+
+  userSelect.addEventListener("change", () => {
+    const selectedId = userChoices.getValue(true);
+    if (!selectedId) {
+      resetUserFields();
+      return;
+    }
+
+    const selectedUser = userChoices._store.choices.find((choice) => choice.value === selectedId);
+    applyUserData({
+      userContact: selectedUser?.customProperties?.contact || "",
+      userLocation: selectedUser?.customProperties?.location || "",
+    });
+  });
+
+  resetUserChoices();
+});
+</script>

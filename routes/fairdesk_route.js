@@ -1425,20 +1425,6 @@ router.get("/tape/edit/:id", async (req, res) => {
 
 router.post("/tape/edit/:id", async (req, res) => {
   try {
-    const flex = (val) => {
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     const widthRaw = req.body.tapeWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
@@ -1457,22 +1443,28 @@ router.post("/tape/edit/:id", async (req, res) => {
     };
     updateData.tapeSignature = hashSignature(buildTapeSignature(updateData));
 
-    const duplicateTape = await Tape.exists({
+    const duplicateTapeQuery = {
       _id: { $ne: req.params.id },
-      tapePaperCode: flex(updateData.tapePaperCode),
-      tapeGsm: updateData.tapeGsm,
-      tapePaperType: flex(updateData.tapePaperType),
-      tapeWidth: flex(updateData.tapeWidth),
-      tapeMtrs: updateData.tapeMtrs,
-      tapeCoreId: updateData.tapeCoreId,
-      tapeAdhesiveGsm: flex(updateData.tapeAdhesiveGsm),
-      tapeFinish: flex(updateData.tapeFinish),
-    });
+      $or: [
+        { tapeSignature: updateData.tapeSignature },
+        {
+          tapePaperCode: flexTapeValue(updateData.tapePaperCode),
+          tapeGsm: flexTapeValue(updateData.tapeGsm),
+          tapePaperType: flexTapeValue(updateData.tapePaperType),
+          tapeWidth: flexTapeValue(updateData.tapeWidth),
+          tapeMtrs: flexTapeValue(updateData.tapeMtrs),
+          tapeCoreId: flexTapeValue(updateData.tapeCoreId),
+          tapeAdhesiveGsm: flexTapeValue(updateData.tapeAdhesiveGsm),
+          tapeFinish: flexTapeValue(updateData.tapeFinish),
+        },
+      ],
+    };
 
+    const duplicateTape = await Tape.findOne(duplicateTapeQuery).select("tapeProductId").lean();
     if (duplicateTape) {
       return res.status(400).json({
         success: false,
-        message: "tape already exist (same full details)",
+        message: duplicateMasterMessage("Tape", duplicateTape.tapeProductId),
       });
     }
 
@@ -1481,6 +1473,18 @@ router.post("/tape/edit/:id", async (req, res) => {
     res.json({ success: true, redirect: `/fairdesk/tape/view` });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicateTape = await Tape.findOne({
+        _id: { $ne: req.params.id },
+        tapeSignature: hashSignature(buildTapeSignature(req.body)),
+      })
+        .select("tapeProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("Tape", duplicateTape?.tapeProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -1547,20 +1551,6 @@ router.get("/pos-roll/edit/:id", async (req, res) => {
 
 router.post("/pos-roll/edit/:id", async (req, res) => {
   try {
-    const flex = (val) => {
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     const widthRaw = req.body.posWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
@@ -1578,21 +1568,27 @@ router.post("/pos-roll/edit/:id", async (req, res) => {
     };
     updateData.posSignature = hashSignature(buildPosSignature(updateData));
 
-    const duplicatePosRoll = await PosRoll.exists({
+    const duplicatePosQuery = {
       _id: { $ne: req.params.id },
-      posPaperCode: flex(updateData.posPaperCode),
-      posPaperType: flex(updateData.posPaperType),
-      posColor: flex(updateData.posColor),
-      posGsm: updateData.posGsm,
-      posWidth: flex(updateData.posWidth),
-      posMtrs: updateData.posMtrs,
-      posCoreId: updateData.posCoreId,
-    });
+      $or: [
+        { posSignature: updateData.posSignature },
+        {
+          posPaperCode: flexPosValue(updateData.posPaperCode),
+          posPaperType: flexPosValue(updateData.posPaperType),
+          posColor: flexPosValue(updateData.posColor),
+          posGsm: flexPosValue(updateData.posGsm),
+          posWidth: flexPosValue(updateData.posWidth),
+          posMtrs: flexPosValue(updateData.posMtrs),
+          posCoreId: flexPosValue(updateData.posCoreId),
+        },
+      ],
+    };
 
+    const duplicatePosRoll = await PosRoll.findOne(duplicatePosQuery).select("posProductId").lean();
     if (duplicatePosRoll) {
       return res.status(400).json({
         success: false,
-        message: "pos roll already exist (same full details)",
+        message: duplicateMasterMessage("POS Roll", duplicatePosRoll.posProductId),
       });
     }
 
@@ -1601,6 +1597,18 @@ router.post("/pos-roll/edit/:id", async (req, res) => {
     res.json({ success: true, redirect: `/fairdesk/pos-roll/view` });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicatePosRoll = await PosRoll.findOne({
+        _id: { $ne: req.params.id },
+        posSignature: hashSignature(buildPosSignature(req.body)),
+      })
+        .select("posProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("POS Roll", duplicatePosRoll?.posProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -1669,20 +1677,6 @@ router.get("/tafeta/edit/:id", async (req, res) => {
 
 router.post("/tafeta/edit/:id", async (req, res) => {
   try {
-    const flex = (val) => {
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     const widthRaw = req.body.tafetaWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
@@ -1702,23 +1696,29 @@ router.post("/tafeta/edit/:id", async (req, res) => {
     };
     updateData.tafetaSignature = hashSignature(buildTafetaSignature(updateData));
 
-    const duplicateTafeta = await Tafeta.exists({
+    const duplicateTafetaQuery = {
       _id: { $ne: req.params.id },
-      tafetaMaterialCode: flex(updateData.tafetaMaterialCode),
-      tafetaMaterialType: flex(updateData.tafetaMaterialType),
-      tafetaColor: flex(updateData.tafetaColor),
-      tafetaGsm: flex(updateData.tafetaGsm),
-      tafetaWidth: flex(updateData.tafetaWidth),
-      tafetaMtrs: flex(updateData.tafetaMtrs),
-      tafetaCoreLen: flex(updateData.tafetaCoreLen),
-      tafetaNotch: flex(updateData.tafetaNotch),
-      tafetaCoreId: flex(updateData.tafetaCoreId),
-    });
+      $or: [
+        { tafetaSignature: updateData.tafetaSignature },
+        {
+          tafetaMaterialCode: flexTafetaValue(updateData.tafetaMaterialCode),
+          tafetaMaterialType: flexTafetaValue(updateData.tafetaMaterialType),
+          tafetaColor: flexTafetaValue(updateData.tafetaColor),
+          tafetaGsm: flexTafetaValue(updateData.tafetaGsm),
+          tafetaWidth: flexTafetaValue(updateData.tafetaWidth),
+          tafetaMtrs: flexTafetaValue(updateData.tafetaMtrs),
+          tafetaCoreLen: flexTafetaValue(updateData.tafetaCoreLen),
+          tafetaNotch: flexTafetaValue(updateData.tafetaNotch),
+          tafetaCoreId: flexTafetaValue(updateData.tafetaCoreId),
+        },
+      ],
+    };
 
+    const duplicateTafeta = await Tafeta.findOne(duplicateTafetaQuery).select("tafetaProductId").lean();
     if (duplicateTafeta) {
       return res.status(400).json({
         success: false,
-        message: "tafeta already exist (same full details)",
+        message: duplicateMasterMessage("Tafeta", duplicateTafeta.tafetaProductId),
       });
     }
 
@@ -1727,6 +1727,18 @@ router.post("/tafeta/edit/:id", async (req, res) => {
     res.json({ success: true, redirect: `/fairdesk/tafeta/view` });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicateTafeta = await Tafeta.findOne({
+        _id: { $ne: req.params.id },
+        tafetaSignature: hashSignature(buildTafetaSignature(req.body)),
+      })
+        .select("tafetaProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("Tafeta", duplicateTafeta?.tafetaProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -1907,6 +1919,39 @@ router.get("/form/vendor/:name", async (req, res) => {
   res.status(200).json(vendorName);
 });
 
+router.get("/form/vendor-binding", async (req, res) => {
+  try {
+    const vendors = await Vendor.distinct("vendorName");
+    res.render("inventory/vendorBinding.ejs", {
+      title: "Vendor Binding",
+      vendors,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR BINDING GET ERROR:", err);
+    req.flash("notification", "Failed to load Vendor Binding");
+    res.redirect("back");
+  }
+});
+
+router.get("/form/vendor-binding/vendor/:name", async (req, res) => {
+  try {
+    const vendorData = await Vendor.findOne({ vendorName: req.params.name })
+      .populate({
+        path: "users",
+        select: "userName userContact userLocation",
+      })
+      .lean();
+
+    res.status(200).json(vendorData);
+  } catch (err) {
+    console.error("VENDOR BINDING VENDOR FETCH ERROR:", err);
+    res.status(500).json(null);
+  }
+});
+
 // Route to handle VENDOR USER form submission
 router.post("/form/vendor-user", async (req, res) => {
   try {
@@ -1987,20 +2032,6 @@ router.get("/ttr/edit/:id", async (req, res) => {
 
 router.post("/ttr/edit/:id", async (req, res) => {
   try {
-    const flex = (val) => {
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     const widthRaw = req.body.ttrWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
@@ -2021,24 +2052,30 @@ router.post("/ttr/edit/:id", async (req, res) => {
     };
     updateData.ttrSignature = hashSignature(buildTtrSignature(updateData));
 
-    const duplicateTtr = await Ttr.exists({
+    const duplicateTtrQuery = {
       _id: { $ne: req.params.id },
-      ttrType: flex(updateData.ttrType),
-      ttrColor: flex(updateData.ttrColor),
-      ttrMaterialCode: flex(updateData.ttrMaterialCode),
-      ttrWidth: flex(updateData.ttrWidth),
-      ttrMtrs: updateData.ttrMtrs,
-      ttrInkFace: flex(updateData.ttrInkFace),
-      ttrCoreId: flex(updateData.ttrCoreId),
-      ttrCoreLength: updateData.ttrCoreLength,
-      ttrNotch: flex(updateData.ttrNotch),
-      ttrWinding: flex(updateData.ttrWinding),
-    });
+      $or: [
+        { ttrSignature: updateData.ttrSignature },
+        {
+          ttrType: flexTtrValue(updateData.ttrType),
+          ttrColor: flexTtrValue(updateData.ttrColor),
+          ttrMaterialCode: flexTtrValue(updateData.ttrMaterialCode),
+          ttrWidth: flexTtrValue(updateData.ttrWidth),
+          ttrMtrs: updateData.ttrMtrs,
+          ttrInkFace: flexTtrValue(updateData.ttrInkFace),
+          ttrCoreId: flexTtrValue(updateData.ttrCoreId),
+          ttrCoreLength: updateData.ttrCoreLength,
+          ttrNotch: flexTtrValue(updateData.ttrNotch),
+          ttrWinding: flexTtrValue(updateData.ttrWinding),
+        },
+      ],
+    };
 
+    const duplicateTtr = await Ttr.findOne(duplicateTtrQuery).select("ttrProductId").lean();
     if (duplicateTtr) {
       return res.status(400).json({
         success: false,
-        message: "ttr already exist (same full details)",
+        message: duplicateMasterMessage("TTR", duplicateTtr.ttrProductId),
       });
     }
 
@@ -2048,7 +2085,16 @@ router.post("/ttr/edit/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     if (err?.code === 11000) {
-      return res.status(409).json({ success: false, message: "ttr already exist (same full details)" });
+      const duplicateTtr = await Ttr.findOne({
+        _id: { $ne: req.params.id },
+        ttrSignature: hashSignature(buildTtrSignature(req.body)),
+      })
+        .select("ttrProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("TTR", duplicateTtr?.ttrProductId),
+      });
     }
     res.status(400).json({ success: false, message: err.message });
   }
