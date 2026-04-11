@@ -1,7 +1,31 @@
 import express from "express";
+import crypto from "crypto";
 import Client from "../../models/users/client.js";
 
 const router = express.Router();
+
+function normalizeClientPart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildClientSignature(source) {
+  return [
+    normalizeClientPart(source.clientName),
+    normalizeClientPart(source.clientType),
+    normalizeClientPart(source.clientStatus),
+    normalizeClientPart(source.hoLocation),
+    normalizeClientPart(source.accountHead),
+    normalizeClientPart(source.clientGst),
+    normalizeClientPart(source.clientMsme),
+    normalizeClientPart(source.clientGumasta),
+    normalizeClientPart(source.clientPan),
+  ].join("||");
+}
+
+function hashSignature(rawSignature) {
+  return `sha256:${crypto.createHash("sha256").update(String(rawSignature ?? "")).digest("hex")}`;
+}
 
 router.use((req, res, next) => {
   const role = req.session?.authUser?.role;
@@ -106,19 +130,37 @@ router.post("/edit/:id", async (req, res) => {
     const clientMsme = String(req.body.clientMsme || "").trim();
     const clientGumasta = String(req.body.clientGumasta || "").trim();
     const clientPan = String(req.body.clientPan || "").trim();
+    const clientSignature = hashSignature(
+      buildClientSignature({
+        clientName,
+        clientType,
+        clientStatus,
+        hoLocation,
+        accountHead,
+        clientGst,
+        clientMsme,
+        clientGumasta,
+        clientPan,
+      }),
+    );
 
     // Block edit only when another client already has the same full entity.
     const duplicateClient = await Client.findOne({
       _id: { $ne: req.params.id },
-      clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
-      clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
-      clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
-      hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
-      accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
-      clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
-      clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
-      clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
-      clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
+      $or: [
+        { clientSignature },
+        {
+          clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
+          clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
+          clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
+          hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
+          accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
+          clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
+          clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
+          clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
+          clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
+        },
+      ],
     }).lean();
 
     if (duplicateClient) {
@@ -140,6 +182,7 @@ router.post("/edit/:id", async (req, res) => {
         clientMsme,
         clientGumasta,
         clientPan,
+        clientSignature,
       },
       {
       runValidators: true,

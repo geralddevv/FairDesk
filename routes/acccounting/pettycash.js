@@ -23,19 +23,53 @@ async function getOrCreatePettyCash(location) {
   return petty;
 }
 
+function normalizeEntryDate(value) {
+  if (!value) return new Date().toISOString().split("T")[0];
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [y, m, d] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(y, m - 1, d));
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCFullYear() !== y ||
+    parsed.getUTCMonth() !== m - 1 ||
+    parsed.getUTCDate() !== d
+  ) {
+    return null;
+  }
+  return value;
+}
+
+function entryDateSortValue(log) {
+  return log.entryDate || (log.createdAt ? new Date(log.createdAt).toISOString().split("T")[0] : "1970-01-01");
+}
+
+function sortPettyCashLogs(logs) {
+  return [...logs].sort((a, b) => {
+    const aDate = entryDateSortValue(a);
+    const bDate = entryDateSortValue(b);
+    if (aDate !== bDate) return aDate < bDate ? -1 : 1;
+
+    const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (aCreated !== bCreated) return aCreated - bCreated;
+
+    return String(a._id).localeCompare(String(b._id));
+  });
+}
+
 async function recomputeLogsAndBalance(location, { overrideId = null, overrideDoc = null, deleteId = null } = {}) {
-  const logs = await PettyCashLog.find({ location }).sort({ createdAt: 1, _id: 1 });
+  const logs = sortPettyCashLogs(await PettyCashLog.find({ location }).lean());
 
   let running = 0;
   const ops = [];
 
   for (const log of logs) {
-    if (deleteId && log._id.equals(deleteId)) {
+    if (deleteId && String(log._id) === String(deleteId)) {
       continue;
     }
 
-    const isOverride = overrideId && log._id.equals(overrideId);
-    const effective = isOverride ? { ...log.toObject(), ...overrideDoc } : log;
+    const isOverride = overrideId && String(log._id) === String(overrideId);
+    const effective = isOverride ? { ...log, ...overrideDoc } : log;
 
     const openingBalance = running;
     const delta = effective.type === "INWARD" ? effective.amount : -effective.amount;
@@ -55,6 +89,7 @@ async function recomputeLogsAndBalance(location, { overrideId = null, overrideDo
       if (effective.from !== log.from) update.from = effective.from;
       if (effective.to !== log.to) update.to = effective.to;
       if ((effective.reason || "") !== (log.reason || "")) update.reason = effective.reason || "";
+      if ((effective.entryDate || "") !== (log.entryDate || "")) update.entryDate = effective.entryDate;
     }
 
     if (Object.keys(update).length) {
@@ -99,11 +134,12 @@ router.get("/create", async (req, res) => {
 /* ADD TRANSACTION */
 router.post("/create", async (req, res) => {
   try {
-    const { location, from, to, amount, type, reason } = req.body;
+    const { location, from, to, amount, type, reason, entryDate } = req.body;
     const txnAmount = Number(amount) || 0;
+    const normalizedEntryDate = normalizeEntryDate(entryDate);
 
     /* BASIC VALIDATION */
-    if (!location || txnAmount <= 0 || !type || (type === "PAID" && !to) || (type === "RECEIVED" && !from)) {
+    if (!location || txnAmount <= 0 || !type || !normalizedEntryDate || (type === "PAID" && !to) || (type === "RECEIVED" && !from)) {
       req.flash("error", "Invalid petty cash entry");
       return res.redirect("back");
     }
@@ -111,33 +147,11 @@ router.post("/create", async (req, res) => {
     /* UI → INTERNAL TYPE MAP */
     const internalType = type === "RECEIVED" ? "INWARD" : "OUTWARD";
 
-    /* READ FIRST — NO CREATE, NO UPDATE */
-    const existingPetty = await findPettyCash(location);
-    const openingBalance = existingPetty?.currentBalance ?? 0;
-
-    /* HARD STOP — ETHICAL GUARD */
-    if (internalType === "OUTWARD" && txnAmount > openingBalance) {
-      req.flash("error", "Insufficient petty cash balance");
-      return res.redirect("back");
-    }
-
-    /* NOW IT IS SAFE TO CREATE / UPDATE */
     const petty = await getOrCreatePettyCash(location);
-
-    /* CALCULATE CLOSING BALANCE */
+    const openingBalance = petty?.currentBalance ?? 0;
     const closingBalance = internalType === "INWARD" ? openingBalance + txnAmount : openingBalance - txnAmount;
 
-    /* FINAL SAFETY ASSERTION */
-    if (closingBalance < 0) {
-      throw new Error("Invariant violation: negative petty cash balance");
-    }
-
-    /* UPDATE MASTER */
-    petty.currentBalance = closingBalance;
-    await petty.save();
-
-    /* CREATE LOG (SUCCESS ONLY) */
-    await PettyCashLog.create({
+    const createdLog = await PettyCashLog.create({
       location,
 
       from: internalType === "OUTWARD" ? "-" : (from && from.trim()) || "-",
@@ -149,7 +163,16 @@ router.post("/create", async (req, res) => {
       closingBalance,
       type: internalType,
       reason,
+      entryDate: normalizedEntryDate,
     });
+
+    try {
+      await recomputeLogsAndBalance(location);
+    } catch (recomputeErr) {
+      await PettyCashLog.findByIdAndDelete(createdLog._id);
+      await recomputeLogsAndBalance(location);
+      throw recomputeErr;
+    }
 
     req.flash("notification", "Petty cash updated successfully");
     return res.redirect("/fairdesk/pettycash/view");
@@ -193,7 +216,7 @@ router.get("/logs/:location", async (req, res) => {
   try {
     const { location } = req.params;
 
-    const logs = await PettyCashLog.find({ location }).sort({ createdAt: -1 }).lean();
+    const logs = sortPettyCashLogs(await PettyCashLog.find({ location }).lean()).reverse();
 
     res.json({ history: logs });
   } catch (err) {
@@ -211,10 +234,11 @@ router.patch("/logs/:id", async (req, res) => {
       return res.status(404).json({ message: "Log not found" });
     }
 
-    const { amount, type, from, to, reason } = req.body;
+    const { amount, type, from, to, reason, entryDate } = req.body;
     const txnAmount = Number(amount) || 0;
+    const normalizedEntryDate = normalizeEntryDate(entryDate);
 
-    if (!["INWARD", "OUTWARD"].includes(type) || txnAmount <= 0) {
+    if (!["INWARD", "OUTWARD"].includes(type) || txnAmount <= 0 || !normalizedEntryDate) {
       return res.status(400).json({ message: "Invalid log update" });
     }
 
@@ -232,6 +256,7 @@ router.patch("/logs/:id", async (req, res) => {
       from: type === "INWARD" ? from.trim() : "-",
       to: type === "OUTWARD" ? to.trim() : "-",
       reason: (reason || "").trim(),
+      entryDate: normalizedEntryDate,
     };
 
     const balance = await recomputeLogsAndBalance(log.location, {

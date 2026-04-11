@@ -14,6 +14,7 @@ let clientSchema = new mongoose.Schema({
   clientMsme: { type: String, required: true },
   clientGumasta: { type: String, required: true },
   clientPan: { type: String, required: true },
+  clientSignature: { type: String, unique: true, sparse: true, trim: true, index: true },
   users: [{ type: mongoose.Schema.Types.ObjectId, ref: "Username" }],
 });
 let Client = mongoose.model("Client", clientSchema);

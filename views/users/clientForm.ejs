@@ -11,7 +11,7 @@
         <h1>Create User</h1>
       </div>
     </div>       
-    <form class="client-content span-full needs-validation" action="/fairdesk/form/client" method="post" autocomplete="off" novalidate>
+    <form id="client-form" class="client-content span-full needs-validation" action="/fairdesk/form/client" method="post" autocomplete="off" novalidate>
     <div class="span-four">
       <label for="client-id">Client Id</label>
       <input type="text" value="<%= previewClientId %>" id="client-id" class="form-control input-tag" name="clientId" placeholder="Enter Client ID" readonly required />
@@ -86,12 +86,12 @@
     </div> 
 
     <div class="span-full btn-grp">
-      <button class="submit-btn" type="submit">Save Client Details</button>
+      <button id="client-submit-btn" class="submit-btn" type="submit">Save Client Details</button>
     </div>
   </form>
 
   <!---------------------------------------------------------------------------------------------------------------------------------------------->
-    <form action="/fairdesk/form/user" method="post" class="user-content span-full needs-validation" autocomplete="off" novalidate>
+    <form id="user-form" action="/fairdesk/form/user" method="post" class="user-content span-full needs-validation" autocomplete="off" novalidate>
     <div class="span-full form-subheading">
       <h1>Client Information</h1>
     </div>
@@ -225,7 +225,7 @@
     </div>
 
     <div class="span-full btn-grp">
-      <button class="submit-btn" type="submit">Save User Details</button>
+      <button id="user-submit-btn" class="submit-btn" type="submit">Save User Details</button>
     </div>
   </form>
 </div>
@@ -233,3 +233,40 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/selectize/dist/js/standalone/selectize.min.js"></script>
+
+<script>
+  const clientForm = document.getElementById("client-form");
+  const clientSubmitBtn = document.getElementById("client-submit-btn");
+  const userForm = document.getElementById("user-form");
+  const userSubmitBtn = document.getElementById("user-submit-btn");
+  let clientSubmitting = false;
+  let userSubmitting = false;
+
+  if (clientForm) {
+    clientForm.addEventListener("submit", (e) => {
+      if (clientSubmitting) {
+        e.preventDefault();
+        return;
+      }
+
+      if (!clientForm.checkValidity()) return;
+
+      clientSubmitting = true;
+      if (clientSubmitBtn) clientSubmitBtn.disabled = true;
+    });
+  }
+
+  if (userForm) {
+    userForm.addEventListener("submit", (e) => {
+      if (userSubmitting) {
+        e.preventDefault();
+        return;
+      }
+
+      if (!userForm.checkValidity()) return;
+
+      userSubmitting = true;
+      if (userSubmitBtn) userSubmitBtn.disabled = true;
+    });
+  }
+</script>

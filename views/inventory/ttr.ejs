@@ -1,7 +1,7 @@
 <% layout('/layout/boilerplate') %>
 <!-- The main content -->
 <div class="main-content">
-  <form action="/fairdesk/form/ttr" method="post" class="needs-validation" autocomplete="off" novalidate>
+  <form id="ttr-form" action="/fairdesk/form/ttr" method="post" class="needs-validation" autocomplete="off" novalidate>
     <div class="span-full form-heading">
       <h1>TTR</h1>
     </div>
@@ -149,7 +149,7 @@
           </div> -->
 
     <div class="btn-grp span-full">
-      <button type="submit">Save TTR</button>
+      <button id="ttr-submit-btn" type="submit">Save TTR</button>
     </div>
   </form>
 </div>
@@ -166,10 +166,11 @@
 
 <script>
   const ttrForm = document.querySelector("form.needs-validation");
+  const ttrSubmitBtn = document.getElementById("ttr-submit-btn");
+  let isSubmitting = false;
   if (ttrForm) {
     ttrForm.addEventListener("submit", async (e) => {
-      if (ttrForm.dataset.skipDupCheck === "1") {
-        ttrForm.dataset.skipDupCheck = "";
+      if (isSubmitting) {
         return;
       }
 
@@ -177,6 +178,8 @@
 
       e.preventDefault();
       e.stopPropagation();
+      isSubmitting = true;
+      if (ttrSubmitBtn) ttrSubmitBtn.disabled = true;
 
       const getVal = (name) => {
         const el = ttrForm.querySelector(`[name="${name}"]`);
@@ -200,17 +203,22 @@
         const res = await fetch(`/fairdesk/form/ttr/exists?${params.toString()}`);
         if (!res.ok) {
           if (window.showToast) window.showToast("Unable to validate TTR. Please try again.", true);
+          isSubmitting = false;
+          if (ttrSubmitBtn) ttrSubmitBtn.disabled = false;
           return;
         }
         const data = await res.json();
         if (data.exists) {
-          if (window.showToast) window.showToast("TTR already exist.", true);
+          if (window.showToast) window.showToast(data.message || `TTR already exist with id: ${data.id || "unknown"}`, true);
+          isSubmitting = false;
+          if (ttrSubmitBtn) ttrSubmitBtn.disabled = false;
           return;
         }
-        ttrForm.dataset.skipDupCheck = "1";
-        ttrForm.requestSubmit();
+        ttrForm.submit();
       } catch (err) {
         if (window.showToast) window.showToast("Network error while validating TTR.", true);
+        isSubmitting = false;
+        if (ttrSubmitBtn) ttrSubmitBtn.disabled = false;
       }
     });
   }

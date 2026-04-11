@@ -25,6 +25,7 @@ const vendorUserSchema = new mongoose.Schema({
   ownerEmail: { type: String },
   vendorGst: { type: String },
   vendorMsme: { type: String },
+  vendorUserSignature: { type: String, unique: true, sparse: true, trim: true, index: true },
 
   // Multiple label per vendor (future-proof)
   label: [

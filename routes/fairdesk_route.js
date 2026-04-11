@@ -1,4 +1,5 @@
 import express, { json } from "express";
+import crypto from "crypto";
 import mongoose from "mongoose";
 // import asyncHandler from "express-async-handler";
 import Client from "../models/users/client.js";
@@ -32,6 +33,14 @@ import TtrStockLog from "../models/inventory/TtrStockLog.js";
 import Location from "../models/system/location.js";
 import Counter from "../models/system/counter.js";
 const router = express.Router();
+
+function hashSignature(rawSignature) {
+  return `sha256:${crypto.createHash("sha256").update(String(rawSignature ?? "")).digest("hex")}`;
+}
+
+function duplicateMasterMessage(item, productId) {
+  return `${item} already exist with id: ${productId || "unknown"}`;
+}
 
 router.use((req, res, next) => {
   const role = req.session?.authUser?.role;
@@ -108,6 +117,50 @@ router.get("/form/client", async (req, res) => {
   });
 });
 
+function normalizeClientPart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildClientSignature(source) {
+  return [
+    normalizeClientPart(source.clientName),
+    normalizeClientPart(source.clientType),
+    normalizeClientPart(source.clientStatus),
+    normalizeClientPart(source.hoLocation),
+    normalizeClientPart(source.accountHead),
+    normalizeClientPart(source.clientGst),
+    normalizeClientPart(source.clientMsme),
+    normalizeClientPart(source.clientGumasta),
+    normalizeClientPart(source.clientPan),
+  ].join("||");
+}
+
+function normalizeUserPart(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeUserName(value) {
+  return normalizeUserPart(value).toUpperCase();
+}
+
+function normalizeUserEmail(value) {
+  return normalizeUserPart(value).toLowerCase();
+}
+
+function normalizeUserContact(value) {
+  return normalizeUserPart(value).replace(/\D/g, "");
+}
+
+function buildUserSignature(source, clientId) {
+  return [
+    normalizeClientPart(clientId),
+    normalizeUserName(source.userName),
+    normalizeUserEmail(source.userEmail),
+    normalizeUserContact(source.userContact),
+  ].join("||");
+}
+
 // Route to handle CLIENT form submission
 router.post("/form/client", async (req, res) => {
   try {
@@ -137,21 +190,26 @@ router.post("/form/client", async (req, res) => {
     const clientMsme = String(req.body.clientMsme || "").trim();
     const clientGumasta = String(req.body.clientGumasta || "").trim();
     const clientPan = String(req.body.clientPan || "").trim();
+    const clientSignature = hashSignature(buildClientSignature(req.body));
 
     // Prevent duplicates only when the full logical client entity matches.
     // clientId is auto-generated, so it is intentionally excluded from this match.
     const existingSameEntity = await Client.findOne({
-      clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
-      clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
-      clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
-      hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
-      accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
-      clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
-      clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
-      clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
-      clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
-    })
-      .lean();
+      $or: [
+        { clientSignature },
+        {
+          clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
+          clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
+          clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
+          hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
+          accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
+          clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
+          clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
+          clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
+          clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
+        },
+      ],
+    }).lean();
 
     if (existingSameEntity) {
       return res.status(400).json({
@@ -171,6 +229,7 @@ router.post("/form/client", async (req, res) => {
       clientMsme,
       clientGumasta,
       clientPan,
+      clientSignature,
     };
 
     await Client.create(formData);
@@ -178,6 +237,9 @@ router.post("/form/client", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/client/view" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      return res.status(409).json({ success: false, message: "client already exist (same full details)" });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -219,30 +281,20 @@ router.post("/form/user", async (req, res) => {
     const userEmail = String(req.body.userEmail || "")
       .trim()
       .toLowerCase();
+    const userSignature = hashSignature(buildUserSignature(req.body, clientId));
 
     // Prevent duplicates only on full identity tuple within the same client.
-    const normalizeName = (s) => String(s || "").trim().toUpperCase();
-    const normalizeEmail = (s) => String(s || "").trim().toLowerCase();
-    const normalizeContact = (s) => String(s || "").replace(/\D/g, "");
-
-    const userNameN = normalizeName(userName);
-    const userEmailN = normalizeEmail(userEmail);
-    const userContactN = normalizeContact(userContact);
-
-    const existingUsers = await Username.find({ clientId })
-      .select("userName userEmail userContact")
-      .lean();
-
-    const duplicateUser = existingUsers.some((u) => {
-      return (
-        userNameN &&
-        userEmailN &&
-        userContactN &&
-        normalizeName(u.userName) === userNameN &&
-        normalizeEmail(u.userEmail) === userEmailN &&
-        normalizeContact(u.userContact) === userContactN
-      );
-    });
+    const duplicateUser = await Username.findOne({
+      $or: [
+        { userSignature },
+        {
+          clientId,
+          userName: new RegExp(`^${escapeRegex(userName)}$`, "i"),
+          userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i"),
+          userContact: new RegExp(`^${escapeRegex(userContact)}$`, "i"),
+        },
+      ],
+    }).lean();
 
     if (duplicateUser) {
       return res.status(400).json({
@@ -261,6 +313,7 @@ router.post("/form/user", async (req, res) => {
       userName,
       userContact,
       userEmail,
+      userSignature,
     });
 
     client.users.push(newUser);
@@ -270,6 +323,12 @@ router.post("/form/user", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/master/view" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "user already exist (same client + name + email + contact)",
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -389,6 +448,40 @@ router.post("/form/carequote", async (req, res) => {
 });
 
 // ----------------------------------TTR---------------------------------->
+function normalizeTtrPart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildTtrSignature(source) {
+  return [
+    normalizeTtrPart(source.ttrType),
+    normalizeTtrPart(source.ttrColor),
+    normalizeTtrPart(source.ttrMaterialCode),
+    normalizeTtrPart(source.ttrWidth),
+    normalizeTtrPart(source.ttrMtrs),
+    normalizeTtrPart(source.ttrInkFace),
+    normalizeTtrPart(source.ttrCoreId),
+    normalizeTtrPart(source.ttrCoreLength),
+    normalizeTtrPart(source.ttrNotch),
+    normalizeTtrPart(source.ttrWinding),
+  ].join("||");
+}
+
+function flexTtrValue(val) {
+  if (val === undefined || val === null) return val;
+  const arr = [val];
+  if (typeof val === "string") {
+    const t = val.trim();
+    if (t !== val) arr.push(t);
+    const n = Number(t);
+    if (t !== "" && !Number.isNaN(n)) arr.push(n);
+  } else {
+    arr.push(String(val));
+  }
+  return { $in: arr };
+}
+
 // GET: TTR Master form
 router.get("/form/ttr", async (req, res) => {
   const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
@@ -445,45 +538,35 @@ router.get("/form/ttr/exists", async (req, res) => {
       return res.json({ exists: false });
     }
 
-    const flex = (val) => {
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
-    const num = (val) => {
-      const n = Number(String(val).trim());
-      return Number.isFinite(n) ? n : null;
-    };
-
-    const mtrs = num(ttrMtrs);
-    const coreLen = num(ttrCoreLength);
-    if (mtrs === null || coreLen === null) {
+    if (buildTtrSignature(req.query).split("||").some((part) => part === "")) {
       return res.json({ exists: false });
     }
 
-    const exists = await Ttr.exists({
-      ttrType: flex(ttrType),
-      ttrColor: flex(ttrColor),
-      ttrMaterialCode: flex(ttrMaterialCode),
-      ttrWidth: flex(ttrWidth),
-      ttrMtrs: mtrs,
-      ttrInkFace: flex(ttrInkFace),
-      ttrCoreId: flex(ttrCoreId),
-      ttrCoreLength: coreLen,
-      ttrNotch: flex(ttrNotch),
-      ttrWinding: flex(ttrWinding),
-    });
+    const ttrSignature = hashSignature(buildTtrSignature(req.query));
+    const legacyMatch = {
+      ttrType: flexTtrValue(ttrType),
+      ttrColor: flexTtrValue(ttrColor),
+      ttrMaterialCode: flexTtrValue(ttrMaterialCode),
+      ttrWidth: flexTtrValue(ttrWidth),
+      ttrMtrs: Number(ttrMtrs),
+      ttrInkFace: flexTtrValue(ttrInkFace),
+      ttrCoreId: flexTtrValue(ttrCoreId),
+      ttrCoreLength: Number(ttrCoreLength),
+      ttrNotch: flexTtrValue(ttrNotch),
+      ttrWinding: flexTtrValue(ttrWinding),
+    };
 
-    return res.json({ exists: !!exists });
+    const existingTtr = await Ttr.findOne({
+      $or: [{ ttrSignature }, legacyMatch],
+    })
+      .select("ttrProductId")
+      .lean();
+
+    return res.json({
+      exists: !!existingTtr,
+      id: existingTtr?.ttrProductId || "",
+      message: existingTtr ? duplicateMasterMessage("TTR", existingTtr.ttrProductId) : "",
+    });
   } catch (err) {
     console.error("TTR EXISTS CHECK ERROR:", err);
     return res.status(500).json({ exists: false });
@@ -511,46 +594,38 @@ router.post("/form/ttr", async (req, res) => {
       throw new Error("Unable to generate unique TTR product id");
     };
 
-    const flex = (val) => {
-      // Helps match DB values regardless of string/number casting and stray whitespace.
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     // Prevent duplicates based on TTR specs (productId is always unique).
-    const alreadyExists = await Ttr.exists({
-      ttrType: flex(req.body.ttrType),
-      ttrColor: flex(req.body.ttrColor),
-      ttrMaterialCode: flex(req.body.ttrMaterialCode),
-      ttrWidth: flex(req.body.ttrWidth),
-      ttrMtrs: Number(req.body.ttrMtrs),
-      ttrInkFace: flex(req.body.ttrInkFace),
-      ttrCoreId: flex(req.body.ttrCoreId),
-      ttrCoreLength: Number(req.body.ttrCoreLength),
-      ttrNotch: flex(req.body.ttrNotch),
-      ttrWinding: flex(req.body.ttrWinding),
-    });
-    if (alreadyExists) {
-      return res.status(400).json({
-        success: false,
-        message: "ttr already exist (same full details)",
-      });
-    }
-
+    const ttrSignature = hashSignature(buildTtrSignature(req.body));
     const widthRaw = req.body.ttrWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const duplicateTtrQuery = {
+      $or: [
+        { ttrSignature },
+        {
+          ttrType: flexTtrValue(req.body.ttrType),
+          ttrColor: flexTtrValue(req.body.ttrColor),
+          ttrMaterialCode: flexTtrValue(req.body.ttrMaterialCode),
+          ttrWidth: flexTtrValue(widthVal),
+          ttrMtrs: Number(req.body.ttrMtrs),
+          ttrInkFace: flexTtrValue(req.body.ttrInkFace),
+          ttrCoreId: flexTtrValue(req.body.ttrCoreId),
+          ttrCoreLength: Number(req.body.ttrCoreLength),
+          ttrNotch: flexTtrValue(req.body.ttrNotch),
+          ttrWinding: flexTtrValue(req.body.ttrWinding),
+        },
+      ],
+    };
+    const alreadyExists = await Ttr.findOne(duplicateTtrQuery).select("ttrProductId").lean();
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: duplicateMasterMessage("TTR", alreadyExists.ttrProductId),
+      });
+    }
 
     const data = {
       ttrProductId: await generateTtrProductId(),
@@ -564,6 +639,7 @@ router.post("/form/ttr", async (req, res) => {
       ttrCoreLength: Number(req.body.ttrCoreLength),
       ttrNotch: String(req.body.ttrNotch).trim(),
       ttrWinding: String(req.body.ttrWinding).trim(),
+      ttrSignature,
       createdBy: req.user?.username || "SYSTEM",
     };
 
@@ -573,6 +649,15 @@ router.post("/form/ttr", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/ttr/view" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicateTtr = await Ttr.findOne({ ttrSignature: hashSignature(buildTtrSignature(req.body)) })
+        .select("ttrProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("TTR", duplicateTtr?.ttrProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -653,44 +738,36 @@ router.post("/form/tape-master", async (req, res) => {
       throw new Error("Unable to generate unique tape product id");
     };
 
-    const flex = (val) => {
-      // Helps match DB values regardless of string/number casting and stray whitespace.
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     // Prevent duplicates based on tape specs (productId is always unique).
-    const alreadyExists = await Tape.exists({
-      tapePaperCode: flex(req.body.tapePaperCode),
-      tapeGsm: Number(req.body.tapeGsm),
-      tapePaperType: flex(req.body.tapePaperType),
-      tapeWidth: flex(req.body.tapeWidth),
-      tapeMtrs: Number(req.body.tapeMtrs),
-      tapeCoreId: Number(req.body.tapeCoreId),
-      tapeAdhesiveGsm: flex(req.body.tapeAdhesiveGsm),
-      tapeFinish: flex(req.body.tapeFinish),
-    });
-    if (alreadyExists) {
-      return res.status(400).json({
-        success: false,
-        message: "tape already exist (same full details)",
-      });
-    }
-
+    const tapeSignature = hashSignature(buildTapeSignature(req.body));
     const widthRaw = req.body.tapeWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const duplicateTapeQuery = {
+      $or: [
+        { tapeSignature },
+        {
+          tapePaperCode: flexTapeValue(req.body.tapePaperCode),
+          tapeGsm: flexTapeValue(Number(req.body.tapeGsm)),
+          tapePaperType: flexTapeValue(req.body.tapePaperType),
+          tapeWidth: flexTapeValue(widthVal),
+          tapeMtrs: flexTapeValue(Number(req.body.tapeMtrs)),
+          tapeCoreId: flexTapeValue(Number(req.body.tapeCoreId)),
+          tapeAdhesiveGsm: flexTapeValue(req.body.tapeAdhesiveGsm),
+          tapeFinish: flexTapeValue(req.body.tapeFinish),
+        },
+      ],
+    };
+    const alreadyExists = await Tape.findOne(duplicateTapeQuery).select("tapeProductId").lean();
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: duplicateMasterMessage("Tape", alreadyExists.tapeProductId),
+      });
+    }
 
     const data = {
       tapeProductId: await generateTapeProductId(),
@@ -702,6 +779,7 @@ router.post("/form/tape-master", async (req, res) => {
       tapeCoreId: Number(req.body.tapeCoreId),
       tapeAdhesiveGsm: String(req.body.tapeAdhesiveGsm).trim(),
       tapeFinish: String(req.body.tapeFinish).trim(),
+      tapeSignature,
       createdBy: req.user?.username || "SYSTEM",
     };
 
@@ -711,6 +789,15 @@ router.post("/form/tape-master", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/tape/view" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicateTape = await Tape.findOne({ tapeSignature: hashSignature(buildTapeSignature(req.body)) })
+        .select("tapeProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("Tape", duplicateTape?.tapeProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -769,6 +856,7 @@ router.post("/form/edit/user/:userId", async (req, res) => {
       clientPayment: String(req.body.clientPayment || "").trim(),
       SelfDispatch: String(req.body.SelfDispatch || "").trim(),
     };
+    updateData.userSignature = hashSignature(buildUserSignature(updateData, currentUser.clientId));
 
     // Cleanup if self dispatch is enabled, ensure transport fields are empty
     if (updateData.SelfDispatch) {
@@ -864,43 +952,35 @@ router.post("/form/pos-roll-master", async (req, res) => {
       throw new Error("Unable to generate unique POS Roll product id");
     };
 
-    const flex = (val) => {
-      // Helps match DB values regardless of string/number casting and stray whitespace.
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     // Prevent duplicates based on POS Roll specs (productId is always unique).
-    const alreadyExists = await PosRoll.exists({
-      posPaperCode: flex(req.body.posPaperCode),
-      posPaperType: flex(req.body.posPaperType),
-      posColor: flex(req.body.posColor),
-      posGsm: Number(req.body.posGsm),
-      posWidth: flex(req.body.posWidth),
-      posMtrs: Number(req.body.posMtrs),
-      posCoreId: Number(req.body.posCoreId),
-    });
-    if (alreadyExists) {
-      return res.status(400).json({
-        success: false,
-        message: "pos roll already exist (same full details)",
-      });
-    }
-
+    const posSignature = hashSignature(buildPosSignature(req.body));
     const widthRaw = req.body.posWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const duplicatePosQuery = {
+      $or: [
+        { posSignature },
+        {
+          posPaperCode: flexPosValue(req.body.posPaperCode),
+          posPaperType: flexPosValue(req.body.posPaperType),
+          posColor: flexPosValue(req.body.posColor),
+          posGsm: flexPosValue(Number(req.body.posGsm)),
+          posWidth: flexPosValue(widthVal),
+          posMtrs: flexPosValue(Number(req.body.posMtrs)),
+          posCoreId: flexPosValue(Number(req.body.posCoreId)),
+        },
+      ],
+    };
+    const alreadyExists = await PosRoll.findOne(duplicatePosQuery).select("posProductId").lean();
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: duplicateMasterMessage("POS Roll", alreadyExists.posProductId),
+      });
+    }
 
     const data = {
       posProductId: await generatePosProductId(),
@@ -911,6 +991,7 @@ router.post("/form/pos-roll-master", async (req, res) => {
       posWidth: widthVal,
       posMtrs: Number(req.body.posMtrs),
       posCoreId: Number(req.body.posCoreId),
+      posSignature,
     };
 
     await PosRoll.create(data);
@@ -919,6 +1000,15 @@ router.post("/form/pos-roll-master", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/pos-roll/view" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicatePosRoll = await PosRoll.findOne({ posSignature: hashSignature(buildPosSignature(req.body)) })
+        .select("posProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("POS Roll", duplicatePosRoll?.posProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -970,45 +1060,37 @@ router.post("/form/tafeta-master", async (req, res) => {
       throw new Error("Unable to generate unique Tafeta product id");
     };
 
-    const flex = (val) => {
-      // Helps match DB values regardless of string/number casting and stray whitespace.
-      if (val === undefined || val === null) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !Number.isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
-
     // Prevent duplicates based on Tafeta specs (productId is always unique).
-    const alreadyExists = await Tafeta.exists({
-      tafetaMaterialCode: flex(req.body.tafetaMaterialCode),
-      tafetaMaterialType: flex(req.body.tafetaMaterialType),
-      tafetaColor: flex(req.body.tafetaColor),
-      tafetaGsm: flex(req.body.tafetaGsm),
-      tafetaWidth: flex(req.body.tafetaWidth),
-      tafetaMtrs: flex(req.body.tafetaMtrs),
-      tafetaCoreLen: flex(req.body.tafetaCoreLen),
-      tafetaNotch: flex(req.body.tafetaNotch),
-      tafetaCoreId: flex(req.body.tafetaCoreId),
-    });
-    if (alreadyExists) {
-      return res.status(400).json({
-        success: false,
-        message: "tafeta already exist (same full details)",
-      });
-    }
-
+    const tafetaSignature = hashSignature(buildTafetaSignature(req.body));
     const widthRaw = req.body.tafetaWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+
+    const duplicateTafetaQuery = {
+      $or: [
+        { tafetaSignature },
+        {
+          tafetaMaterialCode: flexTafetaValue(req.body.tafetaMaterialCode),
+          tafetaMaterialType: flexTafetaValue(req.body.tafetaMaterialType),
+          tafetaColor: flexTafetaValue(req.body.tafetaColor),
+          tafetaGsm: flexTafetaValue(req.body.tafetaGsm),
+          tafetaWidth: flexTafetaValue(widthVal),
+          tafetaMtrs: flexTafetaValue(req.body.tafetaMtrs),
+          tafetaCoreLen: flexTafetaValue(req.body.tafetaCoreLen),
+          tafetaNotch: flexTafetaValue(req.body.tafetaNotch),
+          tafetaCoreId: flexTafetaValue(req.body.tafetaCoreId),
+        },
+      ],
+    };
+    const alreadyExists = await Tafeta.findOne(duplicateTafetaQuery).select("tafetaProductId").lean();
+    if (alreadyExists) {
+      return res.status(400).json({
+        success: false,
+        message: duplicateMasterMessage("Tafeta", alreadyExists.tafetaProductId),
+      });
+    }
 
     const data = {
       tafetaProductId: await generateTafetaProductId(),
@@ -1021,6 +1103,7 @@ router.post("/form/tafeta-master", async (req, res) => {
       tafetaCoreLen: String(req.body.tafetaCoreLen).trim(),
       tafetaNotch: String(req.body.tafetaNotch).trim(),
       tafetaCoreId: String(req.body.tafetaCoreId).trim(),
+      tafetaSignature,
     };
 
     await Tafeta.create(data);
@@ -1029,6 +1112,15 @@ router.post("/form/tafeta-master", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/tafeta/view" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      const duplicateTafeta = await Tafeta.findOne({ tafetaSignature: hashSignature(buildTafetaSignature(req.body)) })
+        .select("tafetaProductId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateMasterMessage("Tafeta", duplicateTafeta?.tafetaProductId),
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -1111,6 +1203,39 @@ router.get("/tafeta/view", async (req, res) => {
   });
 });
 
+function normalizeTafetaPart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildTafetaSignature(source) {
+  return [
+    normalizeTafetaPart(source.tafetaMaterialCode),
+    normalizeTafetaPart(source.tafetaMaterialType),
+    normalizeTafetaPart(source.tafetaColor),
+    normalizeTafetaPart(source.tafetaGsm),
+    normalizeTafetaPart(source.tafetaWidth),
+    normalizeTafetaPart(source.tafetaMtrs),
+    normalizeTafetaPart(source.tafetaCoreLen),
+    normalizeTafetaPart(source.tafetaNotch),
+    normalizeTafetaPart(source.tafetaCoreId),
+  ].join("||");
+}
+
+function flexTafetaValue(val) {
+  if (val === undefined || val === null) return val;
+  const arr = [val];
+  if (typeof val === "string") {
+    const t = val.trim();
+    if (t !== val) arr.push(t);
+    const n = Number(t);
+    if (t !== "" && !Number.isNaN(n)) arr.push(n);
+  } else {
+    arr.push(String(val));
+  }
+  return { $in: arr };
+}
+
 // ================= POS ROLL MASTER LIST VIEW =================
 router.get("/pos-roll/view", async (req, res) => {
   const posRolls = await PosRoll.find().sort({ posProductId: 1 }).lean();
@@ -1183,6 +1308,69 @@ router.get("/tape/profile/:id", async (req, res) => {
   });
 });
 
+function normalizePosPart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildPosSignature(source) {
+  return [
+    normalizePosPart(source.posPaperCode),
+    normalizePosPart(source.posPaperType),
+    normalizePosPart(source.posColor),
+    normalizePosPart(source.posGsm),
+    normalizePosPart(source.posWidth),
+    normalizePosPart(source.posMtrs),
+    normalizePosPart(source.posCoreId),
+  ].join("||");
+}
+
+function flexPosValue(val) {
+  if (val === undefined || val === null) return val;
+  const arr = [val];
+  if (typeof val === "string") {
+    const t = val.trim();
+    if (t !== val) arr.push(t);
+    const n = Number(t);
+    if (t !== "" && !Number.isNaN(n)) arr.push(n);
+  } else {
+    arr.push(String(val));
+  }
+  return { $in: arr };
+}
+
+function normalizeTapePart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildTapeSignature(source) {
+  return [
+    normalizeTapePart(source.tapePaperCode),
+    normalizeTapePart(source.tapePaperType),
+    normalizeTapePart(source.tapeGsm),
+    normalizeTapePart(source.tapeWidth),
+    normalizeTapePart(source.tapeMtrs),
+    normalizeTapePart(source.tapeCoreId),
+    normalizeTapePart(source.tapeAdhesiveGsm),
+    normalizeTapePart(source.tapeFinish),
+  ].join("||");
+}
+
+function flexTapeValue(val) {
+  if (val === undefined || val === null) return val;
+  const arr = [val];
+  if (typeof val === "string") {
+    const t = val.trim();
+    if (t !== val) arr.push(t);
+    const n = Number(t);
+    if (t !== "" && !Number.isNaN(n)) arr.push(n);
+  } else {
+    arr.push(String(val));
+  }
+  return { $in: arr };
+}
+
 // ================= TAPE EDIT =================
 router.get("/tape/edit/:id", async (req, res) => {
   const tape = await Tape.findById(req.params.id).lean();
@@ -1228,6 +1416,7 @@ router.post("/tape/edit/:id", async (req, res) => {
       tapeAdhesiveGsm: String(req.body.tapeAdhesiveGsm || "").trim(),
       tapeFinish: String(req.body.tapeFinish || "").trim(),
     };
+    updateData.tapeSignature = hashSignature(buildTapeSignature(updateData));
 
     const duplicateTape = await Tape.exists({
       _id: { $ne: req.params.id },
@@ -1348,6 +1537,7 @@ router.post("/pos-roll/edit/:id", async (req, res) => {
       posMtrs: Number(req.body.posMtrs),
       posCoreId: Number(req.body.posCoreId),
     };
+    updateData.posSignature = hashSignature(buildPosSignature(updateData));
 
     const duplicatePosRoll = await PosRoll.exists({
       _id: { $ne: req.params.id },
@@ -1471,6 +1661,7 @@ router.post("/tafeta/edit/:id", async (req, res) => {
       tafetaNotch: String(req.body.tafetaNotch || "").trim(),
       tafetaCoreId: String(req.body.tafetaCoreId || "").trim(),
     };
+    updateData.tafetaSignature = hashSignature(buildTafetaSignature(updateData));
 
     const duplicateTafeta = await Tafeta.exists({
       _id: { $ne: req.params.id },
@@ -1567,6 +1758,52 @@ router.get("/form/vendor", async (req, res) => {
   });
 });
 
+function normalizeVendorPart(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
+
+function buildVendorSignature(source) {
+  return [
+    normalizeVendorPart(source.vendorName),
+    normalizeVendorPart(source.vendorStatus),
+    normalizeVendorPart(source.hoLocation),
+    normalizeVendorPart(source.warehouseLocation),
+    normalizeVendorPart(source.vendorGst),
+    normalizeVendorPart(source.vendorMsme),
+    normalizeVendorPart(source.vendorGumasta),
+    normalizeVendorPart(source.vendorPan),
+    Array.isArray(source.commodities)
+      ? source.commodities.map((c) => normalizeVendorPart(c)).filter(Boolean).join(",")
+      : normalizeVendorPart(source.commodities),
+  ].join("||");
+}
+
+function normalizeVendorUserPart(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeVendorUserName(value) {
+  return normalizeVendorUserPart(value).toUpperCase();
+}
+
+function normalizeVendorUserEmail(value) {
+  return normalizeVendorUserPart(value).toLowerCase();
+}
+
+function normalizeVendorUserContact(value) {
+  return normalizeVendorUserPart(value).replace(/\D/g, "");
+}
+
+function buildVendorUserSignature(source, vendorId) {
+  return [
+    normalizeVendorPart(vendorId),
+    normalizeVendorUserName(source.userName),
+    normalizeVendorUserEmail(source.userEmail),
+    normalizeVendorUserContact(source.userContact),
+  ].join("||");
+}
+
 // Route to handle VENDOR form submission
 router.post("/form/vendor", async (req, res) => {
   try {
@@ -1576,10 +1813,12 @@ router.post("/form/vendor", async (req, res) => {
     const vendorName = String(req.body.vendorName || "").trim();
     const vendorGst = String(req.body.vendorGst || "").trim();
     const vendorPan = String(req.body.vendorPan || "").trim();
+    const vendorSignature = hashSignature(buildVendorSignature(req.body));
 
     // Prevent duplicates (vendorId is unique, but also guard by name / GST / PAN).
     const alreadyExists = await Vendor.exists({
       $or: [
+        { vendorSignature },
         vendorId ? { vendorId } : null,
         vendorName ? { vendorName: new RegExp(`^${escapeRegex(vendorName)}$`, "i") } : null,
         vendorGst ? { vendorGst: new RegExp(`^${escapeRegex(vendorGst)}$`, "i") } : null,
@@ -1605,6 +1844,7 @@ router.post("/form/vendor", async (req, res) => {
       vendorMsme: String(req.body.vendorMsme || "").trim(),
       vendorGumasta: String(req.body.vendorGumasta || "").trim(),
       vendorPan,
+      vendorSignature,
     };
 
     await Vendor.create(formData);
@@ -1612,6 +1852,12 @@ router.post("/form/vendor", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/form/vendor" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "vendor already exist",
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -1639,30 +1885,20 @@ router.post("/form/vendor-user", async (req, res) => {
     const userEmail = String(req.body.userEmail || "")
       .trim()
       .toLowerCase();
+    const vendorUserSignature = hashSignature(buildVendorUserSignature(req.body, vendorId));
 
     // Prevent duplicates only on full identity tuple within the same vendor.
-    const normalizeName = (s) => String(s || "").trim().toUpperCase();
-    const normalizeEmail = (s) => String(s || "").trim().toLowerCase();
-    const normalizeContact = (s) => String(s || "").replace(/\D/g, "");
-
-    const userNameN = normalizeName(userName);
-    const userEmailN = normalizeEmail(userEmail);
-    const userContactN = normalizeContact(userContact);
-
-    const existingVendorUsers = await VendorUser.find({ vendorId })
-      .select("userName userEmail userContact")
-      .lean();
-
-    const duplicateVendorUser = existingVendorUsers.some((u) => {
-      return (
-        userNameN &&
-        userEmailN &&
-        userContactN &&
-        normalizeName(u.userName) === userNameN &&
-        normalizeEmail(u.userEmail) === userEmailN &&
-        normalizeContact(u.userContact) === userContactN
-      );
-    });
+    const duplicateVendorUser = await VendorUser.findOne({
+      $or: [
+        { vendorUserSignature },
+        {
+          vendorId,
+          userName: new RegExp(`^${escapeRegex(userName)}$`, "i"),
+          userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i"),
+          userContact: new RegExp(`^${escapeRegex(userContact)}$`, "i"),
+        },
+      ],
+    }).lean();
 
     if (duplicateVendorUser) {
       return res.status(400).json({
@@ -1677,6 +1913,7 @@ router.post("/form/vendor-user", async (req, res) => {
       userName,
       userContact,
       userEmail,
+      vendorUserSignature,
     });
 
     vendor.users.push(newUser);
@@ -1686,6 +1923,12 @@ router.post("/form/vendor-user", async (req, res) => {
     res.json({ success: true, redirect: "/fairdesk/form/vendor?tab=user" });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "vendor user already exist (same vendor + name + email + contact)",
+      });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -1737,6 +1980,7 @@ router.post("/ttr/edit/:id", async (req, res) => {
       ttrNotch: String(req.body.ttrNotch || "").trim(),
       ttrWinding: String(req.body.ttrWinding || "").trim(),
     };
+    updateData.ttrSignature = hashSignature(buildTtrSignature(updateData));
 
     const duplicateTtr = await Ttr.exists({
       _id: { $ne: req.params.id },
@@ -1764,6 +2008,9 @@ router.post("/ttr/edit/:id", async (req, res) => {
     res.json({ success: true, redirect: `/fairdesk/ttr/view` });
   } catch (err) {
     console.error(err);
+    if (err?.code === 11000) {
+      return res.status(409).json({ success: false, message: "ttr already exist (same full details)" });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 });

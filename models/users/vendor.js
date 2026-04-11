@@ -11,6 +11,7 @@ let vendorSchema = new mongoose.Schema({
   vendorMsme: { type: String, required: true },
   vendorGumasta: { type: String, required: true },
   vendorPan: { type: String, required: true },
+  vendorSignature: { type: String, unique: true, sparse: true, trim: true, index: true },
   users: [{ type: mongoose.Schema.Types.ObjectId, ref: "VendorUser" }],
 });
 

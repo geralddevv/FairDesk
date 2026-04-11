@@ -90,6 +90,14 @@ const ttrSchema = new mongoose.Schema(
       default: "NORMAL",
     },
 
+    ttrSignature: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
+
     /* ================= AUDIT ================= */
     createdBy: {
       type: String,

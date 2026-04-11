@@ -24,6 +24,7 @@ import os from "os";
 
 import session from "express-session";
 import flash from "connect-flash";
+import MongoSessionStore from "./utils/mongoSessionStore.js";
 
 const app = express();
 const port = 3000;
@@ -55,17 +56,23 @@ app.use("/bootstrap", express.static(dir_name + "/node_modules/bootstrap/dist", 
 app.use("/images", express.static("images", { maxAge: "1d" }));
 
 /* SESSION (THIS IS THE KEY) */
+const sessionStore = new MongoSessionStore({
+  ttlMs: 1000 * 60 * 60 * 4,
+});
+
 app.use(
   session({
     name: "fairdesk.sid",
     secret: "fairdesk-secret-key",
     resave: false,
     saveUninitialized: false,
+    rolling: true,
+    store: sessionStore,
     cookie: {
       httpOnly: true,
       secure: false, // localhost
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60, // 1 hour
+      maxAge: 1000 * 60 * 60 * 4, // 4 hours
     },
   }),
 );

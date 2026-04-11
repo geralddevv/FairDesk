@@ -1,7 +1,7 @@
 <% layout('/layout/boilerplate') %>
 <!-- The main content -->
 <div class="main-content">
-  <form action="/fairdesk/form/pos-roll-master" method="post" class="needs-validation" autocomplete="off" novalidate>
+  <form id="pos-roll-form" action="/fairdesk/form/pos-roll-master" method="post" class="needs-validation" autocomplete="off" novalidate>
     <div class="span-full form-heading">
       <h1>POS Roll Master</h1>
     </div>
@@ -84,7 +84,27 @@
     <input type="hidden" name="userId" id="user-id" />
 
     <div class="btn-grp span-full">
-      <button type="submit">Save POS Roll</button>
+      <button id="pos-roll-submit-btn" type="submit">Save POS Roll</button>
     </div>
   </form>
 </div>
+
+<script>
+  const posRollForm = document.getElementById("pos-roll-form");
+  const posRollSubmitBtn = document.getElementById("pos-roll-submit-btn");
+  let posRollSubmitting = false;
+
+  if (posRollForm) {
+    posRollForm.addEventListener("submit", (e) => {
+      if (posRollSubmitting) {
+        e.preventDefault();
+        return;
+      }
+
+      if (!posRollForm.checkValidity()) return;
+
+      posRollSubmitting = true;
+      if (posRollSubmitBtn) posRollSubmitBtn.disabled = true;
+    });
+  }
+</script>

@@ -64,6 +64,14 @@ const tapeSchema = new mongoose.Schema(
       required: true,
     },
 
+    tapeSignature: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
+
     /* ================= AUDIT ================= */
     createdBy: {
       type: String,

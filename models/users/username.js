@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema({
   ownerEmail: { type: String },
   clientGst: { type: String },
   clientMsme: { type: String },
+  userSignature: { type: String, unique: true, sparse: true, trim: true, index: true },
 
   // Multiple label per client
   label: [

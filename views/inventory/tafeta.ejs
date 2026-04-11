@@ -1,7 +1,7 @@
 <% layout('/layout/boilerplate') %>
 <!-- The main content -->
 <div class="main-content">
-  <form action="/fairdesk/form/tafeta-master" method="post" class="needs-validation" autocomplete="off" novalidate>
+  <form id="tafeta-form" action="/fairdesk/form/tafeta-master" method="post" class="needs-validation" autocomplete="off" novalidate>
     <div class="span-full form-heading">
       <h1>Tafeta Master</h1>
     </div>
@@ -104,7 +104,27 @@
     <input type="hidden" name="userId" id="user-id" />
 
     <div class="btn-grp span-full">
-      <button type="submit">Save Tafeta</button>
+      <button id="tafeta-submit-btn" type="submit">Save Tafeta</button>
     </div>
   </form>
 </div>
+
+<script>
+  const tafetaForm = document.getElementById("tafeta-form");
+  const tafetaSubmitBtn = document.getElementById("tafeta-submit-btn");
+  let tafetaSubmitting = false;
+
+  if (tafetaForm) {
+    tafetaForm.addEventListener("submit", (e) => {
+      if (tafetaSubmitting) {
+        e.preventDefault();
+        return;
+      }
+
+      if (!tafetaForm.checkValidity()) return;
+
+      tafetaSubmitting = true;
+      if (tafetaSubmitBtn) tafetaSubmitBtn.disabled = true;
+    });
+  }
+</script>

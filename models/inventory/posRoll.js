@@ -56,6 +56,14 @@ const posRollSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+
+    posSignature: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      index: true,
+    },
   },
   {
     timestamps: true,

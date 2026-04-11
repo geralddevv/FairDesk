@@ -5,7 +5,7 @@
     <!-- ================= FORM HEADING ================= -->
     <div class="span-full form-heading" style="display: flex; justify-content: space-between; flex-direction: row">
       <div class="span-five" style="display: flex; gap: 6px; justify-content: start; flex-direction: row; width: auto">
-        <label style="width: auto; color: white;"> Location </label>
+        <label style="width: auto; color: white"> Location </label>
         <select name="location" id="locationSelect" class="form-control select-tag" style="width: 130px" required>
           <option value="" disabled selected hidden>Select Location</option>
           <option value="OFFICE">OFFICE</option>
@@ -21,7 +21,7 @@
         id="balanceWrap"
         style="display: flex; gap: 6px; justify-content: end; flex-direction: row; width: auto"
       >
-        <label style="width: auto; color: white;">Current Balance</label>
+        <label style="width: auto; color: white">Current Balance</label>
         <input
           type="number"
           id="currentBalance"
@@ -34,7 +34,7 @@
     </div>
 
     <!-- ================= TRANSACTION TYPE ================= -->
-    <div class="span-dual">
+    <div class="span-seven">
       <label>Transaction Type</label>
       <select name="type" id="txnType" class="form-control select-tag" required>
         <option value="PAID" selected>PAID</option>
@@ -43,7 +43,7 @@
     </div>
 
     <!-- ================= FROM ================= -->
-    <div class="span-dual">
+    <div class="span-five">
       <label id="fromLabel">From</label>
       <input
         type="text"
@@ -55,7 +55,7 @@
       />
     </div>
 
-    <div class="span-dual" id="toWrap">
+    <div class="span-five" id="toWrap">
       <label>To</label>
       <input
         type="text"
@@ -68,13 +68,19 @@
     </div>
 
     <!-- ================= AMOUNT ================= -->
-    <div class="span-dual">
+    <div class="span-six">
       <label>Amount</label>
       <input type="number" name="amount" class="form-control input-tag" placeholder="Enter amount" min="1" required />
     </div>
 
+    <!-- ================= ENTRY DATE ================= -->
+    <div class="span-six">
+      <label>Entry Date</label>
+      <input type="date" name="entryDate" id="entryDate" class="form-control input-tag" required />
+    </div>
+
     <!-- ================= REASON ================= -->
-    <div class="span-dual">
+    <div class="span-eight">
       <label>Reason</label>
       <input type="text" name="reason" class="form-control input-tag" placeholder="Optional" />
     </div>
@@ -94,10 +100,16 @@
   const txnType = document.getElementById("txnType");
   const fromInput = document.getElementById("fromInput");
   const toInput = document.getElementById("toInput");
-  const fromWrap = fromInput.closest(".span-dual");
+  const entryDateInput = document.getElementById("entryDate");
+  const fromWrap = fromInput.closest(".span-five");
   const toWrap = document.getElementById("toWrap");
 
   balanceInput.value = 0;
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  entryDateInput.value = `${yyyy}-${mm}-${dd}`;
 
   /* ===== LOCATION → FETCH BALANCE ===== */
   locationSelect.addEventListener("change", async () => {
@@ -115,8 +127,10 @@
 
   /* ===== TRANSACTION TYPE → VISIBILITY + REQUIRED FIX ===== */
   function syncFields() {
+    if (!fromWrap || !toWrap) return;
+
     if (txnType.value === "PAID") {
-      // PAID → only TO
+      // PAID → show TO, hide FROM
       fromWrap.style.display = "none";
       fromInput.required = false;
       fromInput.value = "";
@@ -124,7 +138,7 @@
       toWrap.style.display = "block";
       toInput.required = true;
     } else {
-      // RECEIVED → only FROM
+      // RECEIVED → show FROM, hide TO
       toWrap.style.display = "none";
       toInput.required = false;
       toInput.value = "";

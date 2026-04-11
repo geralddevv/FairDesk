@@ -35,6 +35,12 @@ const pettyCashLogSchema = new mongoose.Schema(
       required: true,
     },
 
+    entryDate: {
+      type: String,
+      required: true,
+      default: () => new Date().toISOString().split("T")[0],
+    },
+
     type: {
       type: String,
       enum: ["INWARD", "OUTWARD"],
