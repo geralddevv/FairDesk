@@ -122,6 +122,14 @@ function normalizeClientPart(value) {
   return String(value).trim();
 }
 
+function duplicateClientMessage(clientId) {
+  return `client already exist: "${clientId || "unknown"}"`;
+}
+
+function duplicateUserMessage(userName, clientName) {
+  return `"${userName || "unknown"}" already exist for this "${clientName || "unknown"}"`;
+}
+
 function buildClientSignature(source) {
   return [
     normalizeClientPart(source.clientName),
@@ -161,10 +169,13 @@ function buildUserSignature(source, clientId) {
   ].join("||");
 }
 
+function escapeRegexLiteral(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Route to handle CLIENT form submission
 router.post("/form/client", async (req, res) => {
   try {
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const generateClientId = async () => {
       const maxAttempts = 10000;
       for (let i = 0; i < maxAttempts; i++) {
@@ -198,23 +209,25 @@ router.post("/form/client", async (req, res) => {
       $or: [
         { clientSignature },
         {
-          clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
-          clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
-          clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
-          hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
-          accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
-          clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
-          clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
-          clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
-          clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
+          clientName: new RegExp(`^${escapeRegexLiteral(clientName)}$`, "i"),
+          clientType: new RegExp(`^${escapeRegexLiteral(clientType)}$`, "i"),
+          clientStatus: new RegExp(`^${escapeRegexLiteral(clientStatus)}$`, "i"),
+          hoLocation: new RegExp(`^${escapeRegexLiteral(hoLocation)}$`, "i"),
+          accountHead: new RegExp(`^${escapeRegexLiteral(accountHead)}$`, "i"),
+          clientGst: new RegExp(`^${escapeRegexLiteral(clientGst)}$`, "i"),
+          clientMsme: new RegExp(`^${escapeRegexLiteral(clientMsme)}$`, "i"),
+          clientGumasta: new RegExp(`^${escapeRegexLiteral(clientGumasta)}$`, "i"),
+          clientPan: new RegExp(`^${escapeRegexLiteral(clientPan)}$`, "i"),
         },
       ],
-    }).lean();
+    })
+      .select("clientId")
+      .lean();
 
     if (existingSameEntity) {
       return res.status(400).json({
         success: false,
-        message: "client already exist (same full details)",
+        message: duplicateClientMessage(existingSameEntity.clientId),
       });
     }
 
@@ -238,7 +251,13 @@ router.post("/form/client", async (req, res) => {
   } catch (err) {
     console.error(err);
     if (err?.code === 11000) {
-      return res.status(409).json({ success: false, message: "client already exist (same full details)" });
+      const existingClient = await Client.findOne({ clientSignature })
+        .select("clientId")
+        .lean();
+      return res.status(409).json({
+        success: false,
+        message: duplicateClientMessage(existingClient?.clientId),
+      });
     }
     res.status(400).json({ success: false, message: err.message });
   }
@@ -254,8 +273,6 @@ router.get("/form/client/:name", async (req, res) => {
 // Route to handle USER form submission
 router.post("/form/user", async (req, res) => {
   try {
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
     const { objectId } = req.body;
     let client = null;
     if (objectId) {
@@ -268,7 +285,7 @@ router.post("/form/user", async (req, res) => {
         client = await Client.findOne({ clientId: clientIdFallback });
       }
       if (!client && clientNameFallback) {
-        client = await Client.findOne({ clientName: new RegExp(`^${escapeRegex(clientNameFallback)}$`, "i") });
+        client = await Client.findOne({ clientName: new RegExp(`^${escapeRegexLiteral(clientNameFallback)}$`, "i") });
       }
     }
     if (!client) {
@@ -289,17 +306,19 @@ router.post("/form/user", async (req, res) => {
         { userSignature },
         {
           clientId,
-          userName: new RegExp(`^${escapeRegex(userName)}$`, "i"),
-          userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i"),
-          userContact: new RegExp(`^${escapeRegex(userContact)}$`, "i"),
+          userName: new RegExp(`^${escapeRegexLiteral(userName)}$`, "i"),
+          userEmail: new RegExp(`^${escapeRegexLiteral(userEmail)}$`, "i"),
+          userContact: new RegExp(`^${escapeRegexLiteral(userContact)}$`, "i"),
         },
       ],
-    }).lean();
+    })
+      .select("userName clientName")
+      .lean();
 
     if (duplicateUser) {
       return res.status(400).json({
         success: false,
-        message: "user already exist (same client + name + email + contact)",
+        message: duplicateUserMessage(duplicateUser.userName, duplicateUser.clientName || client.clientName),
       });
     }
 
@@ -324,9 +343,29 @@ router.post("/form/user", async (req, res) => {
   } catch (err) {
     console.error(err);
     if (err?.code === 11000) {
+      const clientId = String(req.body.clientId || "").trim();
+      const userName = String(req.body.userName || "").trim();
+      const userEmail = String(req.body.userEmail || "")
+        .trim()
+        .toLowerCase();
+      const userContact = String(req.body.userContact || "").trim();
+      const fallbackUserSignature = hashSignature(buildUserSignature(req.body, clientId));
+      const existingUser = await Username.findOne({
+        $or: [
+          { userSignature: fallbackUserSignature },
+          {
+            clientId,
+            userName: new RegExp(`^${escapeRegexLiteral(userName)}$`, "i"),
+            userEmail: new RegExp(`^${escapeRegexLiteral(userEmail)}$`, "i"),
+            userContact: new RegExp(`^${escapeRegexLiteral(userContact)}$`, "i"),
+          },
+        ],
+      })
+        .select("userName clientName")
+        .lean();
       return res.status(409).json({
         success: false,
-        message: "user already exist (same client + name + email + contact)",
+        message: duplicateUserMessage(existingUser?.userName || userName, existingUser?.clientName),
       });
     }
     res.status(400).json({ success: false, message: err.message });
