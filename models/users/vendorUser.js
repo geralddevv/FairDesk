@@ -27,6 +27,34 @@ const vendorUserSchema = new mongoose.Schema({
   vendorMsme: { type: String },
   vendorUserSignature: { type: String, unique: true, sparse: true, trim: true, index: true },
 
+  ttr: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "VendorTtrBinding",
+    },
+  ],
+
+  tape: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "VendorTapeBinding",
+    },
+  ],
+
+  posRoll: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "VendorPosRollBinding",
+    },
+  ],
+
+  tafeta: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "VendorTafetaBinding",
+    },
+  ],
+
   // Multiple label per vendor (future-proof)
   label: [
     {

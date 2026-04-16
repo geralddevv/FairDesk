@@ -49,7 +49,12 @@
 
     <div class="span-six">
       <label for="account-head">Account Head</label>
-      <input type="text" id="account-head" class="form-control input-tag" name="accountHead" placeholder="Enter Account Head" required />
+      <select name="accountHead" id="account-head" class="form-control select-tag" required>
+        <option value="" selected disabled hidden>Select</option>
+        <% (employees || []).forEach((employee) => { %>
+          <option value="<%= employee.empName %>"><%= employee.empName %></option>
+        <% }) %>
+      </select>
     </div>
 
     <!-- <div class="span-seven">

@@ -1,0 +1,577 @@
+<% layout('/layout/boilerplate') %>
+
+<%
+  const cfg = pageConfig || {};
+  const specFields = cfg.specFields || [];
+  const overrideFields = cfg.overrideFields || [];
+%>
+
+<style>
+  .item-id-success {
+    border: 2px solid #28a745 !important;
+    background-color: #f3fff6;
+    color: #155724;
+    font-weight: 600;
+  }
+
+  .item-id-error {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+    color: #721c24;
+    font-weight: 600;
+  }
+</style>
+
+<div class="main-content">
+  <form id="vendor-item-form" action="/fairdesk/form/vendor-item-binding/<%= cfg.key %>" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <div class="span-full form-heading">
+      <h1><%= cfg.heading %></h1>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>FS Info</h1>
+    </div>
+
+    <div class="span-seven">
+      <label for="resolved-item-display">Item ID</label>
+      <input type="text" id="resolved-item-display" class="form-control" placeholder="Will appear here" readonly required />
+    </div>    
+
+    <div class="span-six">
+      <label for="vendor-name">Vendor Name</label>
+      <select name="vendorName" id="vendor-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (vendors || []).forEach((vendor) => { %>
+          <option value="<%= vendor %>"><%= vendor %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-name">Vendor User</label>
+      <select name="vendorUserId" id="vendor-user-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-contact">Contact</label>
+      <input type="text" id="vendor-user-contact" class="form-control" name="userContact" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-seven">
+      <label for="vendor-user-location">Location</label>
+      <input type="text" id="vendor-user-location" class="form-control" name="userLocation" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-full form-subheading" style="display: flex; justify-content: space-between; align-items: center;">
+      <h1><%= cfg.heading %> Specifications</h1>
+      <button type="button" id="reset-specs-btn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">
+        Reset
+      </button>
+    </div>
+
+    <div class="span-five">
+      <label for="tafeta-material-code">Material Code</label>
+      <select name="tafetaMaterialCode" id="tafeta-material-code" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaMaterialCode || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="tafeta-material-type">Material Type</label>
+      <select name="tafetaMaterialType" id="tafeta-material-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaMaterialType || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-three">
+      <label for="tafeta-color">Color</label>
+      <select name="tafetaColor" id="tafeta-color" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaColor || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-three">
+      <label for="tafeta-gsm">GSM</label>
+      <select name="tafetaGsm" id="tafeta-gsm" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaGsm || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-three">
+      <label for="tafeta-width">Width</label>
+      <select name="tafetaWidth" id="tafeta-width" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaWidth || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-three">
+      <label for="tafeta-mtrs">Meters</label>
+      <select name="tafetaMtrs" id="tafeta-mtrs" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaMtrs || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="tafeta-core-len">Core Len</label>
+      <select name="tafetaCoreLen" id="tafeta-core-len" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaCoreLen || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-three">
+      <label for="tafeta-notch">Notch</label>
+      <select name="tafetaNotch" id="tafeta-notch" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaNotch || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-three">
+      <label for="tafeta-core-id">Core ID</label>
+      <select name="tafetaCoreId" id="tafeta-core-id" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tafetaCoreId || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>FS Overrides</h1>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-tafeta-material-code">FS Material Code</label>
+      <input type="text" id="vendor-tafeta-material-code" class="form-control" name="vendorTafetaMaterialCode" placeholder="Enter FS Material Code" required />
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-tafeta-gsm">FS GSM</label>
+      <input type="text" id="vendor-tafeta-gsm" class="form-control" name="vendorTafetaGsm" placeholder="Enter FS GSM" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="tafeta-mtrs-del-input">MTRS Delivered</label>
+      <input type="text" id="tafeta-mtrs-del-input" class="form-control" name="tafetaMtrsDel" placeholder="Enter MTRS Delivered" required />
+    </div>
+
+    <div class="span-six">
+      <label for="tafeta-rate-per-roll">Rate Per Roll</label>
+      <input type="number" id="tafeta-rate-per-roll" class="form-control" name="tafetaRatePerRoll" placeholder="Enter rate per roll" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="tafeta-sale-cost">Sales sq mtrs Cost</label>
+      <input type="number" id="tafeta-sale-cost" class="form-control" name="tafetaSaleCost" placeholder="Enter Sales Cost" tabindex="-1" required readonly />
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Pricing & Order Terms</h1>
+    </div>    
+
+    <div class="span-dual">
+      <label for="tafeta-min-qty">Minimum Order QTY</label>
+      <input type="number" id="tafeta-min-qty" class="form-control" name="tafetaMinQty" placeholder="Enter minimum qty" required />
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-odr-qty">Order QTY</label>
+      <input type="number" id="tafeta-odr-qty" class="form-control" name="tafetaOdrQty" placeholder="Enter order qty" required />
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-odr-freq">Repeat Order Freq</label>
+      <input type="text" id="tafeta-odr-freq" class="form-control" name="tafetaOdrFreq" placeholder="Enter repeat order frequency" required />
+    </div>
+    <div class="span-dual">
+      <label for="tafeta-credit-term">CR</label>
+      <input type="text" id="tafeta-credit-term" class="form-control" name="tafetaCreditTerm" placeholder="Enter credit term" required />
+    </div>
+
+    <input type="hidden" name="<%= cfg.bindingField %>" id="resolved-item-id" />
+
+    <div class="btn-grp span-full">
+      <button type="submit" id="vendor-item-submit">Save <%= cfg.heading %></button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const pageConfig = <%- JSON.stringify(cfg) %>;
+
+  const form = document.getElementById("vendor-item-form");
+  const submitBtn = document.getElementById("vendor-item-submit");
+  const vendorSelect = document.getElementById("vendor-name");
+  const userSelect = document.getElementById("vendor-user-name");
+  const contactInput = document.getElementById("vendor-user-contact");
+  const locationInput = document.getElementById("vendor-user-location");
+  const itemIdInput = document.getElementById("resolved-item-id");
+  const itemDisplayInput = document.getElementById("resolved-item-display");
+
+  const tafetaMaterialCodeEl = document.getElementById("tafeta-material-code");
+  const tafetaMaterialTypeEl = document.getElementById("tafeta-material-type");
+  const tafetaColorEl = document.getElementById("tafeta-color");
+  const tafetaGsmEl = document.getElementById("tafeta-gsm");
+  const tafetaWidthEl = document.getElementById("tafeta-width");
+  const tafetaMtrsEl = document.getElementById("tafeta-mtrs");
+  const tafetaCoreLenEl = document.getElementById("tafeta-core-len");
+  const tafetaNotchEl = document.getElementById("tafeta-notch");
+  const tafetaCoreIdEl = document.getElementById("tafeta-core-id");
+
+  const vendorChoices = new Choices(vendorSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const userChoices = new Choices(userSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaMaterialCodeChoices = new Choices(tafetaMaterialCodeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaMaterialTypeChoices = new Choices(tafetaMaterialTypeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaColorChoices = new Choices(tafetaColorEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaGsmChoices = new Choices(tafetaGsmEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaWidthChoices = new Choices(tafetaWidthEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaMtrsChoices = new Choices(tafetaMtrsEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaCoreLenChoices = new Choices(tafetaCoreLenEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaNotchChoices = new Choices(tafetaNotchEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tafetaCoreIdChoices = new Choices(tafetaCoreIdEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const vendorTafetaMaterialCodeEl = document.getElementById("vendor-tafeta-material-code");
+  const vendorTafetaGsmEl = document.getElementById("vendor-tafeta-gsm");
+  const tafetaMtrsDelEl = document.getElementById("tafeta-mtrs-del-input");
+  const tafetaRatePerRollEl = document.getElementById("tafeta-rate-per-roll");
+  const tafetaSaleCostEl = document.getElementById("tafeta-sale-cost");
+  const tafetaMinQtyEl = document.getElementById("tafeta-min-qty");
+  const tafetaOdrQtyEl = document.getElementById("tafeta-odr-qty");
+  const tafetaOdrFreqEl = document.getElementById("tafeta-odr-freq");
+  const tafetaCreditTermEl = document.getElementById("tafeta-credit-term");
+
+  function resetUserFields() {
+    contactInput.value = "";
+    locationInput.value = "";
+  }
+
+  function resetUserChoices() {
+    userChoices.removeActiveItems();
+    userChoices.clearChoices();
+    userChoices.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+    resetUserFields();
+  }
+
+  function resetResolvedItem() {
+    itemIdInput.value = "";
+    itemDisplayInput.value = "";
+    itemDisplayInput.classList.remove("item-id-success", "item-id-error");
+    submitBtn.disabled = true;
+  }
+
+  function resetSelect(instance) {
+    instance.clearStore();
+    instance.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+  }
+
+  function setSelectChoices(instance, values, currentValue) {
+    const choiceValues = values.map((value) => ({ value: String(value), label: String(value), selected: String(value) === currentValue }));
+    instance.clearStore();
+    instance.setChoices(
+      [{ value: "", label: "Search", disabled: true, selected: !choiceValues.some((choice) => choice.selected) }, ...choiceValues],
+      "value",
+      "label",
+      true,
+    );
+    const current = String(currentValue || "");
+    if (choiceValues.length === 1 && !current) {
+      instance.setChoiceByValue(String(values[0]));
+      return String(values[0]);
+    }
+    if (current && choiceValues.some((choice) => choice.value === current)) {
+      instance.setChoiceByValue(current);
+    }
+    if (!choiceValues.some((choice) => choice.value === current)) {
+      instance.removeActiveItems();
+    }
+    return "";
+  }
+
+  async function populateVendorUsers(vendorName) {
+    resetUserChoices();
+    if (!vendorName) return;
+
+    const response = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/vendor/${encodeURIComponent(vendorName)}`);
+    const vendorData = await response.json();
+    const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
+    if (!users.length) return;
+
+    userChoices.setChoices(
+      users.map((user, index) => ({
+        value: user._id,
+        label: user.userName || "",
+        selected: index === 0,
+        customProperties: {
+          contact: user.userContact || "",
+          location: user.userLocation || "",
+        },
+      })),
+      "value",
+      "label",
+      true,
+    );
+
+    contactInput.value = users[0].userContact || "";
+    locationInput.value = users[0].userLocation || "";
+  }
+
+  async function filterSpecs(changedFieldId) {
+    const params = new URLSearchParams();
+    if (tafetaMaterialCodeEl.value) params.set("tafetaMaterialCode", tafetaMaterialCodeEl.value);
+    if (tafetaMaterialTypeEl.value) params.set("tafetaMaterialType", tafetaMaterialTypeEl.value);
+    if (tafetaColorEl.value) params.set("tafetaColor", tafetaColorEl.value);
+    if (tafetaGsmEl.value) params.set("tafetaGsm", tafetaGsmEl.value);
+    if (tafetaWidthEl.value) params.set("tafetaWidth", tafetaWidthEl.value);
+    if (tafetaMtrsEl.value) params.set("tafetaMtrs", tafetaMtrsEl.value);
+    if (tafetaCoreLenEl.value) params.set("tafetaCoreLen", tafetaCoreLenEl.value);
+    if (tafetaNotchEl.value) params.set("tafetaNotch", tafetaNotchEl.value);
+    if (tafetaCoreIdEl.value) params.set("tafetaCoreId", tafetaCoreIdEl.value);
+
+    const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/filter-specs?${params}`);
+    const data = await res.json();
+    if (!data) return false;
+
+    let autoSelectedField = "";
+    if (changedFieldId !== "tafeta-material-code") autoSelectedField = setSelectChoices(tafetaMaterialCodeChoices, data.tafetaMaterialCode || [], tafetaMaterialCodeEl.value);
+    if (changedFieldId !== "tafeta-material-type") autoSelectedField = autoSelectedField || setSelectChoices(tafetaMaterialTypeChoices, data.tafetaMaterialType || [], tafetaMaterialTypeEl.value);
+    if (changedFieldId !== "tafeta-color") autoSelectedField = autoSelectedField || setSelectChoices(tafetaColorChoices, data.tafetaColor || [], tafetaColorEl.value);
+    if (changedFieldId !== "tafeta-gsm") autoSelectedField = autoSelectedField || setSelectChoices(tafetaGsmChoices, data.tafetaGsm || [], tafetaGsmEl.value);
+    if (changedFieldId !== "tafeta-width") autoSelectedField = autoSelectedField || setSelectChoices(tafetaWidthChoices, data.tafetaWidth || [], tafetaWidthEl.value);
+    if (changedFieldId !== "tafeta-mtrs") autoSelectedField = autoSelectedField || setSelectChoices(tafetaMtrsChoices, data.tafetaMtrs || [], tafetaMtrsEl.value);
+    if (changedFieldId !== "tafeta-core-len") autoSelectedField = autoSelectedField || setSelectChoices(tafetaCoreLenChoices, data.tafetaCoreLen || [], tafetaCoreLenEl.value);
+    if (changedFieldId !== "tafeta-notch") autoSelectedField = autoSelectedField || setSelectChoices(tafetaNotchChoices, data.tafetaNotch || [], tafetaNotchEl.value);
+    if (changedFieldId !== "tafeta-core-id") autoSelectedField = autoSelectedField || setSelectChoices(tafetaCoreIdChoices, data.tafetaCoreId || [], tafetaCoreIdEl.value);
+
+    if (autoSelectedField) {
+      await filterSpecs(autoSelectedField);
+      await resolveItem();
+      return true;
+    }
+    return false;
+  }
+
+  async function resolveItem() {
+    resetResolvedItem();
+    if (!tafetaMaterialCodeEl.value || !tafetaMaterialTypeEl.value || !tafetaColorEl.value || !tafetaGsmEl.value || !tafetaWidthEl.value || !tafetaMtrsEl.value || !tafetaCoreLenEl.value || !tafetaNotchEl.value || !tafetaCoreIdEl.value) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      tafetaMaterialCode: tafetaMaterialCodeEl.value,
+      tafetaMaterialType: tafetaMaterialTypeEl.value,
+      tafetaColor: tafetaColorEl.value,
+      tafetaGsm: tafetaGsmEl.value,
+      tafetaWidth: tafetaWidthEl.value,
+      tafetaMtrs: tafetaMtrsEl.value,
+      tafetaCoreLen: tafetaCoreLenEl.value,
+      tafetaNotch: tafetaNotchEl.value,
+      tafetaCoreId: tafetaCoreIdEl.value,
+    });
+
+    const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/resolve?${params}`);
+    if (!res.ok) {
+      itemDisplayInput.value = "No matching item found";
+      itemDisplayInput.classList.add("item-id-error");
+      return;
+    }
+
+    const data = await res.json();
+    itemIdInput.value = data.itemId;
+    itemDisplayInput.value = data.displayValue;
+    itemDisplayInput.classList.add("item-id-success");
+    submitBtn.disabled = false;
+  }
+
+  vendorSelect.addEventListener("change", async () => {
+    try {
+      await populateVendorUsers(vendorSelect.value);
+    } catch (err) {
+      console.error("Vendor fetch failed:", err);
+      resetUserChoices();
+    }
+  });
+
+  userSelect.addEventListener("change", () => {
+    const selectedId = userChoices.getValue(true);
+    if (!selectedId) return resetUserFields();
+
+    const selectedUser = userChoices._store.choices.find((choice) => choice.value === selectedId);
+    contactInput.value = selectedUser?.customProperties?.contact || "";
+    locationInput.value = selectedUser?.customProperties?.location || "";
+  });
+
+  tafetaMaterialCodeEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-material-code");
+    await resolveItem();
+  });
+  tafetaMaterialTypeEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-material-type");
+    await resolveItem();
+  });
+  tafetaColorEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-color");
+    await resolveItem();
+  });
+  tafetaGsmEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-gsm");
+    await resolveItem();
+  });
+  tafetaWidthEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-width");
+    await resolveItem();
+  });
+  tafetaMtrsEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-mtrs");
+    await resolveItem();
+  });
+  tafetaCoreLenEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-core-len");
+    await resolveItem();
+  });
+  tafetaNotchEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-notch");
+    await resolveItem();
+  });
+  tafetaCoreIdEl.addEventListener("change", async () => {
+    await filterSpecs("tafeta-core-id");
+    await resolveItem();
+  });
+
+  const widthField = document.getElementById(pageConfig.widthField);
+  const mtrsField = document.getElementById(pageConfig.mtrsField);
+  const rateField = document.getElementById(pageConfig.rateField);
+  const saleCostField = document.getElementById(pageConfig.saleCostField);
+
+  function calcSaleCost() {
+    if (!widthField || !mtrsField || !rateField || !saleCostField) return;
+    if (!widthField.value || !mtrsField.value || !rateField.value) return;
+    const area = (Number(widthField.value) * Number(mtrsField.value)) / 1000;
+    if (!area) return;
+    saleCostField.value = (Number(rateField.value) / area).toFixed(4);
+  }
+
+  widthField?.addEventListener("input", calcSaleCost);
+  mtrsField?.addEventListener("input", calcSaleCost);
+  rateField?.addEventListener("input", calcSaleCost);
+
+  const resetSpecsBtn = document.getElementById("reset-specs-btn");
+  if (resetSpecsBtn) {
+    resetSpecsBtn.addEventListener("click", async () => {
+      tafetaMaterialCodeEl.value = "";
+      tafetaMaterialTypeEl.value = "";
+      tafetaColorEl.value = "";
+      tafetaGsmEl.value = "";
+      tafetaWidthEl.value = "";
+      tafetaMtrsEl.value = "";
+      tafetaCoreLenEl.value = "";
+      tafetaNotchEl.value = "";
+      tafetaCoreIdEl.value = "";
+      resetSelect(tafetaMaterialCodeChoices);
+      resetSelect(tafetaMaterialTypeChoices);
+      resetSelect(tafetaColorChoices);
+      resetSelect(tafetaGsmChoices);
+      resetSelect(tafetaWidthChoices);
+      resetSelect(tafetaMtrsChoices);
+      resetSelect(tafetaCoreLenChoices);
+      resetSelect(tafetaNotchChoices);
+      resetSelect(tafetaCoreIdChoices);
+      resetResolvedItem();
+      vendorTafetaMaterialCodeEl.value = "";
+      vendorTafetaGsmEl.value = "";
+      tafetaMtrsDelEl.value = "";
+      tafetaRatePerRollEl.value = "";
+      tafetaSaleCostEl.value = "";
+      tafetaMinQtyEl.value = "";
+      tafetaOdrQtyEl.value = "";
+      tafetaOdrFreqEl.value = "";
+      tafetaCreditTermEl.value = "";
+
+      vendorChoices.setChoiceByValue("");
+      resetUserChoices();
+      await filterSpecs("reset-all");
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    if (!itemIdInput.value) {
+      showVendorItemToast("Please select a valid item specification.", true);
+      return;
+    }
+
+    const minQtyField = document.getElementById(pageConfig.minQtyField);
+    const odrQtyField = document.getElementById(pageConfig.odrQtyField);
+    if (minQtyField && odrQtyField && Number(minQtyField.value) >= Number(odrQtyField.value)) {
+      showVendorItemToast("Order Quantity must be greater than Minimum Order Quantity", true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form) });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        showVendorItemToast(data?.message || "Failed to save vendor binding", true);
+        submitBtn.disabled = false;
+        return;
+      }
+
+      window.location.href = data.redirect || pageConfig.redirectTo;
+    } catch (err) {
+      console.error(err);
+      showVendorItemToast("Failed to save vendor binding", true);
+      submitBtn.disabled = false;
+    }
+  });
+
+  submitBtn.disabled = true;
+});
+
+function showVendorItemToast(message, isError = true) {
+  const existingToast = document.getElementById("vendor-item-toast");
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "vendor-item-toast";
+  toast.className = `toast-notification ${isError ? "toast-error" : "toast-success"}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <span class="toast-close" onclick="this.parentElement.remove()">Ã—</span>
+  `;
+
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = "slideOut 0.5s forwards";
+      setTimeout(() => toast.remove(), 500);
+    }
+  }, 5000);
+}
+</script>

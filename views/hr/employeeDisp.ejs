@@ -74,6 +74,22 @@
 
       const tableData = <%- JSON.stringify(jsonData) %>;
 
+      function isMissingValue(value) {
+        return value === null || value === undefined || String(value).trim() === "";
+      }
+
+      function formatEmployeeField(value, defaultColor = "#044A78", fontWeight = 500) {
+        const missing = isMissingValue(value);
+        const displayValue = missing ? "-" : value;
+        const color = missing ? "#dc2626" : defaultColor;
+
+        return `
+          <span style="font-weight:${fontWeight};color:${color}">
+            ${displayValue}
+          </span>
+        `;
+      }
+
       // ================= TABULATOR =================
 
       let table;
@@ -87,15 +103,21 @@
         movableColumns: true,
         pagination: "local",
         paginationSize: 30,
+        initialSort: [
+          { column: "empName", dir: "asc" }
+        ],
 
         columns: [
           {
             title: "Name",
             field: "empName",
+            headerFilter: "input",
             formatter: function (cell) {
+              const value = cell.getValue();
+              const missing = isMissingValue(value);
               return `
-                <span style="font-weight:600;color:#044A78;text-decoration:underline">
-                  ${cell.getValue()}
+                <span style="font-weight:600;color:${missing ? "#dc2626" : "#044A78"};text-decoration:underline;text-decoration-color:${missing ? "#dc2626" : "#044A78"}">
+                  ${missing ? "-" : value}
                 </span>
               `;
             },
@@ -111,11 +133,12 @@
           {
             title: "Employee Id",
             field: "empId",
+            headerFilter: "input",
             width: 150,
             formatter: function (cell) {
               return `
-                <span style="font-weight:600;font-size:14px;color:#044A78">
-                  ${cell.getValue()}
+                <span style="font-weight:600;font-size:14px;color:${isMissingValue(cell.getValue()) ? "#dc2626" : "#044A78"}">
+                  ${isMissingValue(cell.getValue()) ? "-" : cell.getValue()}
                 </span>
               `;
             }
@@ -125,10 +148,12 @@
             field: "empPhoto",
             width: 80,
             hozAlign: "center",
-            formatter: function () {
+            formatter: function (cell) {
+              const data = cell.getRow().getData();
+              const hasPhoto = !isMissingValue(data.empPhoto);
               return `
                 <i class="fa-solid fa-image"
-                   style="font-size:16px;color:#044A78">
+                   style="font-size:16px;color:${hasPhoto ? "#044A78" : "#dc2626"}">
                 </i>
               `;
             },
@@ -142,12 +167,54 @@
               openImgModal(imgSrc);
             }
           },
-          { title: "Reporting Manager", field: "empReportingManager" },
-          { title: "Office Mobile", field: "empOfficeMob" },
-          { title: "Office Email", field: "empOfficeEmailId" },
-          { title: "Employee Type", field: "empType" },
-          { title: "Department", field: "empDept" },
-          { title: "Location", field: "empLoc" },
+          {
+            title: "Reporting Manager",
+            field: "empReportingManager",
+            headerFilter: "input",
+            formatter: function (cell) {
+              return formatEmployeeField(cell.getValue(), "#111827");
+            }
+          },
+          {
+            title: "Office Mobile",
+            field: "empOfficeMob",
+            headerFilter: "input",
+            formatter: function (cell) {
+              return formatEmployeeField(cell.getValue(), "#111827");
+            }
+          },
+          {
+            title: "Office Email",
+            field: "empOfficeEmailId",
+            headerFilter: "input",
+            formatter: function (cell) {
+              return formatEmployeeField(cell.getValue(), "#111827");
+            }
+          },
+          {
+            title: "Employee Type",
+            field: "empType",
+            headerFilter: "input",
+            formatter: function (cell) {
+              return formatEmployeeField(cell.getValue(), "#111827");
+            }
+          },
+          {
+            title: "Department",
+            field: "empDept",
+            headerFilter: "input",
+            formatter: function (cell) {
+              return formatEmployeeField(cell.getValue(), "#111827");
+            }
+          },
+          {
+            title: "Location",
+            field: "empLoc",
+            headerFilter: "input",
+            formatter: function (cell) {
+              return formatEmployeeField(cell.getValue(), "#111827");
+            }
+          },
         ],
       });
     }

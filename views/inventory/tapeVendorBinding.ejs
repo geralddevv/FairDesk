@@ -1,0 +1,538 @@
+<% layout('/layout/boilerplate') %>
+
+<%
+  const cfg = pageConfig || {};
+  const specFields = cfg.specFields || [];
+  const overrideFields = cfg.overrideFields || [];
+%>
+
+<style>
+  .item-id-success {
+    border: 2px solid #28a745 !important;
+    background-color: #f3fff6;
+    color: #155724;
+    font-weight: 600;
+  }
+
+  .item-id-error {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+    color: #721c24;
+    font-weight: 600;
+  }
+</style>
+
+<div class="main-content">
+  <form id="vendor-item-form" action="/fairdesk/form/vendor-item-binding/<%= cfg.key %>" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <div class="span-full form-heading">
+      <h1>Vendor TTR</h1>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>FS Info</h1>
+    </div>
+
+    <div class="span-seven">
+      <label for="resolved-item-display">Item ID</label>
+      <input type="text" id="resolved-item-display" class="form-control" placeholder="Will appear here" readonly required />
+    </div>    
+
+    <div class="span-six">
+      <label for="vendor-name">Vendor Name</label>
+      <select name="vendorName" id="vendor-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (vendors || []).forEach((vendor) => { %>
+          <option value="<%= vendor %>"><%= vendor %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-name">Vendor User</label>
+      <select name="vendorUserId" id="vendor-user-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-contact">Contact</label>
+      <input type="text" id="vendor-user-contact" class="form-control" name="userContact" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-seven">
+      <label for="vendor-user-location">Location</label>
+      <input type="text" id="vendor-user-location" class="form-control" name="userLocation" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-full form-subheading" style="display: flex; justify-content: space-between; align-items: center;">
+      <h1><%= cfg.heading %> Specifications</h1>
+      <button type="button" id="reset-specs-btn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">
+        Reset
+      </button>
+    </div>
+
+    <div class="span-five">
+      <label for="tape-paper-code">Paper Code</label>
+      <select name="tapePaperCode" id="tape-paper-code" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapePaperCode || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="tape-paper-type">Paper Type</label>
+      <select name="tapePaperType" id="tape-paper-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapePaperType || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="tape-gsm">GSM</label>
+      <select name="tapeGsm" id="tape-gsm" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapeGsm || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="tape-width">Width</label>
+      <select name="tapeWidth" id="tape-width" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapeWidth || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="tape-mtrs">Meters</label>
+      <select name="tapeMtrs" id="tape-mtrs" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapeMtrs || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="tape-core-id">Core ID</label>
+      <select name="tapeCoreId" id="tape-core-id" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapeCoreId || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="tape-finish">Finish</label>
+      <select name="tapeFinish" id="tape-finish" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.tapeFinish || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>FS Overrides</h1>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-tape-paper-code">FS Paper Code</label>
+      <input type="text" id="vendor-tape-paper-code" class="form-control" name="vendorTapePaperCode" placeholder="Enter FS Paper Code" required />
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-tape-gsm">FS GSM</label>
+      <input type="number" id="vendor-tape-gsm" class="form-control" name="vendorTapeGsm" placeholder="Enter FS GSM" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="tape-mtrs-del-input">MTRS Delivered</label>
+      <input type="number" id="tape-mtrs-del-input" class="form-control" name="tapeMtrsDel" placeholder="Enter MTRS Delivered" required />
+    </div>
+
+    <div class="span-six">
+      <label for="tape-rate-per-roll">Rate Per Roll</label>
+      <input type="number" id="tape-rate-per-roll" class="form-control" name="tapeRatePerRoll" placeholder="Enter rate per roll" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="tape-sale-cost">Sales sq mtrs Cost</label>
+      <input type="number" id="tape-sale-cost" class="form-control" name="tapeSaleCost" placeholder="Enter Sales Cost" tabindex="-1" required readonly />
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Pricing & Order Terms</h1>
+    </div>    
+
+    <div class="span-dual">
+      <label for="tape-min-qty">Minimum Order QTY</label>
+      <input type="number" id="tape-min-qty" class="form-control" name="tapeMinQty" placeholder="Enter minimum qty" required />
+    </div>
+    <div class="span-dual">
+      <label for="tape-odr-qty">Order QTY</label>
+      <input type="number" id="tape-odr-qty" class="form-control" name="tapeOdrQty" placeholder="Enter order qty" required />
+    </div>
+    <div class="span-dual">
+      <label for="tape-odr-freq">Repeat Order Freq</label>
+      <input type="text" id="tape-odr-freq" class="form-control" name="tapeOdrFreq" placeholder="Enter repeat order frequency" required />
+    </div>
+    <div class="span-dual">
+      <label for="tape-credit-term">CR</label>
+      <input type="text" id="tape-credit-term" class="form-control" name="tapeCreditTerm" placeholder="Enter credit term" required />
+    </div>
+
+    <input type="hidden" name="<%= cfg.bindingField %>" id="resolved-item-id" />
+
+    <div class="btn-grp span-full">
+      <button type="submit" id="vendor-item-submit">Save <%= cfg.heading %></button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const pageConfig = <%- JSON.stringify(cfg) %>;
+
+  const form = document.getElementById("vendor-item-form");
+  const submitBtn = document.getElementById("vendor-item-submit");
+  const vendorSelect = document.getElementById("vendor-name");
+  const userSelect = document.getElementById("vendor-user-name");
+  const contactInput = document.getElementById("vendor-user-contact");
+  const locationInput = document.getElementById("vendor-user-location");
+  const itemIdInput = document.getElementById("resolved-item-id");
+  const itemDisplayInput = document.getElementById("resolved-item-display");
+
+  const tapePaperCodeEl = document.getElementById("tape-paper-code");
+  const tapePaperTypeEl = document.getElementById("tape-paper-type");
+  const tapeGsmEl = document.getElementById("tape-gsm");
+  const tapeWidthEl = document.getElementById("tape-width");
+  const tapeMtrsEl = document.getElementById("tape-mtrs");
+  const tapeCoreIdEl = document.getElementById("tape-core-id");
+  const tapeFinishEl = document.getElementById("tape-finish");
+
+  const vendorChoices = new Choices(vendorSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const userChoices = new Choices(userSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapePaperCodeChoices = new Choices(tapePaperCodeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapePaperTypeChoices = new Choices(tapePaperTypeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapeGsmChoices = new Choices(tapeGsmEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapeWidthChoices = new Choices(tapeWidthEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapeMtrsChoices = new Choices(tapeMtrsEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapeCoreIdChoices = new Choices(tapeCoreIdEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const tapeFinishChoices = new Choices(tapeFinishEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const vendorTapePaperCodeEl = document.getElementById("vendor-tape-paper-code");
+  const vendorTapeGsmEl = document.getElementById("vendor-tape-gsm");
+  const tapeMtrsDelEl = document.getElementById("tape-mtrs-del-input");
+  const tapeRatePerRollEl = document.getElementById("tape-rate-per-roll");
+  const tapeSaleCostEl = document.getElementById("tape-sale-cost");
+  const tapeMinQtyEl = document.getElementById("tape-min-qty");
+  const tapeOdrQtyEl = document.getElementById("tape-odr-qty");
+  const tapeOdrFreqEl = document.getElementById("tape-odr-freq");
+  const tapeCreditTermEl = document.getElementById("tape-credit-term");
+
+  function resetUserFields() {
+    contactInput.value = "";
+    locationInput.value = "";
+  }
+
+  function resetUserChoices() {
+    userChoices.removeActiveItems();
+    userChoices.clearChoices();
+    userChoices.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+    resetUserFields();
+  }
+
+  function resetResolvedItem() {
+    itemIdInput.value = "";
+    itemDisplayInput.value = "";
+    itemDisplayInput.classList.remove("item-id-success", "item-id-error");
+    submitBtn.disabled = true;
+  }
+
+  function resetSelect(instance) {
+    instance.clearStore();
+    instance.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+  }
+
+  function setSelectChoices(instance, values, currentValue) {
+    const choiceValues = values.map((value) => ({ value: String(value), label: String(value), selected: String(value) === currentValue }));
+    instance.clearStore();
+    instance.setChoices(
+      [{ value: "", label: "Search", disabled: true, selected: !choiceValues.some((choice) => choice.selected) }, ...choiceValues],
+      "value",
+      "label",
+      true,
+    );
+    return choiceValues.length === 1 && !currentValue ? String(values[0]) : "";
+  }
+
+  async function populateVendorUsers(vendorName) {
+    resetUserChoices();
+    if (!vendorName) return;
+
+    const response = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/vendor/${encodeURIComponent(vendorName)}`);
+    const vendorData = await response.json();
+    const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
+    if (!users.length) return;
+
+    userChoices.setChoices(
+      users.map((user, index) => ({
+        value: user._id,
+        label: user.userName || "",
+        selected: index === 0,
+        customProperties: {
+          contact: user.userContact || "",
+          location: user.userLocation || "",
+        },
+      })),
+      "value",
+      "label",
+      true,
+    );
+
+    contactInput.value = users[0].userContact || "";
+    locationInput.value = users[0].userLocation || "";
+  }
+
+  async function filterSpecs(changedFieldId) {
+    const params = new URLSearchParams();
+    if (tapePaperCodeEl.value) params.set("tapePaperCode", tapePaperCodeEl.value);
+    if (tapePaperTypeEl.value) params.set("tapePaperType", tapePaperTypeEl.value);
+    if (tapeGsmEl.value) params.set("tapeGsm", tapeGsmEl.value);
+    if (tapeWidthEl.value) params.set("tapeWidth", tapeWidthEl.value);
+    if (tapeMtrsEl.value) params.set("tapeMtrs", tapeMtrsEl.value);
+    if (tapeCoreIdEl.value) params.set("tapeCoreId", tapeCoreIdEl.value);
+    if (tapeFinishEl.value) params.set("tapeFinish", tapeFinishEl.value);
+
+    const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/filter-specs?${params}`);
+    const data = await res.json();
+    if (!data) return false;
+
+    let autoSelectedField = "";
+    if (changedFieldId !== "tape-paper-code") {
+      autoSelectedField = setSelectChoices(tapePaperCodeChoices, data.tapePaperCode || [], tapePaperCodeEl.value);
+    }
+    if (changedFieldId !== "tape-paper-type") {
+      autoSelectedField = autoSelectedField || setSelectChoices(tapePaperTypeChoices, data.tapePaperType || [], tapePaperTypeEl.value);
+    }
+    if (changedFieldId !== "tape-gsm") {
+      autoSelectedField = autoSelectedField || setSelectChoices(tapeGsmChoices, data.tapeGsm || [], tapeGsmEl.value);
+    }
+    if (changedFieldId !== "tape-width") {
+      autoSelectedField = autoSelectedField || setSelectChoices(tapeWidthChoices, data.tapeWidth || [], tapeWidthEl.value);
+    }
+    if (changedFieldId !== "tape-mtrs") {
+      autoSelectedField = autoSelectedField || setSelectChoices(tapeMtrsChoices, data.tapeMtrs || [], tapeMtrsEl.value);
+    }
+    if (changedFieldId !== "tape-core-id") {
+      autoSelectedField = autoSelectedField || setSelectChoices(tapeCoreIdChoices, data.tapeCoreId || [], tapeCoreIdEl.value);
+    }
+    if (changedFieldId !== "tape-finish") {
+      autoSelectedField = autoSelectedField || setSelectChoices(tapeFinishChoices, data.tapeFinish || [], tapeFinishEl.value);
+    }
+
+    if (autoSelectedField) {
+      await filterSpecs(autoSelectedField);
+      await resolveItem();
+      return true;
+    }
+    return false;
+  }
+
+  async function resolveItem() {
+    resetResolvedItem();
+    if (!tapePaperCodeEl.value || !tapePaperTypeEl.value || !tapeGsmEl.value || !tapeWidthEl.value || !tapeMtrsEl.value || !tapeCoreIdEl.value || !tapeFinishEl.value) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      tapePaperCode: tapePaperCodeEl.value,
+      tapePaperType: tapePaperTypeEl.value,
+      tapeGsm: tapeGsmEl.value,
+      tapeWidth: tapeWidthEl.value,
+      tapeMtrs: tapeMtrsEl.value,
+      tapeCoreId: tapeCoreIdEl.value,
+      tapeFinish: tapeFinishEl.value,
+    });
+
+    const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/resolve?${params}`);
+    if (!res.ok) {
+      itemDisplayInput.value = "No matching item found";
+      itemDisplayInput.classList.add("item-id-error");
+      return;
+    }
+
+    const data = await res.json();
+    itemIdInput.value = data.itemId;
+    itemDisplayInput.value = data.displayValue;
+    itemDisplayInput.classList.add("item-id-success");
+    submitBtn.disabled = false;
+  }
+
+  vendorSelect.addEventListener("change", async () => {
+    try {
+      await populateVendorUsers(vendorSelect.value);
+    } catch (err) {
+      console.error("Vendor fetch failed:", err);
+      resetUserChoices();
+    }
+  });
+
+  userSelect.addEventListener("change", () => {
+    const selectedId = userChoices.getValue(true);
+    if (!selectedId) return resetUserFields();
+
+    const selectedUser = userChoices._store.choices.find((choice) => choice.value === selectedId);
+    contactInput.value = selectedUser?.customProperties?.contact || "";
+    locationInput.value = selectedUser?.customProperties?.location || "";
+  });
+
+  tapePaperCodeEl.addEventListener("change", async () => {
+    await filterSpecs("tape-paper-code");
+    await resolveItem();
+  });
+  tapePaperTypeEl.addEventListener("change", async () => {
+    await filterSpecs("tape-paper-type");
+    await resolveItem();
+  });
+  tapeGsmEl.addEventListener("change", async () => {
+    await filterSpecs("tape-gsm");
+    await resolveItem();
+  });
+  tapeWidthEl.addEventListener("change", async () => {
+    await filterSpecs("tape-width");
+    await resolveItem();
+  });
+  tapeMtrsEl.addEventListener("change", async () => {
+    await filterSpecs("tape-mtrs");
+    await resolveItem();
+  });
+  tapeCoreIdEl.addEventListener("change", async () => {
+    await filterSpecs("tape-core-id");
+    await resolveItem();
+  });
+  tapeFinishEl.addEventListener("change", async () => {
+    await filterSpecs("tape-finish");
+    await resolveItem();
+  });
+
+  const widthField = document.getElementById(pageConfig.widthField);
+  const mtrsField = document.getElementById(pageConfig.mtrsField);
+  const rateField = document.getElementById(pageConfig.rateField);
+  const saleCostField = document.getElementById(pageConfig.saleCostField);
+
+  function calcSaleCost() {
+    if (!widthField || !mtrsField || !rateField || !saleCostField) return;
+    if (!widthField.value || !mtrsField.value || !rateField.value) return;
+    const area = (Number(widthField.value) * Number(mtrsField.value)) / 1000;
+    if (!area) return;
+    saleCostField.value = (Number(rateField.value) / area).toFixed(4);
+  }
+
+  widthField?.addEventListener("input", calcSaleCost);
+  mtrsField?.addEventListener("input", calcSaleCost);
+  rateField?.addEventListener("input", calcSaleCost);
+
+  const resetSpecsBtn = document.getElementById("reset-specs-btn");
+  if (resetSpecsBtn) {
+    resetSpecsBtn.addEventListener("click", async () => {
+      tapePaperCodeEl.value = "";
+      tapePaperTypeEl.value = "";
+      tapeGsmEl.value = "";
+      tapeWidthEl.value = "";
+      tapeMtrsEl.value = "";
+      tapeCoreIdEl.value = "";
+      tapeFinishEl.value = "";
+      resetSelect(tapePaperCodeChoices);
+      resetSelect(tapePaperTypeChoices);
+      resetSelect(tapeGsmChoices);
+      resetSelect(tapeWidthChoices);
+      resetSelect(tapeMtrsChoices);
+      resetSelect(tapeCoreIdChoices);
+      resetSelect(tapeFinishChoices);
+      resetResolvedItem();
+      vendorTapePaperCodeEl.value = "";
+      vendorTapeGsmEl.value = "";
+      tapeMtrsDelEl.value = "";
+      tapeRatePerRollEl.value = "";
+      tapeSaleCostEl.value = "";
+      tapeMinQtyEl.value = "";
+      tapeOdrQtyEl.value = "";
+      tapeOdrFreqEl.value = "";
+      tapeCreditTermEl.value = "";
+
+      vendorChoices.setChoiceByValue("");
+      resetUserChoices();
+      await filterSpecs("reset-all");
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    if (!itemIdInput.value) {
+      showVendorItemToast("Please select a valid item specification.", true);
+      return;
+    }
+
+    const minQtyField = document.getElementById(pageConfig.minQtyField);
+    const odrQtyField = document.getElementById(pageConfig.odrQtyField);
+    if (minQtyField && odrQtyField && Number(minQtyField.value) >= Number(odrQtyField.value)) {
+      showVendorItemToast("Order Quantity must be greater than Minimum Order Quantity", true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form) });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        showVendorItemToast(data?.message || "Failed to save vendor binding", true);
+        submitBtn.disabled = false;
+        return;
+      }
+
+      window.location.href = data.redirect || pageConfig.redirectTo;
+    } catch (err) {
+      console.error(err);
+      showVendorItemToast("Failed to save vendor binding", true);
+      submitBtn.disabled = false;
+    }
+  });
+
+  submitBtn.disabled = true;
+});
+
+function showVendorItemToast(message, isError = true) {
+  const existingToast = document.getElementById("vendor-item-toast");
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "vendor-item-toast";
+  toast.className = `toast-notification ${isError ? "toast-error" : "toast-success"}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <span class="toast-close" onclick="this.parentElement.remove()">Ã—</span>
+  `;
+
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = "slideOut 0.5s forwards";
+      setTimeout(() => toast.remove(), 500);
+    }
+  }, 5000);
+}
+</script>

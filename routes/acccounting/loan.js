@@ -30,8 +30,16 @@ router.post("/create", async (req, res) => {
     // accept both names safely
     const newEmi = Number(req.body.emi) || Number(req.body.emiAmount) || 0;
 
-    if (!employeeId || amount <= 0 || newEmi <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid loan or EMI amount" });
+    if (!employeeId) {
+      return res.status(400).json({ success: false, message: "Please select an employee." });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ success: false, message: "Loan amount must be greater than 0." });
+    }
+
+    if (newEmi <= 0) {
+      return res.status(400).json({ success: false, message: "EMI amount must be greater than 0." });
     }
 
     const empObjectId = new mongoose.Types.ObjectId(employeeId);
@@ -58,7 +66,7 @@ router.post("/create", async (req, res) => {
       });
 
       req.flash("notification", "Loan issued successfully");
-      return res.json({ success: true, redirect: "/fairdesk/loan/create" });
+      return res.json({ success: true, redirect: "/fairdesk/loan/view" });
     }
 
     /* LOAN RE-ISSUE (TOP-UP / CONSOLIDATION) */
@@ -96,7 +104,7 @@ router.post("/create", async (req, res) => {
     });
 
     req.flash("notification", "Loan re-issued successfully");
-    return res.json({ success: true, redirect: "/fairdesk/loan/create" });
+    return res.json({ success: true, redirect: "/fairdesk/loan/view" });
   } catch (err) {
     console.error(err);
     res.status(400).json({ success: false, message: "Failed to issue loan" });

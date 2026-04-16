@@ -17,6 +17,7 @@ import clientFormRoute from "./routes/users/clients.js";
 import posRollBindingRoutes from "./routes/inventory/posRollBinding.js";
 import tafetaBindingRoutes from "./routes/inventory/tafetaBinding.js";
 import ttrBindingRoutes from "./routes/inventory/ttrBinding.js";
+import vendorItemBindingRoutes from "./routes/inventory/vendorItemBinding.js";
 import { configDotenv } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -181,6 +182,7 @@ app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tapeBindingRout
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), posRollBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tafetaBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), ttrBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), vendorItemBindingRoutes);
 app.use("/fairdesk/tapestock", requireAuth, requireRole(["admin", "hod", "sales"]), tapeStockRoutes);
 app.use("/fairdesk/posrollstock", requireAuth, requireRole(["admin", "hod", "sales"]), posRollStockRoutes);
 app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaStockRoutes);

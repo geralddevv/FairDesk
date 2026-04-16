@@ -9,6 +9,7 @@
     userSwitch: document.querySelector(".user-switch"),
     clientContent: document.querySelector(".client-content"),
     userContent: document.querySelector(".user-content"),
+    clientAccountHeadSelect: document.getElementById("account-head"),
     transportContact: document.querySelector("#transport-contact"),
     ownerMobNo: document.querySelector("#owner-mob-no"),
     clientNameSelect: document.getElementById("userform-client-name"),
@@ -17,6 +18,7 @@
 
   // Initialize Choices only once
   let choicesInstance = null;
+  let accountHeadChoices = null;
   let isHandlingChange = false; // Guard against multiple triggers
 
   // Function to toggle disabled state based on visibility
@@ -62,6 +64,9 @@
     // Initialize Choices
     if (dom.clientNameSelect) {
       initChoicesSelect();
+    }
+    if (dom.clientAccountHeadSelect) {
+      initAccountHeadChoices();
     }
 
     // Set up MutationObserver to watch for display changes
@@ -160,6 +165,18 @@
       dom.clientNameSelect.addEventListener("change", (e) => {
         handleClientChange(e.target.value);
       });
+    }
+  }
+
+  function initAccountHeadChoices() {
+    try {
+      accountHeadChoices = new Choices(dom.clientAccountHeadSelect, {
+        searchEnabled: true,
+        itemSelectText: "",
+        shouldSort: false,
+      });
+    } catch (e) {
+      console.error("Account head Choices initialization failed:", e);
     }
   }
 

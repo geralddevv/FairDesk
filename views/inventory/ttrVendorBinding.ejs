@@ -1,0 +1,408 @@
+<% layout('/layout/boilerplate') %>
+<style>
+  .ttr-id-success {
+    border: 2px solid #28a745 !important;
+    background-color: #f3fff6;
+    color: #155724;
+    font-weight: 600;
+  }
+
+  .ttr-id-error {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+    color: #721c24;
+    font-weight: 600;
+  }
+</style>
+
+<div class="main-content">
+  <form id="vendor-ttr-form" action="/fairdesk/form/ttr-vendor-binding" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <div class="span-full form-heading">
+      <h1>FS TTR</h1>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Vendor Info</h1>
+    </div>
+
+
+
+    <div class="span-dual">
+      <label for="vendor-name">Vendor Name</label>
+      <select name="vendorName" id="vendor-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (vendors || []).forEach((vendor) => { %>
+        <option value="<%= vendor %>"><%= vendor %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-dual">
+      <label for="vendor-user-name">Vendor User</label>
+      <select name="vendorUserId" id="vendor-user-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+      </select>
+    </div>
+
+    <div class="span-dual">
+      <label for="vendor-user-contact">Contact</label>
+      <input type="text" id="vendor-user-contact" class="form-control" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-dual">
+      <label for="vendor-user-location">Location</label>
+      <input type="text" id="vendor-user-location" class="form-control" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-full form-subheading" style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>TTR Specifications</h1>
+      <button type="button" id="reset-specs-btn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">
+        Reset
+      </button>
+    </div>
+
+    <div class="span-dual">
+      <label for="ttr-product-id">Sample ID</label>
+      <input type="text" value="<%= previewSampleId || previewTtrProductId %>" id="ttr-product-id" class="form-control" name="sampleId" readonly required />
+    </div>
+
+    <div class="span-dual">
+      <label for="ttr-material-code">Material Code</label>
+      <input type="text" id="ttr-material-code" class="form-control" name="ttrMaterialCode" placeholder="Enter material code" required />
+    </div>    
+
+    <div class="span-dual">
+      <label for="ttr-type">Type</label>
+      <select name="ttrType" id="ttr-type" class="form-control select-tag" required>
+        <option value="" selected disabled hidden>Select</option>
+        <option value="WAX">WAX</option>
+        <option value="WAX PREMIUM">WAX PREMIUM</option>
+        <option value="WAX COLOR">WAX COLOR</option>
+        <option value="WAX RESIN">WAX RESIN</option>
+        <option value="WAX RESIN PREMIUM">WAX RESIN PREMIUM</option>
+        <option value="WAX RESIN COLOR">WAX RESIN COLOR</option>
+        <option value="RESIN">RESIN</option>
+        <option value="RESIN COLOR">RESIN COLOR</option>
+        <option value="SCRATCH PROOF">SCRATCH PROOF</option>
+        <option value="WASHCARE">WASHCARE</option>
+        <option value="TTO">TTO</option>
+      </select>
+    </div>
+
+    <div class="span-dual">
+      <label for="ttr-color">Color</label>
+      <select name="ttrColor" id="ttr-color" class="form-control select-tag" value="BLACK" required>
+        <option value="BLACK">BLACK</option>
+        <option value="RED">RED</option>
+        <option value="GREEN">GREEN</option>
+        <option value="BLUE">BLUE</option>
+        <option value="YELLOW">YELLOW</option>
+        <option value="GOLD">GOLD</option>
+        <option value="SILVER">SILVER</option>
+      </select>
+    </div>
+
+    <!-- <div class="span-five">
+      <label for="ttr-width">Width</label>
+      <input type="number" id="ttr-width" class="form-control" name="ttrWidth" placeholder="Enter width" required />
+    </div> -->
+
+    <!-- <div class="span-five">
+      <label for="ttr-mtrs">MTRS</label>
+      <input type="number" id="ttr-mtrs" class="form-control" name="ttrMtrs" placeholder="Enter mtrs" required />
+    </div> -->
+
+    <!-- <div class="span-seven">
+      <label for="ttr-ink-face">Ink face</label>
+      <select name="ttrInkFace" id="ttr-ink-face" class="form-control select-tag" required>
+        <option value="IN">IN</option>
+        <option value="OUT">OUT</option>
+      </select>
+    </div> -->
+
+    <!-- <div class="span-six">
+      <label for="ttr-core-id">Core ID</label>
+      <select name="ttrCoreId" id="ttr-core-id" class="form-control select-tag" required>
+        <option value="1">1</option>
+        <option value="0.5">0.5</option>
+      </select>
+    </div> -->
+
+    <!-- <div class="span-six">
+      <label for="ttr-core-length">Core Length</label>
+      <input type="number" id="ttr-core-length" class="form-control" name="ttrCoreLength" placeholder="Enter core length" required />
+    </div> -->
+
+    <!-- <div class="span-six">
+      <label for="ttr-notch">Notch</label>
+      <select name="ttrNotch" id="ttr-notch" class="form-control select-tag" required>
+        <option value="NO">NO</option>
+        <option value="YES">YES</option>
+      </select>
+    </div> -->
+
+    <!-- <div class="span-seven">
+      <label for="ttr-winding">Winding</label>
+      <select name="ttrWinding" id="ttr-winding" class="form-control select-tag" required>
+        <option value="NORMAL">NORMAL</option>
+        <option value="LEFT">LEFT</option>
+        <option value="CENTER">CENTER</option>
+      </select>
+    </div> -->
+
+    <div class="span-full form-subheading">
+      <h1>FS Overrides</h1>
+    </div>
+
+    <div class="span-penta">
+      <label for="vendor-ttr-type">FS Type</label>
+      <input type="text" id="vendor-ttr-type" class="form-control" name="vendorTtrType" placeholder="Will sync with Type" required />
+    </div>    
+
+    <div class="span-hexa">
+      <label for="vendor-ttr-material-code">FS Code</label>
+      <input type="text" id="vendor-ttr-material-code" class="form-control" name="vendorTtrMaterialCode" placeholder="Enter FS Code" required />
+    </div>    
+
+    <!-- <div class="span-seven">
+      <label for="tape-mtrs-del-input">MTRS Delivered</label>
+      <input type="number" id="tape-mtrs-del-input" class="form-control" name="tapeMtrsDel" placeholder="Enter MTRS Delivered" required />
+    </div> -->
+
+    <!-- <div class="span-six">
+      <label for="tape-rate-per-roll">Rate Per Roll</label>
+      <input type="number" id="tape-rate-per-roll" class="form-control" name="tapeRatePerRoll" placeholder="Enter rate per roll" required />
+    </div> -->
+
+    <!-- <div class="span-seven">
+      <label for="tape-sale-cost">Sales sq mtrs Cost</label>
+      <input type="number" id="tape-sale-cost" class="form-control" name="tapeSaleCost" placeholder="Enter Sales Cost" tabindex="-1" required readonly />
+    </div> -->
+
+    <!-- <div class="span-dual">
+      <label for="tape-min-qty">Minimum Order QTY</label>
+      <input type="number" id="tape-min-qty" class="form-control" name="tapeMinQty" placeholder="Enter minimum qty" required />
+    </div> -->
+    <div class="span-penta">
+      <label for="minimum-order-qty">Minimum Order Qty</label>
+      <input type="number" id="minimum-order-qty" class="form-control" name="minimumOrderQty" placeholder="Enter minimum order qty" required />
+    </div>
+    <!-- <div class="span-dual">
+      <label for="tape-odr-freq">Repeat Order Freq</label>
+      <input type="text" id="tape-odr-freq" class="form-control" name="tapeOdrFreq" placeholder="Enter repeat order frequency" required />
+    </div> -->
+    <!-- <div class="span-dual">
+      <label for="tape-credit-term">CR</label>
+      <input type="text" id="tape-credit-term" class="form-control" name="tapeCreditTerm" placeholder="Enter credit term" required />
+    </div> -->
+
+    <div class="btn-grp span-full">
+      <button type="submit" id="vendor-ttr-submit">Save Vendor TTR</button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("vendor-ttr-form");
+  const submitBtn = document.getElementById("vendor-ttr-submit");
+
+  const vendorSelect = document.getElementById("vendor-name");
+  const userSelect = document.getElementById("vendor-user-name");
+  const contactInput = document.getElementById("vendor-user-contact");
+  const locationInput = document.getElementById("vendor-user-location");
+
+  const ttrProductIdInput = document.getElementById("ttr-product-id");
+  const ttrType = document.getElementById("ttr-type");
+  const ttrColor = document.getElementById("ttr-color");
+  const ttrMaterialCode = document.getElementById("ttr-material-code");
+  const ttrWidth = document.getElementById("ttr-width");
+  const ttrMtrs = document.getElementById("ttr-mtrs");
+  const ttrInkFace = document.getElementById("ttr-ink-face");
+  const ttrCoreId = document.getElementById("ttr-core-id");
+  const ttrCoreLength = document.getElementById("ttr-core-length");
+  const ttrNotch = document.getElementById("ttr-notch");
+  const ttrWinding = document.getElementById("ttr-winding");
+  const vendorTtrType = document.getElementById("vendor-ttr-type");
+  const vendorTtrMaterialCode = document.getElementById("vendor-ttr-material-code");
+  const tapeMtrsDel = document.getElementById("tape-mtrs-del-input");
+  const tapeRatePerRoll = document.getElementById("tape-rate-per-roll");
+  const tapeSaleCost = document.getElementById("tape-sale-cost");
+  const tapeMinQty = document.getElementById("tape-min-qty");
+  const minimumOrderQty = document.getElementById("minimum-order-qty");
+  const tapeOdrFreq = document.getElementById("tape-odr-freq");
+  const tapeCreditTerm = document.getElementById("tape-credit-term");
+
+  const vendorChoices = new Choices(vendorSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const userChoices = new Choices(userSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+
+  function resetUserFields() {
+    contactInput.value = "";
+    locationInput.value = "";
+  }
+
+  function resetUserChoices() {
+    userChoices.removeActiveItems();
+    userChoices.clearChoices();
+    userChoices.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+    resetUserFields();
+  }
+
+  const valueOrDefault = (el, fallback = "") => {
+    if (!el) return fallback;
+    const value = String(el.value || "").trim();
+    return value === "" ? fallback : value;
+  };
+
+  function syncCoreLength() {
+    if (!ttrWidth || !ttrCoreLength) return;
+    ttrCoreLength.value = ttrWidth.value;
+  }
+
+  function calcTapeSaleCost() {
+    if (!ttrWidth || !ttrMtrs || !tapeRatePerRoll || !tapeSaleCost) return;
+    if (!ttrWidth.value || !ttrMtrs.value || !tapeRatePerRoll.value) return;
+    const area = (Number(ttrWidth.value) * Number(ttrMtrs.value)) / 1000;
+    if (!area) return;
+    tapeSaleCost.value = (Number(tapeRatePerRoll.value) / area).toFixed(4);
+  }
+
+  vendorSelect.addEventListener("change", async () => {
+    resetUserChoices();
+    if (!vendorSelect.value) return;
+    try {
+      const response = await fetch(`/fairdesk/form/ttr-vendor-binding/vendor/${encodeURIComponent(vendorSelect.value)}`);
+      const vendorData = await response.json();
+      const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
+      if (!users.length) return;
+
+      userChoices.setChoices(
+        users.map((user, index) => ({
+          value: user._id,
+          label: user.userName || "",
+          selected: index === 0,
+          customProperties: {
+            contact: user.userContact || "",
+            location: user.userLocation || "",
+          },
+        })),
+        "value",
+        "label",
+        true,
+      );
+
+      contactInput.value = users[0].userContact || "";
+      locationInput.value = users[0].userLocation || "";
+    } catch (err) {
+      console.error("Vendor fetch failed:", err);
+      resetUserChoices();
+    }
+  });
+
+  userSelect.addEventListener("change", () => {
+    const selectedId = userChoices.getValue(true);
+    if (!selectedId) return resetUserFields();
+
+    const selectedUser = userChoices._store.choices.find((choice) => choice.value === selectedId);
+    contactInput.value = selectedUser?.customProperties?.contact || "";
+    locationInput.value = selectedUser?.customProperties?.location || "";
+  });
+
+  ttrType.addEventListener("change", () => {
+    vendorTtrType.value = ttrType.value;
+  });
+
+  if (ttrWidth) {
+    ttrWidth.addEventListener("input", syncCoreLength);
+    ttrWidth.addEventListener("input", calcTapeSaleCost);
+  }
+  if (ttrMtrs) ttrMtrs.addEventListener("input", calcTapeSaleCost);
+  if (tapeRatePerRoll) tapeRatePerRoll.addEventListener("input", calcTapeSaleCost);
+
+  const resetSpecsBtn = document.getElementById("reset-specs-btn");
+  if (resetSpecsBtn) {
+    resetSpecsBtn.addEventListener("click", () => {
+      if (ttrProductIdInput) ttrProductIdInput.value = ttrProductIdInput.defaultValue;
+      if (ttrType) ttrType.value = "";
+      if (ttrColor) ttrColor.value = "BLACK";
+      if (ttrMaterialCode) ttrMaterialCode.value = "";
+      if (ttrWidth) ttrWidth.value = "";
+      if (ttrMtrs) ttrMtrs.value = "";
+      if (ttrInkFace) ttrInkFace.value = "IN";
+      if (ttrCoreId) ttrCoreId.value = "1";
+      if (ttrCoreLength) ttrCoreLength.value = "";
+      if (ttrNotch) ttrNotch.value = "NO";
+      if (ttrWinding) ttrWinding.value = "NORMAL";
+      if (vendorTtrType) vendorTtrType.value = "";
+      if (vendorTtrMaterialCode) vendorTtrMaterialCode.value = "";
+      if (tapeMtrsDel) tapeMtrsDel.value = "";
+      if (tapeRatePerRoll) tapeRatePerRoll.value = "";
+      if (tapeSaleCost) tapeSaleCost.value = "";
+      if (tapeMinQty) tapeMinQty.value = "";
+      if (minimumOrderQty) minimumOrderQty.value = "";
+      if (tapeOdrFreq) tapeOdrFreq.value = "";
+      if (tapeCreditTerm) tapeCreditTerm.value = "";
+      resetUserChoices();
+      vendorChoices.setChoiceByValue("");
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    if (!vendorSelect.value || !userSelect.value) {
+      if (window.showToast) window.showToast("Please select a vendor and vendor user.", true);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      ttrType: valueOrDefault(ttrType),
+      ttrColor: valueOrDefault(ttrColor, "BLACK"),
+      ttrMaterialCode: valueOrDefault(ttrMaterialCode),
+      ttrWidth: valueOrDefault(ttrWidth, "0"),
+      ttrMtrs: valueOrDefault(ttrMtrs, "0"),
+      ttrInkFace: valueOrDefault(ttrInkFace, "IN"),
+      ttrCoreId: valueOrDefault(ttrCoreId, "1"),
+      ttrCoreLength: valueOrDefault(ttrCoreLength, "0"),
+      ttrNotch: valueOrDefault(ttrNotch, "NO"),
+      ttrWinding: valueOrDefault(ttrWinding, "NORMAL"),
+    });
+
+    try {
+      const res = await fetch(`/fairdesk/form/ttr/exists?${params.toString()}`);
+      if (!res.ok) {
+        if (window.showToast) window.showToast("Unable to validate TTR. Please try again.", true);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.exists) {
+        if (window.showToast) window.showToast(data.message || `TTR already exist with id: ${data.id || "unknown"}`, true);
+        return;
+      }
+
+      submitBtn.disabled = true;
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form) });
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        if (window.showToast) window.showToast(result?.message || "Failed to save FS TTR", true);
+        submitBtn.disabled = false;
+        return;
+      }
+
+      window.location.href = result.redirect || "/fairdesk/vendor/coordinator/view";
+    } catch (err) {
+      console.error(err);
+      if (window.showToast) window.showToast("Failed to save FS TTR", true);
+      submitBtn.disabled = false;
+    }
+  });
+
+  submitBtn.disabled = false;
+});
+</script>

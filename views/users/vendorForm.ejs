@@ -72,6 +72,10 @@
           <input type="checkbox" name="commodities" value="IT" id="commodity-it" style="width: 16px; height: 16px;">
           IT
         </label>
+        <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+          <input type="checkbox" name="commodities" value="Others" id="commodity-others" style="width: 16px; height: 16px;">
+          Others
+        </label>
       </div>
     </div>
 
@@ -188,12 +192,12 @@
     </div>
 
     <div class="span-full">
-      <label for="dispatch-address">Delivery Address</label>
-      <textarea  id="dispatch-address"  class="form-control input-tag"  name="dispatchAddress"  placeholder="Enter Delivery Address" rows="3" style="border: 1px solid #044A78; resize: none;" required></textarea>
+      <label for="dispatch-address">Pick Up Address</label>
+      <textarea  id="dispatch-address"  class="form-control input-tag"  name="dispatchAddress"  placeholder="Enter Pick Up Address" rows="3" style="border: 1px solid #044A78; resize: none;" required></textarea>
     </div>
 
     <div class="span-full form-subheading">
-      <h1>Delivery Details</h1>
+      <h1>Pick Up Details</h1>
     </div>
 
     <div class="span-full form-subheading gap">
@@ -201,7 +205,7 @@
         <h1>Transport</h1>
       </div>
       <div class="software">
-        <h1>Self Delivery</h1>
+        <h1>Self Pick Up</h1>
       </div>
     </div>       
 
@@ -222,7 +226,7 @@
     </div>
 
     <div class="span-five">
-      <label for="delivery-mode">Delivery Mode</label>
+      <label for="delivery-mode">Pick Up Mode</label>
       <select name="deliveryMode" id="delivery-mode" class="form-control select-tag">
         <option value="" selected disabled hidden>Select</option>
         <option value="DOOR">DOOR</option>
@@ -231,8 +235,8 @@
     </div>
 
     <div class="span-five">
-      <label for="delivery-location">Delivery Loc</label>
-      <input type="text" id="delivery-location" class="form-control input-tag" name="deliveryLocation" placeholder="Enter Delivery Location" />
+      <label for="delivery-location">Pick Up Loc</label>
+      <input type="text" id="delivery-location" class="form-control input-tag" name="deliveryLocation" placeholder="Enter Pick Up Location" />
     </div>
 
     <div class="span-six">
@@ -248,7 +252,7 @@
     <input type="hidden" name="objectId" id="object-id">
 
     <div class="span-full software-options">
-          <input type="text" id="self-dispatch" class="form-control input-tag span-full" name="SelfDispatch" value="Self Delivery" />
+          <input type="text" id="self-dispatch" class="form-control input-tag span-full" name="SelfDispatch" value="Self Pick Up" />
     </div>
 
     <div class="span-full btn-grp">

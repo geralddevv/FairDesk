@@ -1,0 +1,524 @@
+<% layout('/layout/boilerplate') %>
+
+<%
+  const cfg = pageConfig || {};
+  const specFields = cfg.specFields || [];
+  const overrideFields = cfg.overrideFields || [];
+%>
+
+<style>
+  .item-id-success {
+    border: 2px solid #28a745 !important;
+    background-color: #f3fff6;
+    color: #155724;
+    font-weight: 600;
+  }
+
+  .item-id-error {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+    color: #721c24;
+    font-weight: 600;
+  }
+</style>
+
+<div class="main-content">
+  <form id="vendor-item-form" action="/fairdesk/form/vendor-item-binding/<%= cfg.key %>" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <div class="span-full form-heading">
+      <h1><%= cfg.heading %></h1>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>FS Info</h1>
+    </div>
+
+    <div class="span-seven">
+      <label for="resolved-item-display">Item ID</label>
+      <input type="text" id="resolved-item-display" class="form-control" placeholder="Will appear here" readonly required />
+    </div>    
+
+    <div class="span-six">
+      <label for="vendor-name">Vendor Name</label>
+      <select name="vendorName" id="vendor-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (vendors || []).forEach((vendor) => { %>
+          <option value="<%= vendor %>"><%= vendor %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-name">Vendor User</label>
+      <select name="vendorUserId" id="vendor-user-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-user-contact">Contact</label>
+      <input type="text" id="vendor-user-contact" class="form-control" name="userContact" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-seven">
+      <label for="vendor-user-location">Location</label>
+      <input type="text" id="vendor-user-location" class="form-control" name="userLocation" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-full form-subheading" style="display: flex; justify-content: space-between; align-items: center;">
+      <h1><%= cfg.heading %> Specifications</h1>
+      <button type="button" id="reset-specs-btn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">
+        Reset
+      </button>
+    </div>
+
+    <div class="span-five">
+      <label for="pos-paper-code">Paper Code</label>
+      <select name="posPaperCode" id="pos-paper-code" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posPaperCode || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="pos-paper-type">Paper Type</label>
+      <select name="posPaperType" id="pos-paper-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posPaperType || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="pos-gsm">GSM</label>
+      <select name="posGsm" id="pos-gsm" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posGsm || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="pos-width">Width</label>
+      <select name="posWidth" id="pos-width" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posWidth || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="pos-mtrs">Meters</label>
+      <select name="posMtrs" id="pos-mtrs" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posMtrs || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-four">
+      <label for="pos-core-id">Core ID</label>
+      <select name="posCoreId" id="pos-core-id" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posCoreId || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-five">
+      <label for="pos-color">Color</label>
+      <select name="posColor" id="pos-color" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Search</option>
+        <% (specOptions.posColor || []).forEach((opt) => { %>
+          <option value="<%= opt %>"><%= opt %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>FS Overrides</h1>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-pos-paper-code">FS Paper Code</label>
+      <input type="text" id="vendor-pos-paper-code" class="form-control" name="vendorPosPaperCode" placeholder="Enter FS Paper Code" required />
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-pos-gsm">FS GSM</label>
+      <input type="number" id="vendor-pos-gsm" class="form-control" name="vendorPosGsm" placeholder="Enter FS GSM" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="pos-mtrs-del-input">MTRS Delivered</label>
+      <input type="number" id="pos-mtrs-del-input" class="form-control" name="posMtrsDel" placeholder="Enter MTRS Delivered" required />
+    </div>
+
+    <div class="span-six">
+      <label for="pos-rate-per-roll">Rate Per Roll</label>
+      <input type="number" id="pos-rate-per-roll" class="form-control" name="posRatePerRoll" placeholder="Enter rate per roll" required />
+    </div>
+
+    <div class="span-seven">
+      <label for="pos-sale-cost">Sales sq mtrs Cost</label>
+      <input type="number" id="pos-sale-cost" class="form-control" name="posSaleCost" placeholder="Enter Sales Cost" tabindex="-1" required readonly />
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Pricing & Order Terms</h1>
+    </div>    
+
+    <div class="span-dual">
+      <label for="pos-min-qty">Minimum Order QTY</label>
+      <input type="number" id="pos-min-qty" class="form-control" name="posMinQty" placeholder="Enter minimum qty" required />
+    </div>
+    <div class="span-dual">
+      <label for="pos-odr-qty">Order QTY</label>
+      <input type="number" id="pos-odr-qty" class="form-control" name="posOdrQty" placeholder="Enter order qty" required />
+    </div>
+    <div class="span-dual">
+      <label for="pos-odr-freq">Repeat Order Freq</label>
+      <input type="text" id="pos-odr-freq" class="form-control" name="posOdrFreq" placeholder="Enter repeat order frequency" required />
+    </div>
+    <div class="span-dual">
+      <label for="pos-credit-term">CR</label>
+      <input type="text" id="pos-credit-term" class="form-control" name="posCreditTerm" placeholder="Enter credit term" required />
+    </div>
+
+    <input type="hidden" name="<%= cfg.bindingField %>" id="resolved-item-id" />
+
+    <div class="btn-grp span-full">
+      <button type="submit" id="vendor-item-submit">Save <%= cfg.heading %></button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const pageConfig = <%- JSON.stringify(cfg) %>;
+
+  const form = document.getElementById("vendor-item-form");
+  const submitBtn = document.getElementById("vendor-item-submit");
+  const vendorSelect = document.getElementById("vendor-name");
+  const userSelect = document.getElementById("vendor-user-name");
+  const contactInput = document.getElementById("vendor-user-contact");
+  const locationInput = document.getElementById("vendor-user-location");
+  const itemIdInput = document.getElementById("resolved-item-id");
+  const itemDisplayInput = document.getElementById("resolved-item-display");
+
+  const posPaperCodeEl = document.getElementById("pos-paper-code");
+  const posPaperTypeEl = document.getElementById("pos-paper-type");
+  const posGsmEl = document.getElementById("pos-gsm");
+  const posWidthEl = document.getElementById("pos-width");
+  const posMtrsEl = document.getElementById("pos-mtrs");
+  const posCoreIdEl = document.getElementById("pos-core-id");
+  const posColorEl = document.getElementById("pos-color");
+
+  const vendorChoices = new Choices(vendorSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const userChoices = new Choices(userSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posPaperCodeChoices = new Choices(posPaperCodeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posPaperTypeChoices = new Choices(posPaperTypeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posGsmChoices = new Choices(posGsmEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posWidthChoices = new Choices(posWidthEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posMtrsChoices = new Choices(posMtrsEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posCoreIdChoices = new Choices(posCoreIdEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const posColorChoices = new Choices(posColorEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+  const vendorPosPaperCodeEl = document.getElementById("vendor-pos-paper-code");
+  const vendorPosGsmEl = document.getElementById("vendor-pos-gsm");
+  const posMtrsDelEl = document.getElementById("pos-mtrs-del-input");
+  const posRatePerRollEl = document.getElementById("pos-rate-per-roll");
+  const posSaleCostEl = document.getElementById("pos-sale-cost");
+  const posMinQtyEl = document.getElementById("pos-min-qty");
+  const posOdrQtyEl = document.getElementById("pos-odr-qty");
+  const posOdrFreqEl = document.getElementById("pos-odr-freq");
+  const posCreditTermEl = document.getElementById("pos-credit-term");
+
+  function resetUserFields() {
+    contactInput.value = "";
+    locationInput.value = "";
+  }
+
+  function resetUserChoices() {
+    userChoices.removeActiveItems();
+    userChoices.clearChoices();
+    userChoices.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+    resetUserFields();
+  }
+
+  function resetResolvedItem() {
+    itemIdInput.value = "";
+    itemDisplayInput.value = "";
+    itemDisplayInput.classList.remove("item-id-success", "item-id-error");
+    submitBtn.disabled = true;
+  }
+
+  function resetSelect(instance) {
+    instance.clearStore();
+    instance.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
+  }
+
+  function setSelectChoices(instance, values, currentValue) {
+    const choiceValues = values.map((value) => ({ value: String(value), label: String(value), selected: String(value) === currentValue }));
+    instance.clearStore();
+    instance.setChoices(
+      [{ value: "", label: "Search", disabled: true, selected: !choiceValues.some((choice) => choice.selected) }, ...choiceValues],
+      "value",
+      "label",
+      true,
+    );
+    return choiceValues.length === 1 && !currentValue ? String(values[0]) : "";
+  }
+
+  async function populateVendorUsers(vendorName) {
+    resetUserChoices();
+    if (!vendorName) return;
+
+    const response = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/vendor/${encodeURIComponent(vendorName)}`);
+    const vendorData = await response.json();
+    const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
+    if (!users.length) return;
+
+    userChoices.setChoices(
+      users.map((user, index) => ({
+        value: user._id,
+        label: user.userName || "",
+        selected: index === 0,
+        customProperties: {
+          contact: user.userContact || "",
+          location: user.userLocation || "",
+        },
+      })),
+      "value",
+      "label",
+      true,
+    );
+
+    contactInput.value = users[0].userContact || "";
+    locationInput.value = users[0].userLocation || "";
+  }
+
+  async function filterSpecs(changedFieldId) {
+    const params = new URLSearchParams();
+    if (posPaperCodeEl.value) params.set("posPaperCode", posPaperCodeEl.value);
+    if (posPaperTypeEl.value) params.set("posPaperType", posPaperTypeEl.value);
+    if (posGsmEl.value) params.set("posGsm", posGsmEl.value);
+    if (posWidthEl.value) params.set("posWidth", posWidthEl.value);
+    if (posMtrsEl.value) params.set("posMtrs", posMtrsEl.value);
+    if (posCoreIdEl.value) params.set("posCoreId", posCoreIdEl.value);
+    if (posColorEl.value) params.set("posColor", posColorEl.value);
+
+    const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/filter-specs?${params}`);
+    const data = await res.json();
+    if (!data) return false;
+
+    let autoSelectedField = "";
+    if (changedFieldId !== "pos-paper-code") autoSelectedField = setSelectChoices(posPaperCodeChoices, data.posPaperCode || [], posPaperCodeEl.value);
+    if (changedFieldId !== "pos-paper-type") autoSelectedField = autoSelectedField || setSelectChoices(posPaperTypeChoices, data.posPaperType || [], posPaperTypeEl.value);
+    if (changedFieldId !== "pos-gsm") autoSelectedField = autoSelectedField || setSelectChoices(posGsmChoices, data.posGsm || [], posGsmEl.value);
+    if (changedFieldId !== "pos-width") autoSelectedField = autoSelectedField || setSelectChoices(posWidthChoices, data.posWidth || [], posWidthEl.value);
+    if (changedFieldId !== "pos-mtrs") autoSelectedField = autoSelectedField || setSelectChoices(posMtrsChoices, data.posMtrs || [], posMtrsEl.value);
+    if (changedFieldId !== "pos-core-id") autoSelectedField = autoSelectedField || setSelectChoices(posCoreIdChoices, data.posCoreId || [], posCoreIdEl.value);
+    if (changedFieldId !== "pos-color") autoSelectedField = autoSelectedField || setSelectChoices(posColorChoices, data.posColor || [], posColorEl.value);
+
+    if (autoSelectedField) {
+      await filterSpecs(autoSelectedField);
+      await resolveItem();
+      return true;
+    }
+    return false;
+  }
+
+  async function resolveItem() {
+    resetResolvedItem();
+    if (!posPaperCodeEl.value || !posPaperTypeEl.value || !posGsmEl.value || !posWidthEl.value || !posMtrsEl.value || !posCoreIdEl.value || !posColorEl.value) {
+      return;
+    }
+
+    const params = new URLSearchParams({
+      posPaperCode: posPaperCodeEl.value,
+      posPaperType: posPaperTypeEl.value,
+      posGsm: posGsmEl.value,
+      posWidth: posWidthEl.value,
+      posMtrs: posMtrsEl.value,
+      posCoreId: posCoreIdEl.value,
+      posColor: posColorEl.value,
+    });
+
+    const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/resolve?${params}`);
+    if (!res.ok) {
+      itemDisplayInput.value = "No matching item found";
+      itemDisplayInput.classList.add("item-id-error");
+      return;
+    }
+
+    const data = await res.json();
+    itemIdInput.value = data.itemId;
+    itemDisplayInput.value = data.displayValue;
+    itemDisplayInput.classList.add("item-id-success");
+    submitBtn.disabled = false;
+  }
+
+  vendorSelect.addEventListener("change", async () => {
+    try {
+      await populateVendorUsers(vendorSelect.value);
+    } catch (err) {
+      console.error("Vendor fetch failed:", err);
+      resetUserChoices();
+    }
+  });
+
+  userSelect.addEventListener("change", () => {
+    const selectedId = userChoices.getValue(true);
+    if (!selectedId) return resetUserFields();
+
+    const selectedUser = userChoices._store.choices.find((choice) => choice.value === selectedId);
+    contactInput.value = selectedUser?.customProperties?.contact || "";
+    locationInput.value = selectedUser?.customProperties?.location || "";
+  });
+
+  posPaperCodeEl.addEventListener("change", async () => {
+    await filterSpecs("pos-paper-code");
+    await resolveItem();
+  });
+  posPaperTypeEl.addEventListener("change", async () => {
+    await filterSpecs("pos-paper-type");
+    await resolveItem();
+  });
+  posGsmEl.addEventListener("change", async () => {
+    await filterSpecs("pos-gsm");
+    await resolveItem();
+  });
+  posWidthEl.addEventListener("change", async () => {
+    await filterSpecs("pos-width");
+    await resolveItem();
+  });
+  posMtrsEl.addEventListener("change", async () => {
+    await filterSpecs("pos-mtrs");
+    await resolveItem();
+  });
+  posCoreIdEl.addEventListener("change", async () => {
+    await filterSpecs("pos-core-id");
+    await resolveItem();
+  });
+  posColorEl.addEventListener("change", async () => {
+    await filterSpecs("pos-color");
+    await resolveItem();
+  });
+
+  const widthField = document.getElementById(pageConfig.widthField);
+  const mtrsField = document.getElementById(pageConfig.mtrsField);
+  const rateField = document.getElementById(pageConfig.rateField);
+  const saleCostField = document.getElementById(pageConfig.saleCostField);
+
+  function calcSaleCost() {
+    if (!widthField || !mtrsField || !rateField || !saleCostField) return;
+    if (!widthField.value || !mtrsField.value || !rateField.value) return;
+    const area = (Number(widthField.value) * Number(mtrsField.value)) / 1000;
+    if (!area) return;
+    saleCostField.value = (Number(rateField.value) / area).toFixed(4);
+  }
+
+  widthField?.addEventListener("input", calcSaleCost);
+  mtrsField?.addEventListener("input", calcSaleCost);
+  rateField?.addEventListener("input", calcSaleCost);
+
+  const resetSpecsBtn = document.getElementById("reset-specs-btn");
+  if (resetSpecsBtn) {
+    resetSpecsBtn.addEventListener("click", async () => {
+      posPaperCodeEl.value = "";
+      posPaperTypeEl.value = "";
+      posGsmEl.value = "";
+      posWidthEl.value = "";
+      posMtrsEl.value = "";
+      posCoreIdEl.value = "";
+      posColorEl.value = "";
+      resetSelect(posPaperCodeChoices);
+      resetSelect(posPaperTypeChoices);
+      resetSelect(posGsmChoices);
+      resetSelect(posWidthChoices);
+      resetSelect(posMtrsChoices);
+      resetSelect(posCoreIdChoices);
+      resetSelect(posColorChoices);
+      resetResolvedItem();
+      vendorPosPaperCodeEl.value = "";
+      vendorPosGsmEl.value = "";
+      posMtrsDelEl.value = "";
+      posRatePerRollEl.value = "";
+      posSaleCostEl.value = "";
+      posMinQtyEl.value = "";
+      posOdrQtyEl.value = "";
+      posOdrFreqEl.value = "";
+      posCreditTermEl.value = "";
+
+      vendorChoices.setChoiceByValue("");
+      resetUserChoices();
+      await filterSpecs("reset-all");
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    if (!itemIdInput.value) {
+      showVendorItemToast("Please select a valid item specification.", true);
+      return;
+    }
+
+    const minQtyField = document.getElementById(pageConfig.minQtyField);
+    const odrQtyField = document.getElementById(pageConfig.odrQtyField);
+    if (minQtyField && odrQtyField && Number(minQtyField.value) >= Number(odrQtyField.value)) {
+      showVendorItemToast("Order Quantity must be greater than Minimum Order Quantity", true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    try {
+      const response = await fetch(form.action, { method: "POST", body: new FormData(form) });
+      const data = await response.json();
+      if (!response.ok || !data?.success) {
+        showVendorItemToast(data?.message || "Failed to save vendor binding", true);
+        submitBtn.disabled = false;
+        return;
+      }
+
+      window.location.href = data.redirect || pageConfig.redirectTo;
+    } catch (err) {
+      console.error(err);
+      showVendorItemToast("Failed to save vendor binding", true);
+      submitBtn.disabled = false;
+    }
+  });
+
+  submitBtn.disabled = true;
+});
+
+function showVendorItemToast(message, isError = true) {
+  const existingToast = document.getElementById("vendor-item-toast");
+  if (existingToast) existingToast.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "vendor-item-toast";
+  toast.className = `toast-notification ${isError ? "toast-error" : "toast-success"}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <span class="toast-close" onclick="this.parentElement.remove()">Ã—</span>
+  `;
+
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    if (toast.parentElement) {
+      toast.style.animation = "slideOut 0.5s forwards";
+      setTimeout(() => toast.remove(), 500);
+    }
+  }, 5000);
+}
+</script>

@@ -1,0 +1,280 @@
+<% layout('/layout/boilerplate') -%>
+
+<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+
+<div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+  <style>
+    .header-action-btn {
+      background-color: #f0f0f0;
+      color: #044a78;
+      padding: 2px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: all 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-action-btn:hover {
+      background-color: #e4e4e4;
+    }
+
+    .col-count-center .tabulator-col-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tabulator .tabulator-header .tabulator-col.col-count-center {
+      justify-content: center;
+    }
+
+    .col-count-center .tabulator-col-title-holder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    .tabulator-cell.col-count-center {
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .count-link {
+      cursor: pointer;
+      text-decoration: underline;
+      font-weight: 600;
+      color: #044a78;
+    }
+  </style>
+
+  <div class="indi-head">
+    <h1>Vendor Coordinator View</h1>
+
+    <div style="display: flex; gap: 10px; align-items: center">
+      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/vendor'">
+        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Vendor
+      </button>
+      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/vendor?tab=user'">
+        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Coordinator
+      </button>
+      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/ttr-vendor/view'">
+        <i class="fa-solid fa-eye" style="margin-right: 4px"></i> TTRs
+      </button>
+
+      <div class="download-selector" id="downloadSelector">
+        <button class="download-selector__trigger">
+          <span>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span class="download-typo">Download</span>
+          </span>
+          <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
+        </button>
+        <div class="download-selector__menu" id="downloads">
+          <span class="download-selector__option" id="download-pdf">
+            <i class="fas fa-file-pdf download-selector__option-icon"></i>
+            <span>PDF</span>
+          </span>
+          <span class="download-selector__option" id="download-xlsx">
+            <i class="fas fa-file-excel download-selector__option-icon"></i>
+            <span>Excel</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-spinner"><div class="spinner-circle"></div></div>
+  <div id="master-table" class="tabulator tabulator-modern"></div>
+</div>
+
+<script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+<script>
+  const downloadSelector = document.getElementById("downloadSelector");
+  const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
+
+  triggerBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    downloadSelector.classList.toggle("download-selector--active");
+
+    const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
+    icon.style.transform = downloadSelector.classList.contains("download-selector--active")
+      ? "rotate(180deg)"
+      : "rotate(0deg)";
+  });
+
+  document.addEventListener("click", () => {
+    downloadSelector.classList.remove("download-selector--active");
+    const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
+    icon.style.transform = "rotate(0deg)";
+  });
+
+  downloadSelector.querySelector(".download-selector__menu").addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
+  let tableData = [];
+  try {
+    tableData = <%- JSON.stringify(jsonData || []) %>;
+  } catch (err) {
+    console.error("Vendor coordinator view JSON error", err);
+  }
+
+  tableData.forEach((row) => {
+    row.dispatchType = row.dispatchType || (row.SelfDispatch ? "Self Dispatch" : "Transport");
+  });
+
+  let table;
+
+  function initTable() {
+    table = new Tabulator("#master-table", {
+      data: tableData,
+      layout: "fitColumns",
+      virtualDom: true,
+      responsiveLayout: false,
+      pagination: "local",
+      paginationSize: 30,
+      initialSort: [{ column: "vendorName", dir: "asc" }],
+      movableColumns: true,
+      placeholder: "No data to display",
+      columns: [
+        {
+          title: "Vendor",
+          field: "vendorName",
+          headerSort: true,
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
+          widthGrow: 2,
+        },
+        {
+          title: "Coordinator",
+          field: "userName",
+          headerSort: true,
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
+          widthGrow: 2,
+        },
+        {
+          title: "Status",
+          field: "vendorStatus",
+          headerSort: true,
+          headerFilter: "select",
+          headerFilterParams: {
+            values: { "": "All", ACTIVE: "ACTIVE", INACTIVE: "INACTIVE", BLACKLISTED: "BLACKLISTED", OTHERS: "OTHERS" },
+          },
+          width: 120,
+        },
+        {
+          title: "Location",
+          field: "userLocation",
+          headerSort: true,
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
+          widthGrow: 2,
+        },
+        {
+          title: "TTR",
+          field: "ttrCount",
+          width: 85,
+          hozAlign: "center",
+          headerHozAlign: "center",
+          cssClass: "col-count-center",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.ttrCount) return "";
+            return `<span class="count-link">${row.ttrCount}</span>`;
+          },
+          cellClick: (e, cell) => {
+            const row = cell.getRow().getData();
+            if (!row.ttrCount || !row._id) return;
+            window.location.href = `/fairdesk/ttr-vendor/view?userId=${encodeURIComponent(row._id)}`;
+          },
+        },
+        {
+          title: "Tape",
+          field: "tapeCount",
+          width: 85,
+          hozAlign: "center",
+          headerHozAlign: "center",
+          cssClass: "col-count-center",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.tapeCount) return "";
+            return `<span class="count-link">${row.tapeCount}</span>`;
+          },
+          cellClick: (e, cell) => {
+            const row = cell.getRow().getData();
+            if (!row.tapeCount || !row._id) return;
+            window.location.href = `/fairdesk/tape/view/${row._id}`;
+          },
+        },
+        {
+          title: "POS Roll",
+          field: "posRollCount",
+          width: 95,
+          hozAlign: "center",
+          headerHozAlign: "center",
+          cssClass: "col-count-center",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.posRollCount) return "";
+            return `<span class="count-link">${row.posRollCount}</span>`;
+          },
+          cellClick: (e, cell) => {
+            const row = cell.getRow().getData();
+            if (!row.posRollCount || !row._id) return;
+            window.location.href = `/fairdesk/pos-roll/view/${row._id}`;
+          },
+        },
+        {
+          title: "Tafeta",
+          field: "tafetaCount",
+          width: 85,
+          hozAlign: "center",
+          headerHozAlign: "center",
+          cssClass: "col-count-center",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.tafetaCount) return "";
+            return `<span class="count-link">${row.tafetaCount}</span>`;
+          },
+          cellClick: (e, cell) => {
+            const row = cell.getRow().getData();
+            if (!row.tafetaCount || !row._id) return;
+            window.location.href = `/fairdesk/tafeta/view/${row._id}`;
+          },
+        },
+      ],
+    });
+  }
+
+  window.addEventListener("load", initTable);
+
+  document.getElementById("download-pdf").addEventListener("click", () => {
+    if (!table) return;
+    table.download("pdf", "vendor-coordinator-view.pdf", {
+      orientation: "landscape",
+      title: "Vendor Coordinator View",
+    });
+    downloadSelector.classList.remove("download-selector--active");
+  });
+
+  document.getElementById("download-xlsx").addEventListener("click", () => {
+    if (!table) return;
+    table.download("xlsx", "vendor-coordinator-view.xlsx", {
+      sheetName: "Vendor Coordinator View",
+    });
+    downloadSelector.classList.remove("download-selector--active");
+  });
+</script>

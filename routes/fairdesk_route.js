@@ -6,6 +6,7 @@ import Client from "../models/users/client.js";
 import Username from "../models/users/username.js";
 import Vendor from "../models/users/vendor.js";
 import VendorUser from "../models/users/vendorUser.js";
+import Employee from "../models/hr/employee_model.js";
 import Label from "../models/inventory/labels.js";
 import Ttr from "../models/inventory/ttr.js";
 import Tape from "../models/inventory/tape.js";
@@ -32,6 +33,7 @@ import TafetaStockLog from "../models/inventory/TafetaStockLog.js";
 import TtrStockLog from "../models/inventory/TtrStockLog.js";
 import Location from "../models/system/location.js";
 import Counter from "../models/system/counter.js";
+import Sample from "../models/inventory/sample.js";
 const router = express.Router();
 
 function hashSignature(rawSignature) {
@@ -104,6 +106,7 @@ router.get("/form/client", async (req, res) => {
   };
 
   let clients = await Client.distinct("clientName");
+  const employees = await Employee.find({}, "empName").sort({ empName: 1 }).lean();
   let userCount = await Username.countDocuments();
   const previewClientId = await getNextClientIdPreview();
   res.render("users/clientForm.ejs", {
@@ -113,6 +116,7 @@ router.get("/form/client", async (req, res) => {
     userCount,
     previewClientId,
     clients,
+    employees,
     notification: req.flash("notification"),
   });
 });
@@ -414,6 +418,96 @@ router.get("/form/labels/:name", async (req, res) => {
   res.status(200).json(clientName);
 });
 
+// ----------------------------------Samples---------------------------------->
+// Helper: build the counter key and format the sample code
+function getMaterialAbbreviation(material) {
+  const mat = String(material || "UNKNOWN").trim().toUpperCase();
+  if (mat === "FACE PAPER") return "FP";
+  if (mat === "ADHESIVE") return "ADH";
+  if (mat === "RELEASE PAPER") return "RP";
+  if (mat === "SL (PAPER)") return "SL";
+  if (mat === "POS ROLL") return "POS";
+  return mat.replace(/\s+/g, "-");
+}
+
+function formatSampleCode(material, category, seq) {
+  const mat = getMaterialAbbreviation(material);
+  const cat = category === "client" ? "CSMP" : "VSMP";
+  return `FS | ${mat} | ${cat} | ${String(seq).padStart(6, "0")}`;
+}
+
+function sampleCounterKey(material, category) {
+  const mat = getMaterialAbbreviation(material);
+  const cat = category === "client" ? "CSMP" : "VSMP";
+  return `sampleCode_${mat}_${cat}`;
+}
+
+// GET: preview next sample code (called by client-side JS on radio change)
+router.get("/form/samples/next-code", async (req, res) => {
+  try {
+    const material = String(req.query.material || "").trim();
+    const category = String(req.query.category || "vendor").trim().toLowerCase();
+    if (!material) return res.json({ code: "" });
+
+    const key = sampleCounterKey(material, category);
+    const counterDoc = await Counter.findOne({ key }).select("seq").lean();
+    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+
+    while (await Sample.exists({ sampleCode: formatSampleCode(material, category, nextSeq) })) {
+      nextSeq += 1;
+    }
+
+    return res.json({ code: formatSampleCode(material, category, nextSeq) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ code: "" });
+  }
+});
+
+router.get("/form/samples", async (req, res) => {
+  res.render("inventory/samples.ejs", {
+    title: "Samples",
+    CSS: false,
+    JS: false,
+    notification: req.flash("notification"),
+  });
+});
+
+router.post("/form/samples", async (req, res) => {
+  try {
+    const activeTab = String(req.body.sampleCategory || "").trim().toLowerCase() === "client" ? "client" : "vendor";
+
+    const material = String(req.body.sampleMaterial || "").trim();
+    const key = sampleCounterKey(material, activeTab);
+
+    const generateSampleCode = async () => {
+      const maxAttempts = 10000;
+      for (let i = 0; i < maxAttempts; i++) {
+        const counter = await Counter.findOneAndUpdate(
+          { key },
+          { $inc: { seq: 1 } },
+          { new: true, upsert: true, setDefaultsOnInsert: true },
+        ).lean();
+
+        const candidateCode = formatSampleCode(material, activeTab, counter.seq);
+        const exists = await Sample.exists({ sampleCode: candidateCode });
+        if (!exists) return candidateCode;
+      }
+      throw new Error("Unable to generate unique sample code");
+    };
+
+    const sampleCode = material ? await generateSampleCode() : String(req.body.sampleCode || "").trim();
+
+    await Sample.create({ ...req.body, sampleCode, sampleCategory: activeTab, sampleMaterial: material });
+
+    req.flash("notification", `${activeTab === "client" ? "Client" : "Vendor"} sample submitted successfully!`);
+    res.json({ success: true, redirect: `/fairdesk/form/samples?tab=${activeTab}` });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // ----------------------------------CareLead---------------------------------->
 // route for carelead form.
 router.get("/form/carelead", (req, res) => {
@@ -507,6 +601,46 @@ function buildTtrSignature(source) {
   ].join("||");
 }
 
+const DEFAULT_TTR_SPECS = {
+  ttrWidth: 0,
+  ttrMtrs: 0,
+  ttrInkFace: "IN",
+  ttrCoreId: "1",
+  ttrCoreLength: 0,
+  ttrNotch: "NO",
+  ttrWinding: "NORMAL",
+};
+
+const DEFAULT_VENDOR_TTR_OVERRIDES = {
+  ttrMtrsDel: "0",
+  ttrRatePerRoll: 0,
+  ttrSaleCost: 0,
+  ttrMinQty: 1,
+  ttrOdrQty: 1,
+  ttrOdrFreq: "N/A",
+  ttrCreditTerm: "N/A",
+  vendorTapePaperCode: "N/A",
+  vendorTapeGsm: 0,
+  tapeMtrsDel: 0,
+  tapeRatePerRoll: 0,
+  tapeSaleCost: 0,
+  tapeMinQty: 1,
+  tapeOdrQty: 1,
+  tapeOdrFreq: "N/A",
+  tapeCreditTerm: "N/A",
+};
+
+const trimOr = (value, fallback = "") => {
+  if (value === undefined || value === null) return fallback;
+  const out = String(value).trim();
+  return out === "" ? fallback : out;
+};
+
+const numOr = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
 function flexTtrValue(val) {
   if (val === undefined || val === null) return val;
   const arr = [val];
@@ -524,9 +658,13 @@ function flexTtrValue(val) {
 // GET: TTR Master form
 router.get("/form/ttr", async (req, res) => {
   const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
+  const parseTtrSeq = (productId) => {
+    const match = String(productId || "").match(/(\d{6})$/);
+    return match ? Number(match[1]) : 0;
+  };
   const getNextTtrProductIdPreview = async () => {
-    const counterDoc = await Counter.findOne({ key: "ttrProductId" }).select("seq").lean();
-    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+    const latestTtr = await Ttr.findOne().sort({ ttrProductId: -1 }).select("ttrProductId").lean();
+    let nextSeq = parseTtrSeq(latestTtr?.ttrProductId) + 1;
 
     while (await Ttr.exists({ ttrProductId: formatTtrProductId(nextSeq) })) {
       nextSeq += 1;
@@ -548,51 +686,35 @@ router.get("/form/ttr", async (req, res) => {
 // GET: Check if TTR already exists (used by client-side precheck)
 router.get("/form/ttr/exists", async (req, res) => {
   try {
-    const {
-      ttrType,
-      ttrColor,
-      ttrMaterialCode,
-      ttrWidth,
-      ttrMtrs,
-      ttrInkFace,
-      ttrCoreId,
-      ttrCoreLength,
-      ttrNotch,
-      ttrWinding,
-    } = req.query;
+    const normalized = {
+      ...DEFAULT_TTR_SPECS,
+      ...req.query,
+      ttrType: trimOr(req.query.ttrType),
+      ttrColor: trimOr(req.query.ttrColor, "BLACK"),
+      ttrMaterialCode: trimOr(req.query.ttrMaterialCode),
+    };
 
-    const required = [
-      ttrType,
-      ttrColor,
-      ttrMaterialCode,
-      ttrWidth,
-      ttrMtrs,
-      ttrInkFace,
-      ttrCoreId,
-      ttrCoreLength,
-      ttrNotch,
-      ttrWinding,
-    ];
-    if (required.some((v) => v === undefined || v === null || String(v).trim() === "")) {
+    if ([normalized.ttrType, normalized.ttrColor, normalized.ttrMaterialCode].some((v) => trimOr(v) === "")) {
       return res.json({ exists: false });
     }
 
-    if (buildTtrSignature(req.query).split("||").some((part) => part === "")) {
+    const signatureSource = { ...DEFAULT_TTR_SPECS, ...normalized };
+    if (buildTtrSignature(signatureSource).split("||").some((part) => part === "")) {
       return res.json({ exists: false });
     }
 
-    const ttrSignature = hashSignature(buildTtrSignature(req.query));
+    const ttrSignature = hashSignature(buildTtrSignature(signatureSource));
     const legacyMatch = {
-      ttrType: flexTtrValue(ttrType),
-      ttrColor: flexTtrValue(ttrColor),
-      ttrMaterialCode: flexTtrValue(ttrMaterialCode),
-      ttrWidth: flexTtrValue(ttrWidth),
-      ttrMtrs: Number(ttrMtrs),
-      ttrInkFace: flexTtrValue(ttrInkFace),
-      ttrCoreId: flexTtrValue(ttrCoreId),
-      ttrCoreLength: Number(ttrCoreLength),
-      ttrNotch: flexTtrValue(ttrNotch),
-      ttrWinding: flexTtrValue(ttrWinding),
+      ttrType: flexTtrValue(normalized.ttrType),
+      ttrColor: flexTtrValue(normalized.ttrColor),
+      ttrMaterialCode: flexTtrValue(normalized.ttrMaterialCode),
+      ttrWidth: flexTtrValue(signatureSource.ttrWidth),
+      ttrMtrs: numOr(signatureSource.ttrMtrs),
+      ttrInkFace: flexTtrValue(signatureSource.ttrInkFace),
+      ttrCoreId: flexTtrValue(signatureSource.ttrCoreId),
+      ttrCoreLength: numOr(signatureSource.ttrCoreLength),
+      ttrNotch: flexTtrValue(signatureSource.ttrNotch),
+      ttrWinding: flexTtrValue(signatureSource.ttrWinding),
     };
 
     const existingTtr = await Ttr.findOne({
@@ -617,18 +739,21 @@ router.post("/form/ttr", async (req, res) => {
   console.log("TTR MASTER BODY", req.body);
   try {
     const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
+    const parseTtrSeq = (productId) => {
+      const match = String(productId || "").match(/(\d{6})$/);
+      return match ? Number(match[1]) : 0;
+    };
     const generateTtrProductId = async () => {
+      let nextSeq = parseTtrSeq(
+        (await Ttr.findOne().sort({ ttrProductId: -1 }).select("ttrProductId").lean())?.ttrProductId,
+      ) + 1;
+
       const maxAttempts = 10000;
       for (let i = 0; i < maxAttempts; i++) {
-        const counter = await Counter.findOneAndUpdate(
-          { key: "ttrProductId" },
-          { $inc: { seq: 1 } },
-          { new: true, upsert: true, setDefaultsOnInsert: true },
-        ).lean();
-
-        const candidateId = formatTtrProductId(counter.seq);
+        const candidateId = formatTtrProductId(nextSeq);
         const exists = await Ttr.exists({ ttrProductId: candidateId });
         if (!exists) return candidateId;
+        nextSeq += 1;
       }
       throw new Error("Unable to generate unique TTR product id");
     };
@@ -735,9 +860,13 @@ router.post("/form/ttr", async (req, res) => {
 // GET: Tape Master form
 router.get("/form/tape-master", async (req, res) => {
   const formatTapeId = (n) => `FS | Tape | ${String(n).padStart(6, "0")}`;
+  const parseTapeSeq = (productId) => {
+    const match = String(productId || "").match(/(\d{6})$/);
+    return match ? Number(match[1]) : 0;
+  };
   const getNextTapeIdPreview = async () => {
-    const counterDoc = await Counter.findOne({ key: "tapeProductId" }).select("seq").lean();
-    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+    const latestTape = await Tape.findOne().sort({ tapeProductId: -1 }).select("tapeProductId").lean();
+    let nextSeq = parseTapeSeq(latestTape?.tapeProductId) + 1;
 
     while (await Tape.exists({ tapeProductId: formatTapeId(nextSeq) })) {
       nextSeq += 1;
@@ -761,18 +890,21 @@ router.post("/form/tape-master", async (req, res) => {
   console.log("TAPE MASTER BODY", req.body);
   try {
     const formatTapeId = (n) => `FS | Tape | ${String(n).padStart(6, "0")}`;
+    const parseTapeSeq = (productId) => {
+      const match = String(productId || "").match(/(\d{6})$/);
+      return match ? Number(match[1]) : 0;
+    };
     const generateTapeProductId = async () => {
+      let nextSeq = parseTapeSeq(
+        (await Tape.findOne().sort({ tapeProductId: -1 }).select("tapeProductId").lean())?.tapeProductId,
+      ) + 1;
+
       const maxAttempts = 10000;
       for (let i = 0; i < maxAttempts; i++) {
-        const counter = await Counter.findOneAndUpdate(
-          { key: "tapeProductId" },
-          { $inc: { seq: 1 } },
-          { new: true, upsert: true, setDefaultsOnInsert: true },
-        ).lean();
-
-        const candidateId = formatTapeId(counter.seq);
+        const candidateId = formatTapeId(nextSeq);
         const exists = await Tape.exists({ tapeProductId: candidateId });
         if (!exists) return candidateId;
+        nextSeq += 1;
       }
       throw new Error("Unable to generate unique tape product id");
     };
@@ -949,9 +1081,13 @@ router.post("/form/edit/user/:userId", async (req, res) => {
 // GET: POS Roll Master form
 router.get("/form/pos-roll-master", async (req, res) => {
   const formatPosProductId = (n) => `FS | POS Roll | ${String(n).padStart(6, "0")}`;
+  const parsePosSeq = (productId) => {
+    const match = String(productId || "").match(/(\d{6})$/);
+    return match ? Number(match[1]) : 0;
+  };
   const getNextPosProductIdPreview = async () => {
-    const counterDoc = await Counter.findOne({ key: "posProductId" }).select("seq").lean();
-    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+    const latestPos = await PosRoll.findOne().sort({ posProductId: -1 }).select("posProductId").lean();
+    let nextSeq = parsePosSeq(latestPos?.posProductId) + 1;
 
     while (await PosRoll.exists({ posProductId: formatPosProductId(nextSeq) })) {
       nextSeq += 1;
@@ -975,18 +1111,21 @@ router.post("/form/pos-roll-master", async (req, res) => {
   console.log("POS ROLL MASTER BODY", req.body);
   try {
     const formatPosProductId = (n) => `FS | POS Roll | ${String(n).padStart(6, "0")}`;
+    const parsePosSeq = (productId) => {
+      const match = String(productId || "").match(/(\d{6})$/);
+      return match ? Number(match[1]) : 0;
+    };
     const generatePosProductId = async () => {
+      let nextSeq = parsePosSeq(
+        (await PosRoll.findOne().sort({ posProductId: -1 }).select("posProductId").lean())?.posProductId,
+      ) + 1;
+
       const maxAttempts = 10000;
       for (let i = 0; i < maxAttempts; i++) {
-        const counter = await Counter.findOneAndUpdate(
-          { key: "posProductId" },
-          { $inc: { seq: 1 } },
-          { new: true, upsert: true, setDefaultsOnInsert: true },
-        ).lean();
-
-        const candidateId = formatPosProductId(counter.seq);
+        const candidateId = formatPosProductId(nextSeq);
         const exists = await PosRoll.exists({ posProductId: candidateId });
         if (!exists) return candidateId;
+        nextSeq += 1;
       }
       throw new Error("Unable to generate unique POS Roll product id");
     };
@@ -1057,9 +1196,13 @@ router.post("/form/pos-roll-master", async (req, res) => {
 // GET: Tafeta Master form
 router.get("/form/tafeta-master", async (req, res) => {
   const formatTafetaProductId = (n) => `FS | Tafeta | ${String(n).padStart(6, "0")}`;
+  const parseTafetaSeq = (productId) => {
+    const match = String(productId || "").match(/(\d{6})$/);
+    return match ? Number(match[1]) : 0;
+  };
   const getNextTafetaProductIdPreview = async () => {
-    const counterDoc = await Counter.findOne({ key: "tafetaProductId" }).select("seq").lean();
-    let nextSeq = Number(counterDoc?.seq || 0) + 1;
+    const latestTafeta = await Tafeta.findOne().sort({ tafetaProductId: -1 }).select("tafetaProductId").lean();
+    let nextSeq = parseTafetaSeq(latestTafeta?.tafetaProductId) + 1;
 
     while (await Tafeta.exists({ tafetaProductId: formatTafetaProductId(nextSeq) })) {
       nextSeq += 1;
@@ -1083,18 +1226,21 @@ router.post("/form/tafeta-master", async (req, res) => {
   console.log("TAFETA MASTER BODY", req.body);
   try {
     const formatTafetaProductId = (n) => `FS | Tafeta | ${String(n).padStart(6, "0")}`;
+    const parseTafetaSeq = (productId) => {
+      const match = String(productId || "").match(/(\d{6})$/);
+      return match ? Number(match[1]) : 0;
+    };
     const generateTafetaProductId = async () => {
+      let nextSeq = parseTafetaSeq(
+        (await Tafeta.findOne().sort({ tafetaProductId: -1 }).select("tafetaProductId").lean())?.tafetaProductId,
+      ) + 1;
+
       const maxAttempts = 10000;
       for (let i = 0; i < maxAttempts; i++) {
-        const counter = await Counter.findOneAndUpdate(
-          { key: "tafetaProductId" },
-          { $inc: { seq: 1 } },
-          { new: true, upsert: true, setDefaultsOnInsert: true },
-        ).lean();
-
-        const candidateId = formatTafetaProductId(counter.seq);
+        const candidateId = formatTafetaProductId(nextSeq);
         const exists = await Tafeta.exists({ tafetaProductId: candidateId });
         if (!exists) return candidateId;
+        nextSeq += 1;
       }
       throw new Error("Unable to generate unique Tafeta product id");
     };
@@ -1917,39 +2063,6 @@ router.get("/form/vendor/:name", async (req, res) => {
   let vendorData = await Vendor.findOne({ vendorName: req.params.name });
   let vendorName = vendorData;
   res.status(200).json(vendorName);
-});
-
-router.get("/form/vendor-binding", async (req, res) => {
-  try {
-    const vendors = await Vendor.distinct("vendorName");
-    res.render("inventory/vendorBinding.ejs", {
-      title: "Vendor Binding",
-      vendors,
-      CSS: false,
-      JS: false,
-      notification: req.flash("notification"),
-    });
-  } catch (err) {
-    console.error("VENDOR BINDING GET ERROR:", err);
-    req.flash("notification", "Failed to load Vendor Binding");
-    res.redirect("back");
-  }
-});
-
-router.get("/form/vendor-binding/vendor/:name", async (req, res) => {
-  try {
-    const vendorData = await Vendor.findOne({ vendorName: req.params.name })
-      .populate({
-        path: "users",
-        select: "userName userContact userLocation",
-      })
-      .lean();
-
-    res.status(200).json(vendorData);
-  } catch (err) {
-    console.error("VENDOR BINDING VENDOR FETCH ERROR:", err);
-    res.status(500).json(null);
-  }
 });
 
 // Route to handle VENDOR USER form submission
@@ -3582,6 +3695,62 @@ router.get("/master/view", async (req, res) => {
     title: "Client Details",
     notification: req.flash("notification"),
   });
+});
+
+// ----------------------------------Vendor display----------------------------------
+router.get("/vendor/view", async (req, res) => {
+  try {
+    const jsonData = await Vendor.find()
+      .select("vendorId vendorName vendorStatus hoLocation warehouseLocation commodities vendorGst vendorMsme vendorGumasta vendorPan users")
+      .populate({ path: "users", select: "_id" })
+      .sort({ vendorName: 1 });
+
+    res.render("users/vendorsView.ejs", {
+      jsonData,
+      CSS: "tableDisp.css",
+      JS: false,
+      title: "Vendor Details",
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR VIEW ERROR:", err);
+    req.flash("notification", "Failed to load vendor details");
+    res.redirect("/fairdesk/form/vendor");
+  }
+});
+
+// Backward-compatible redirect for the old vendor coordinator URL.
+router.get("/vendor/user/view", async (req, res) => {
+  return res.redirect("/fairdesk/vendor/coordinator/view");
+});
+
+// ----------------------------------Vendor coordinator display----------------------------------
+router.get("/vendor/coordinator/view", async (req, res) => {
+  try {
+    const jsonData = await VendorUser.find()
+      .sort({ vendorName: 1, userName: 1 })
+      .lean();
+
+    jsonData.forEach((row) => {
+      row.dispatchType = row.SelfDispatch ? "Self Dispatch" : "Transport";
+      row.ttrCount = row.ttr?.length || 0;
+      row.tapeCount = row.tape?.length || 0;
+      row.posRollCount = row.posRoll?.length || 0;
+      row.tafetaCount = row.tafeta?.length || 0;
+    });
+
+    res.render("users/vendorUserView.ejs", {
+      jsonData,
+      CSS: "tableDisp.css",
+      JS: false,
+      title: "Vendor Coordinator View",
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR COORDINATOR VIEW ERROR:", err);
+    req.flash("notification", "Failed to load vendor coordinator view");
+    res.redirect("/fairdesk/form/vendor");
+  }
 });
 
 // ----------------------------------Labels display---------------------------------->
