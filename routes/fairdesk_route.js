@@ -44,6 +44,14 @@ function duplicateMasterMessage(item, productId) {
   return `${item} already exist with id: ${productId || "unknown"}`;
 }
 
+function canonicalizeLocationName(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .replace(/^[.,]+|[.,]+$/g, "");
+}
+
 router.use((req, res, next) => {
   const role = req.session?.authUser?.role;
   if (!role) return res.redirect("/login");
@@ -598,6 +606,7 @@ function buildTtrSignature(source) {
     normalizeTtrPart(source.ttrCoreLength),
     normalizeTtrPart(source.ttrNotch),
     normalizeTtrPart(source.ttrWinding),
+    normalizeTtrPart(source.ttrMinQty),
   ].join("||");
 }
 
@@ -609,6 +618,7 @@ const DEFAULT_TTR_SPECS = {
   ttrCoreLength: 0,
   ttrNotch: "NO",
   ttrWinding: "NORMAL",
+  ttrMinQty: 1,
 };
 
 const DEFAULT_VENDOR_TTR_OVERRIDES = {
@@ -692,9 +702,10 @@ router.get("/form/ttr/exists", async (req, res) => {
       ttrType: trimOr(req.query.ttrType),
       ttrColor: trimOr(req.query.ttrColor, "BLACK"),
       ttrMaterialCode: trimOr(req.query.ttrMaterialCode),
+      ttrMinQty: numOr(req.query.ttrMinQty, DEFAULT_TTR_SPECS.ttrMinQty),
     };
 
-    if ([normalized.ttrType, normalized.ttrColor, normalized.ttrMaterialCode].some((v) => trimOr(v) === "")) {
+    if ([normalized.ttrType, normalized.ttrColor, normalized.ttrMaterialCode, req.query.ttrMinQty].some((v) => trimOr(v) === "")) {
       return res.json({ exists: false });
     }
 
@@ -715,6 +726,7 @@ router.get("/form/ttr/exists", async (req, res) => {
       ttrCoreLength: numOr(signatureSource.ttrCoreLength),
       ttrNotch: flexTtrValue(signatureSource.ttrNotch),
       ttrWinding: flexTtrValue(signatureSource.ttrWinding),
+      ttrMinQty: numOr(signatureSource.ttrMinQty),
     };
 
     const existingTtr = await Ttr.findOne({
@@ -726,6 +738,7 @@ router.get("/form/ttr/exists", async (req, res) => {
     return res.json({
       exists: !!existingTtr,
       id: existingTtr?.ttrProductId || "",
+      ttrId: existingTtr?._id || "",
       message: existingTtr ? duplicateMasterMessage("TTR", existingTtr.ttrProductId) : "",
     });
   } catch (err) {
@@ -765,6 +778,20 @@ router.post("/form/ttr", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const coreLengthNum = Number(req.body.ttrCoreLength);
+    const minQtyNum = Number(req.body.ttrMinQty);
+    if (!Number.isFinite(coreLengthNum)) {
+      return res.status(400).json({
+        success: false,
+        message: "Core Length must be a valid number.",
+      });
+    }
+    if (!Number.isFinite(minQtyNum) || minQtyNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimum Qty must be a valid number.",
+      });
+    }
 
     const duplicateTtrQuery = {
       $or: [
@@ -780,6 +807,7 @@ router.post("/form/ttr", async (req, res) => {
           ttrCoreLength: Number(req.body.ttrCoreLength),
           ttrNotch: flexTtrValue(req.body.ttrNotch),
           ttrWinding: flexTtrValue(req.body.ttrWinding),
+          ttrMinQty: minQtyNum,
         },
       ],
     };
@@ -800,17 +828,18 @@ router.post("/form/ttr", async (req, res) => {
       ttrMtrs: Number(req.body.ttrMtrs),
       ttrInkFace: String(req.body.ttrInkFace).trim(),
       ttrCoreId: String(req.body.ttrCoreId).trim(),
-      ttrCoreLength: Number(req.body.ttrCoreLength),
+      ttrCoreLength: coreLengthNum,
       ttrNotch: String(req.body.ttrNotch).trim(),
       ttrWinding: String(req.body.ttrWinding).trim(),
+      ttrMinQty: minQtyNum,
       ttrSignature,
       createdBy: req.user?.username || "SYSTEM",
     };
 
-    await Ttr.create(data);
+    const createdTtr = await Ttr.create(data);
 
     req.flash("notification", "TTR created successfully!");
-    res.json({ success: true, redirect: "/fairdesk/ttr/view" });
+    res.json({ success: true, redirect: "/fairdesk/ttr/view", id: createdTtr._id, ttrProductId: createdTtr.ttrProductId });
   } catch (err) {
     console.error(err);
     if (err?.code === 11000) {
@@ -1350,7 +1379,12 @@ router.post("/form/location", async (req, res) => {
 // API: Get all locations as JSON
 router.get("/api/locations", async (req, res) => {
   const locations = await Location.distinct("locationName");
-  res.json(locations);
+  const normalizedLocations = [...new Set(
+    locations
+      .map((location) => canonicalizeLocationName(location))
+      .filter(Boolean)
+  )].sort();
+  res.json(normalizedLocations);
 });
 
 // DELETE: Remove a location
@@ -2296,7 +2330,10 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           { $match: { tape: { $in: tapeIds } } },
           {
             $group: {
-              _id: { tape: "$tape", location: "$location" },
+              _id: {
+                tape: "$tape",
+                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+              },
               totalQty: { $sum: "$quantity" },
             },
           },
@@ -2317,7 +2354,10 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           { $match: { tapeId: { $in: tapeIds }, status: "PENDING" } },
           {
             $group: {
-              _id: { tapeId: "$tapeId", location: "$sourceLocation" },
+              _id: {
+                tapeId: "$tapeId",
+                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
+              },
               bookedQty: {
                 $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
               },
@@ -2384,7 +2424,15 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
       const [stockAgg, bookedAgg] = await Promise.all([
         PosRollStock.aggregate([
           { $match: { posRoll: { $in: posRollIds } } },
-          { $group: { _id: { posRoll: "$posRoll", location: "$location" }, totalQty: { $sum: "$quantity" } } },
+          {
+            $group: {
+              _id: {
+                posRoll: "$posRoll",
+                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+              },
+              totalQty: { $sum: "$quantity" },
+            },
+          },
           {
             $group: {
               _id: "$_id.posRoll",
@@ -2397,7 +2445,10 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           { $match: { tapeId: { $in: posRollIds }, status: "PENDING" } },
           {
             $group: {
-              _id: { tapeId: "$tapeId", location: "$sourceLocation" },
+              _id: {
+                tapeId: "$tapeId",
+                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
+              },
               bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
             },
           },
@@ -2454,7 +2505,15 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
       const [stockAgg, bookedAgg] = await Promise.all([
         TafetaStock.aggregate([
           { $match: { tafeta: { $in: tafetaIds } } },
-          { $group: { _id: { tafeta: "$tafeta", location: "$location" }, totalQty: { $sum: "$quantity" } } },
+          {
+            $group: {
+              _id: {
+                tafeta: "$tafeta",
+                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+              },
+              totalQty: { $sum: "$quantity" },
+            },
+          },
           {
             $group: {
               _id: "$_id.tafeta",
@@ -2467,7 +2526,10 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           { $match: { tapeId: { $in: tafetaIds }, status: "PENDING" } },
           {
             $group: {
-              _id: { tapeId: "$tapeId", location: "$sourceLocation" },
+              _id: {
+                tapeId: "$tapeId",
+                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
+              },
               bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
             },
           },
@@ -2541,7 +2603,10 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           { $match: { ttr: { $in: ttrIds } } },
           {
             $group: {
-              _id: { ttr: "$ttr", location: "$location" },
+              _id: {
+                ttr: "$ttr",
+                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+              },
               totalQty: { $sum: "$quantity" },
             },
           },
@@ -2562,7 +2627,10 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           { $match: { tapeId: { $in: ttrIds }, status: "PENDING" } },
           {
             $group: {
-              _id: { tapeId: "$tapeId", location: "$sourceLocation" },
+              _id: {
+                tapeId: "$tapeId",
+                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
+              },
               bookedQty: {
                 $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
               },
@@ -2618,7 +2686,74 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
 // Submit Sales Order (Create or Update)
 router.post("/sales/order", async (req, res) => {
   try {
-    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, poNumber, orderRate } = req.body;
+    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, locationRadio, userLocation, poNumber, orderRate } = req.body;
+    const createdByUser = req.user?.username || "SYSTEM";
+    const qtyNum = Number(quantity);
+
+    // Idempotency guard: if two identical create requests arrive within a short window,
+    // treat the later one as duplicate and do not create a second order.
+    if (!orderId && itemId && Number.isFinite(qtyNum) && qtyNum > 0) {
+      const duplicateWindowStart = new Date(Date.now() - 15000);
+      const recentDuplicate = await TapeSalesOrder.findOne({
+        status: "PENDING",
+        tapeBinding: itemId,
+        quantity: qtyNum,
+        poNumber: String(poNumber || "").trim(),
+        createdBy: createdByUser,
+        createdAt: { $gte: duplicateWindowStart },
+      })
+        .select("_id")
+        .lean();
+
+      if (recentDuplicate) {
+        return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
+      }
+    }
+
+    if (["TAPE", "POS_ROLL", "TAFETA", "TTR"].includes(itemType) && canonicalizeLocationName(locationRadio) === "ALL") {
+      return res.status(400).json({ success: false, message: "Location cannot be ALL. Please select a specific location." });
+    }
+    let normalizedSourceLocation = canonicalizeLocationName(sourceLocation || locationRadio || userLocation);
+    const isStockBasedType = ["TAPE", "POS_ROLL", "TAFETA", "TTR"].includes(itemType);
+
+    // "ALL" is not a valid storage location for stock-based orders.
+    if (normalizedSourceLocation === "ALL") normalizedSourceLocation = "";
+
+    // Fallback 1: derive from selected user.
+    if (!normalizedSourceLocation && userId) {
+      const userDoc = await Username.findById(userId).select("userLocation").lean();
+      normalizedSourceLocation = canonicalizeLocationName(userDoc?.userLocation);
+    }
+
+    // Fallback 2: derive from binding -> user -> location.
+    if (!normalizedSourceLocation && isStockBasedType && itemId) {
+      let bindingUserId = null;
+
+      if (itemType === "TAPE") {
+        const binding = await TapeBinding.findById(itemId).select("userId").lean();
+        bindingUserId = binding?.userId || null;
+      } else if (itemType === "POS_ROLL") {
+        const binding = await PosRollBinding.findById(itemId).select("userId").lean();
+        bindingUserId = binding?.userId || null;
+      } else if (itemType === "TAFETA") {
+        const binding = await TafetaBinding.findById(itemId).select("userId").lean();
+        bindingUserId = binding?.userId || null;
+      } else if (itemType === "TTR") {
+        const binding = await TtrBinding.findById(itemId).select("userId").lean();
+        bindingUserId = binding?.userId || null;
+      }
+
+      if (bindingUserId) {
+        const userDoc = await Username.findById(bindingUserId).select("userLocation").lean();
+        normalizedSourceLocation = canonicalizeLocationName(userDoc?.userLocation);
+      }
+    }
+
+    if (isStockBasedType && (!normalizedSourceLocation || normalizedSourceLocation === "ALL")) {
+      return res.status(400).json({ success: false, message: "no location is selected" });
+    }
+
+    const sourceLocationForSave = normalizedSourceLocation || undefined;
 
     if (itemType === "TAPE") {
       const binding = await TapeBinding.findById(itemId);
@@ -2632,7 +2767,7 @@ router.post("/sales/order", async (req, res) => {
         tapeBinding: itemId,
         userId: binding.userId,
         tapeId: binding.tapeId,
-        sourceLocation, // Allow updating location if needed
+        sourceLocation: sourceLocationForSave, // Allow updating location if needed
         poNumber,
         orderRate: finalOrderRate,
         quantity: Number(quantity),
@@ -2648,7 +2783,7 @@ router.post("/sales/order", async (req, res) => {
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
         // CREATE new order
-        data.createdBy = req.user?.username || "SYSTEM";
+        data.createdBy = createdByUser;
         const newOrder = await TapeSalesOrder.create(data);
 
         // Action Log entry for creation
@@ -2656,7 +2791,7 @@ router.post("/sales/order", async (req, res) => {
           orderId: newOrder._id,
           action: "CREATED",
           quantity: Number(quantity),
-          performedBy: req.user?.username || "SYSTEM",
+          performedBy: createdByUser,
         });
 
         req.flash("notification", "Sales order created successfully!");
@@ -2678,7 +2813,7 @@ router.post("/sales/order", async (req, res) => {
         userId: binding.userId,
         tapeId: binding.posRollId,
         onModel: "PosRoll",
-        sourceLocation,
+        sourceLocation: sourceLocationForSave,
         poNumber,
         orderRate: finalOrderRate,
         quantity: Number(quantity),
@@ -2691,13 +2826,13 @@ router.post("/sales/order", async (req, res) => {
         req.flash("notification", "POS Roll order updated successfully!");
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
-        data.createdBy = req.user?.username || "SYSTEM";
+        data.createdBy = createdByUser;
         const newOrder = await TapeSalesOrder.create(data);
         await SalesOrderLog.create({
           orderId: newOrder._id,
           action: "CREATED",
           quantity: Number(quantity),
-          performedBy: req.user?.username || "SYSTEM",
+          performedBy: createdByUser,
         });
         req.flash("notification", "POS Roll order created successfully!");
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
@@ -2716,7 +2851,7 @@ router.post("/sales/order", async (req, res) => {
         userId: binding.userId,
         tapeId: binding.tafetaId,
         onModel: "Tafeta",
-        sourceLocation,
+        sourceLocation: sourceLocationForSave,
         poNumber,
         orderRate: finalOrderRate,
         quantity: Number(quantity),
@@ -2729,13 +2864,13 @@ router.post("/sales/order", async (req, res) => {
         req.flash("notification", "Tafeta order updated successfully!");
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
-        data.createdBy = req.user?.username || "SYSTEM";
+        data.createdBy = createdByUser;
         const newOrder = await TapeSalesOrder.create(data);
         await SalesOrderLog.create({
           orderId: newOrder._id,
           action: "CREATED",
           quantity: Number(quantity),
-          performedBy: req.user?.username || "SYSTEM",
+          performedBy: createdByUser,
         });
         req.flash("notification", "Tafeta order created successfully!");
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
@@ -2754,7 +2889,7 @@ router.post("/sales/order", async (req, res) => {
         userId: binding.userId,
         tapeId: binding.ttrId,
         onModel: "Ttr",
-        sourceLocation,
+        sourceLocation: sourceLocationForSave,
         poNumber,
         orderRate: finalOrderRate,
         quantity: Number(quantity),
@@ -2767,13 +2902,13 @@ router.post("/sales/order", async (req, res) => {
         req.flash("notification", "TTR order updated successfully!");
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
-        data.createdBy = req.user?.username || "SYSTEM";
+        data.createdBy = createdByUser;
         const newOrder = await TapeSalesOrder.create(data);
         await SalesOrderLog.create({
           orderId: newOrder._id,
           action: "CREATED",
           quantity: Number(quantity),
-          performedBy: req.user?.username || "SYSTEM",
+          performedBy: createdByUser,
         });
         req.flash("notification", "TTR order created successfully!");
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
@@ -2783,6 +2918,10 @@ router.post("/sales/order", async (req, res) => {
     }
   } catch (err) {
     console.error("ORDER SUBMIT ERROR:", err);
+    const sourceLocError = err?.errors?.sourceLocation;
+    if (sourceLocError) {
+      return res.status(400).json({ success: false, message: "no location is selected" });
+    }
     res.status(400).json({ success: false, message: "Failed to submit order" });
   }
 });
@@ -2806,7 +2945,7 @@ router.get("/sales/pending", async (req, res) => {
         select:
           "tapeRatePerRoll tapeOdrQty tapeMinQty posRatePerRoll posOdrQty posMinQty tafetaRatePerRoll tafetaOdrQty tafetaMinQty ttrRatePerRoll ttrOdrQty ttrMinQty",
       })
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 })
       .lean();
 
     res.render("inventory/pendingOrders.ejs", {

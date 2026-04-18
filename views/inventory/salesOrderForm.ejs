@@ -340,6 +340,22 @@
   const quantityInput = document.getElementById("quantity");
   const estimatedDateInput = document.getElementById("estimated-date");
   const remarksInput = document.getElementById("remarks");
+  const orderForm = document.querySelector("form");
+  const submitButton = orderForm?.querySelector('button[type="submit"]');
+
+  function normalizeLocationName(value) {
+    return String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, " ")
+      .replace(/^[.,]+|[.,]+$/g, "");
+  }
+
+  let currentSourceLocation = "";
+  function syncSourceLocation(value) {
+    currentSourceLocation = normalizeLocationName(value);
+    sourceLocationInput.value = currentSourceLocation;
+  }
 
   let clientChoices, userChoices, locationChoices, itemTypeChoices, itemChoices;
 
@@ -368,6 +384,7 @@
     itemChoices.clearStore();
     itemChoices.setChoices([{ value: "", label: "Select Item", disabled: true, selected: true }], "value", "label", true);
     document.getElementById("stock-display").style.display = "none";
+    syncSourceLocation("");
     if (rateDisplayInput) rateDisplayInput.value = "";
     if (orderRateInput) {
       orderRateInput.value = "";
@@ -562,7 +579,7 @@
         stockDisplay.querySelectorAll('input[name="locationRadio"]').forEach(radio => {
           radio.addEventListener("change", function () {
             // Set source location (empty for ALL so validation catches it)
-            sourceLocationInput.value = this.value === "ALL" ? "" : this.value;
+            syncSourceLocation(this.value === "ALL" ? "" : this.value);
 
             // Highlight selected
             stockDisplay.querySelectorAll('.location-option').forEach(el => el.classList.remove('selected'));
@@ -578,13 +595,27 @@
           });
         });
 
-        // ================= PRE-SELECT LOCATION FOR EDIT =================
+        // ================= PRE-SELECT LOCATION =================
+        // 1) Edit mode: prefer existing source location
         if (orderToEdit && orderToEdit.sourceLocation) {
-          const locRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${orderToEdit.sourceLocation}"]`);
+          const editLocation = normalizeLocationName(orderToEdit.sourceLocation);
+          const locRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${editLocation}"]`);
           if (locRadio) {
             locRadio.checked = true;
-            // Trigger change event to update UI and hidden input
             locRadio.dispatchEvent(new Event('change'));
+          }
+        } else {
+          // 2) Create mode: preselect user's location if available
+          const userLocationValue = normalizeLocationName(locationSelect?.value || "");
+          if (userLocationValue) {
+            const userLocRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${userLocationValue}"]`);
+            if (userLocRadio) {
+              userLocRadio.checked = true;
+              userLocRadio.dispatchEvent(new Event('change'));
+            } else {
+              // Fallback if stock widget doesn't contain this location
+              syncSourceLocation(userLocationValue);
+            }
           }
         }
 
@@ -627,12 +658,14 @@
   // Helper: set the Location choices field from a user object
   function setLocationFromUser(user) {
     if (!locationChoices) return;
-    const loc = user?.userLocation || "";
+    const loc = normalizeLocationName(user?.userLocation || "");
     locationChoices.clearStore();
     locationChoices.setChoices(
       loc ? [{ value: loc, label: loc, selected: true }] : [{ value: "", label: "N/A", disabled: true, selected: true }],
       "value", "label", true
     );
+    locationSelect.value = loc;
+    syncSourceLocation(loc);
   }
 
   // ======= EVENT LISTENERS (Smart Cascading Filter) =======
@@ -647,6 +680,10 @@
   clientSelect.addEventListener("change", () => {
     resetUsers();
     loadUsers(clientSelect.value);
+  });
+
+  locationSelect.addEventListener("change", () => {
+    syncSourceLocation(locationSelect.value);
   });
 
   // 3. User → auto-fill location, reset + load items
@@ -667,28 +704,128 @@
     });
   }
 
-  // Form validation — ensure location is selected for TAPE orders and Min Qty met
-  document.querySelector("form").addEventListener("submit", function (e) {
+  function getFieldLabel(field) {
+    if (!field?.id) return "This field";
+    const label = document.querySelector(`label[for="${field.id}"]`);
+    if (!label) return "This field";
+    return label.textContent.replace(/\*/g, "").trim() || "This field";
+  }
+
+  function getValidationMessage(field) {
+    if (!field?.validity) return "Please check required fields.";
+    if (field.validity.valueMissing) return `${getFieldLabel(field)} is required.`;
+    if (field.validity.typeMismatch) return `Please enter a valid ${getFieldLabel(field).toLowerCase()}.`;
+    if (field.validity.rangeUnderflow) return `${getFieldLabel(field)} is below allowed minimum.`;
+    if (field.validity.rangeOverflow) return `${getFieldLabel(field)} exceeds allowed maximum.`;
+    if (field.validity.stepMismatch) return `${getFieldLabel(field)} has an invalid value.`;
+    if (field.validity.patternMismatch) return `${getFieldLabel(field)} format is invalid.`;
+    return field.validationMessage || `Please enter a valid ${getFieldLabel(field).toLowerCase()}.`;
+  }
+
+  function setSubmittingState(isSubmitting) {
+    if (!orderForm) return;
+    orderForm.dataset.submitting = isSubmitting ? "1" : "0";
+    if (submitButton) submitButton.disabled = !!isSubmitting;
+  }
+
+  // Form validation — prevent submit on invalid fields, disallow ALL location, and enforce min qty
+  orderForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (orderForm.dataset.submitting === "1") return false;
+    setSubmittingState(true);
+
+    const firstInvalid = orderForm.querySelector(":invalid");
+    if (firstInvalid) {
+      showToast(getValidationMessage(firstInvalid), "error");
+      firstInvalid.focus?.();
+      setSubmittingState(false);
+      return false;
+    }
+
     const itemType = itemTypeSelect.value;
     const qty = parseInt(quantityInput.value) || 0;
     const selectedOption = itemChoices.getValue();
+    const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
+    const selectedChipLocation = normalizeLocationName(document.querySelector(".location-option.selected")?.dataset?.location || "");
+    const radioLocation = normalizeLocationName(selectedRadio?.value || "");
+    const fallbackLocation = normalizeLocationName(currentSourceLocation || sourceLocationInput.value || locationSelect.value || selectedChipLocation || "");
+    const selectedLocation = radioLocation && radioLocation !== "ALL" ? radioLocation : fallbackLocation;
     
-    // Check Source Location
-    if ((itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA") && !sourceLocationInput.value) {
-      e.preventDefault();
-      showToast("Please select a source location from the stock display.", "error");
-      return false;
+    // Check Source Location - ALL is not allowed for stock-based items
+    if (itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA" || itemType === "TTR") {
+      if (radioLocation === "ALL") {
+        showToast("Location cannot be ALL. Please select a specific location.", "error");
+        setSubmittingState(false);
+        return false;
+      }
+      if (!selectedLocation) {
+        showToast("no location is selected", "error");
+        setSubmittingState(false);
+        return false;
+      }
+      sourceLocationInput.value = selectedLocation;
     }
 
     // Check Minimum Order Qty
     if (selectedOption && selectedOption.customProperties) {
       const minQty = parseInt(selectedOption.customProperties.minQty) || 0;
       if (qty < minQty) {
-        e.preventDefault();
         showToast(`Order quantity (${qty}) is less than Minimum Order Quantity (${minQty}).`, "error");
+        setSubmittingState(false);
         return false;
       }
     }
+
+    // For create/update sales order, submit via AJAX so backend JSON errors show as toast
+    const actionPath = orderForm.getAttribute("action") || "";
+    if (actionPath === "/fairdesk/sales/order") {
+      try {
+        const formData = new FormData(orderForm);
+        const payload = new URLSearchParams();
+        for (const [key, value] of formData.entries()) {
+          payload.append(key, value);
+        }
+
+        const res = await fetch(actionPath, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+            "Accept": "application/json"
+          },
+          body: payload.toString()
+        });
+
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (_) {
+          data = null;
+        }
+
+        if (!res.ok || (data && data.success === false)) {
+          showToast(data?.message || "Failed to submit order", "error");
+          setSubmittingState(false);
+          return false;
+        }
+
+        if (data?.redirect) {
+          window.location.href = data.redirect;
+          return true;
+        }
+
+        showToast("Sales order submitted successfully", "success");
+        window.location.reload();
+        return true;
+      } catch (err) {
+        console.error("Sales order submit error:", err);
+        showToast("Network error while submitting order", "error");
+        setSubmittingState(false);
+        return false;
+      }
+    }
+
+    orderForm.submit();
+    return true;
   });
 
   // Toast Function

@@ -38,7 +38,8 @@ const tapeSalesOrderSchema = new mongoose.Schema(
 
     sourceLocation: {
       type: String,
-      enum: ["UNIT 1", "UNIT 2", "UNIT 3"],
+      trim: true,
+      uppercase: true,
     },
 
     /* ================= ORDER DETAILS ================= */

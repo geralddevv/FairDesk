@@ -33,7 +33,11 @@
       <button type="button" id="resetBtn" style="padding: 4px 12px; border-radius: 4px; background-color: #dc3545; color: white; border: none; cursor: pointer; font-size: 14px;">Reset</button>
     </div>
 
-    <input type="hidden" name="ttrId" id="resolvedTtrId" />
+    <div class="span-five">
+      <label>TTR ID</label>
+      <input type="text" id="resolvedTtr" class="form-control input-tag" placeholder="ID will appear here" readonly />
+      <input type="hidden" name="ttrId" id="resolvedTtrId" />
+    </div>
 
     <div class="span-seven">
       <label for="ttr-material-code">FS Code</label>
@@ -152,6 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const locationSelect = document.getElementById("locationSelect");
   const stockInput = document.getElementById("currentStock");
 
+  const resolvedTtr = document.getElementById("resolvedTtr");
   const resolvedTtrId = document.getElementById("resolvedTtrId");
   const submitBtn = document.getElementById("submitBtn");
 
@@ -311,12 +316,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const data = await res.json();
 
     if (!data.found) {
+      resolvedTtr.value = "No matching TTR found";
       resolvedTtrId.value = "";
       stockInput.value = 0;
       submitBtn.disabled = true;
       return;
     }
 
+    resolvedTtr.value = data.TtrProductId || "";
     resolvedTtrId.value = data.ttrId;
     submitBtn.disabled = false;
 
@@ -353,6 +360,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       locationSelect.value = "";
+      resolvedTtr.value = "";
       resolvedTtrId.value = "";
       stockInput.value = 0;
       submitBtn.disabled = true;

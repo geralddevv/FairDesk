@@ -22,6 +22,24 @@ const vendorTtrBindingSchema = new mongoose.Schema(
     },
     vendorTtrType: {
       type: String,
+      enum: [
+        "WAX",
+        "WAX PREMIUM",
+        "WAX COLOR",
+        "WAX RESIN",
+        "WAX RESIN PREMIUM",
+        "WAX RESIN COLOR",
+        "RESIN",
+        "RESIN COLOR",
+        "SCRATCH PROOF",
+        "WASHCARE",
+        "TTO",
+      ],
+      required: true,
+      trim: true,
+    },
+    vendorTtrColor: {
+      type: String,
       required: true,
       trim: true,
     },
@@ -62,52 +80,6 @@ const vendorTtrBindingSchema = new mongoose.Schema(
       trim: true,
     },
 
-    vendorTapePaperCode: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    vendorTapeGsm: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    tapeMtrsDel: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    tapeRatePerRoll: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    tapeSaleCost: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    tapeMinQty: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-    tapeOdrQty: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
-    tapeOdrFreq: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    tapeCreditTerm: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
     status: {
       type: String,
       enum: ["ACTIVE", "INACTIVE"],
@@ -120,6 +92,7 @@ const vendorTtrBindingSchema = new mongoose.Schema(
 );
 
 vendorTtrBindingSchema.index({ vendorUserId: 1, ttrId: 1 }, { unique: true });
+vendorTtrBindingSchema.index({ vendorTtrMaterialCode: 1 });
 
 const VendorTtrBinding = mongoose.model("VendorTtrBinding", vendorTtrBindingSchema);
 

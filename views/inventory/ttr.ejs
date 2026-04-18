@@ -119,6 +119,11 @@
       </select>
     </div>
 
+    <div class="span-five">
+      <label for="ttr-min-qty">Minimum Qty</label>
+      <input type="number" id="ttr-min-qty" class="form-control" name="ttrMinQty" placeholder="Enter minimum qty" required min="1" />
+    </div>
+
     <!-- <div class="span-full form-subheading">
             <h1>Pricing & Order Terms</h1>
           </div>
@@ -197,6 +202,7 @@
         ttrCoreLength: getVal("ttrCoreLength"),
         ttrNotch: getVal("ttrNotch"),
         ttrWinding: getVal("ttrWinding"),
+        ttrMinQty: getVal("ttrMinQty"),
       });
 
       try {

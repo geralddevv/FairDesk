@@ -63,6 +63,7 @@
       <label for="ttr-product-id">Sample ID</label>
       <input type="text" value="<%= previewSampleId || previewTtrProductId %>" id="ttr-product-id" class="form-control" name="sampleId" readonly required />
     </div>
+    <input type="hidden" name="ttrId" id="resolved-ttr-id" />
 
     <div class="span-dual">
       <label for="ttr-material-code">Material Code</label>
@@ -102,19 +103,19 @@
 
     <div class="span-full form-subheading">
       <h1>FS Overrides</h1>
-    </div> 
-    
-   <div class="span-seven">
+    </div>
+
+    <div class="span-seven">
       <label for="vendor-ttr-type">FS Type</label>
       <input type="text" id="vendor-ttr-type" class="form-control" name="vendorTtrType" placeholder="Will sync with Type" required />
-    </div>    
+    </div>
 
     <div class="span-six">
       <label for="vendor-ttr-material-code">FS Code</label>
       <input type="text" id="vendor-ttr-material-code" class="form-control" name="vendorTtrMaterialCode" placeholder="Enter FS Code" required />
-    </div>        
+    </div>
 
-    <div class="span-six">
+<div class="span-six">
       <label for="ttr-width">Width</label>
       <input type="number" id="ttr-width" class="form-control" name="ttrWidth" placeholder="Enter width" required />
     </div>
@@ -163,9 +164,10 @@
     </div>
 
     <div class="span-seven">
-      <label for="minimum-order-qty">Minimum Stock Qty</label>
-      <input type="number" id="minimum-order-qty" class="form-control" name="minimumOrderQty" placeholder="Enter minimum order qty" required />
-    </div>    
+      <label for="minimum-order-qty">Minimium Stock Qty</label>
+      <input type="number" id="minimum-order-qty" class="form-control" name="ttrMinQty" placeholder="Enter minimium stock qty" required min="1" />
+    </div>
+    <input type="hidden" id="vendor-ttr-color" name="vendorTtrColor" value="BLACK" />
 
     <!-- <div class="span-seven">
       <label for="tape-mtrs-del-input">MTRS Delivered</label>
@@ -214,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("vendor-user-location");
 
   const ttrProductIdInput = document.getElementById("ttr-product-id");
+  const resolvedTtrIdInput = document.getElementById("resolved-ttr-id");
   const ttrType = document.getElementById("ttr-type");
   const ttrColor = document.getElementById("ttr-color");
   const ttrMaterialCode = document.getElementById("ttr-material-code");
@@ -226,6 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const ttrWinding = document.getElementById("ttr-winding");
   const vendorTtrType = document.getElementById("vendor-ttr-type");
   const vendorTtrMaterialCode = document.getElementById("vendor-ttr-material-code");
+  const vendorTtrColor = document.getElementById("vendor-ttr-color");
   const tapeMtrsDel = document.getElementById("tape-mtrs-del-input");
   const tapeRatePerRoll = document.getElementById("tape-rate-per-roll");
   const tapeSaleCost = document.getElementById("tape-sale-cost");
@@ -255,10 +259,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return value === "" ? fallback : value;
   };
 
-  function syncCoreLength() {
-    if (!ttrWidth || !ttrCoreLength) return;
-    ttrCoreLength.value = ttrWidth.value;
-  }
+  const numberOrNull = (el) => {
+    if (!el) return null;
+    const value = String(el.value || "").trim();
+    if (value === "") return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+  };
 
   function calcTapeSaleCost() {
     if (!ttrWidth || !ttrMtrs || !tapeRatePerRoll || !tapeSaleCost) return;
@@ -313,8 +320,11 @@ document.addEventListener("DOMContentLoaded", () => {
     vendorTtrType.value = ttrType.value;
   });
 
+  ttrColor.addEventListener("change", () => {
+    if (vendorTtrColor) vendorTtrColor.value = ttrColor.value;
+  });
+
   if (ttrWidth) {
-    ttrWidth.addEventListener("input", syncCoreLength);
     ttrWidth.addEventListener("input", calcTapeSaleCost);
   }
   if (ttrMtrs) ttrMtrs.addEventListener("input", calcTapeSaleCost);
@@ -336,6 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (ttrWinding) ttrWinding.value = "NORMAL";
       if (vendorTtrType) vendorTtrType.value = "";
       if (vendorTtrMaterialCode) vendorTtrMaterialCode.value = "";
+      if (vendorTtrColor) vendorTtrColor.value = "BLACK";
       if (tapeMtrsDel) tapeMtrsDel.value = "";
       if (tapeRatePerRoll) tapeRatePerRoll.value = "";
       if (tapeSaleCost) tapeSaleCost.value = "";
@@ -361,17 +372,37 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const coreLengthValue = numberOrNull(ttrCoreLength);
+    if (coreLengthValue === null) {
+      if (window.showToast) window.showToast("Core Length must be a valid number.", true);
+      return;
+    }
+    const minQtyValue = numberOrNull(document.getElementById("minimum-order-qty"));
+    if (minQtyValue === null) {
+      if (window.showToast) window.showToast("Minimum Qty must be a valid number.", true);
+      return;
+    }
+    ttrCoreLength.value = String(coreLengthValue);
+    const minimumOrderQtyInput = document.getElementById("minimum-order-qty");
+    if (minimumOrderQtyInput) minimumOrderQtyInput.value = String(minQtyValue);
+    const masterBody = new URLSearchParams(new FormData(form));
+    masterBody.set("ttrType", valueOrDefault(vendorTtrType, valueOrDefault(ttrType)));
+    masterBody.set("ttrMaterialCode", valueOrDefault(vendorTtrMaterialCode, valueOrDefault(ttrMaterialCode)));
+    masterBody.set("ttrCoreLength", String(coreLengthValue));
+    masterBody.set("ttrMinQty", String(minQtyValue));
+
     const params = new URLSearchParams({
-      ttrType: valueOrDefault(ttrType),
+      ttrType: valueOrDefault(vendorTtrType, valueOrDefault(ttrType)),
       ttrColor: valueOrDefault(ttrColor, "BLACK"),
-      ttrMaterialCode: valueOrDefault(ttrMaterialCode),
+      ttrMaterialCode: valueOrDefault(vendorTtrMaterialCode, valueOrDefault(ttrMaterialCode)),
       ttrWidth: valueOrDefault(ttrWidth, "0"),
       ttrMtrs: valueOrDefault(ttrMtrs, "0"),
       ttrInkFace: valueOrDefault(ttrInkFace, "IN"),
       ttrCoreId: valueOrDefault(ttrCoreId, "1"),
-      ttrCoreLength: valueOrDefault(ttrCoreLength, "0"),
+      ttrCoreLength: String(coreLengthValue),
       ttrNotch: valueOrDefault(ttrNotch, "NO"),
       ttrWinding: valueOrDefault(ttrWinding, "NORMAL"),
+      ttrMinQty: String(minQtyValue),
     });
 
     try {
@@ -382,13 +413,35 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await res.json();
-      if (data.exists) {
-        if (window.showToast) window.showToast(data.message || `TTR already exist with id: ${data.id || "unknown"}`, true);
+      let masterProductId = data.id || "";
+      let masterDbId = data.ttrId || "";
+
+      if (!data.exists) {
+        const masterResponse = await fetch("/fairdesk/form/ttr", {
+          method: "POST",
+          body: masterBody,
+        });
+        const masterResult = await masterResponse.json();
+        if (!masterResponse.ok || !masterResult?.success) {
+          if (window.showToast) window.showToast(masterResult?.message || "Failed to save FS TTR master", true);
+          submitBtn.disabled = false;
+          return;
+        }
+        masterProductId = masterResult.ttrProductId || masterResult.id || "";
+        masterDbId = masterResult.id || "";
+      }
+
+      if (!masterDbId || !masterProductId) {
+        if (window.showToast) window.showToast("Unable to resolve FS TTR master.", true);
         return;
       }
 
+      if (resolvedTtrIdInput) resolvedTtrIdInput.value = masterDbId;
+      if (ttrProductIdInput && masterProductId) ttrProductIdInput.value = masterProductId;
+      const vendorBody = new URLSearchParams(new FormData(form));
+
       submitBtn.disabled = true;
-      const response = await fetch(form.action, { method: "POST", body: new FormData(form) });
+      const response = await fetch(form.action, { method: "POST", body: vendorBody });
       const result = await response.json();
       if (!response.ok || !result?.success) {
         if (window.showToast) window.showToast(result?.message || "Failed to save FS TTR", true);

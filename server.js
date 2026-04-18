@@ -110,6 +110,12 @@ app.get("/login", (req, res) => {
   res.render("auth/login", { title: "Login", CSS: "login.css" });
 });
 
+const redirectByRole = (role) => {
+  if (role === "hr") return "/fairdesk/employee/view";
+  if (role === "sales") return "/fairdesk/sales/order";
+  return "/fairdesk/master/view";
+};
+
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   const adminUser = process.env.ADMIN_USER;
@@ -148,9 +154,19 @@ app.post("/login", (req, res) => {
 
   const role = isAdmin ? "admin" : isHr ? "hr" : isHod ? "hod" : "sales";
   req.session.authUser = { username, role };
-  if (role === "hr") return res.redirect("/fairdesk/employee/view");
-  if (role === "sales") return res.redirect("/fairdesk/sales/order");
-  return res.redirect("/fairdesk/master/view");
+  return req.session.save((err) => {
+    if (err) {
+      console.error("Failed to persist session on login:", err);
+      return res.status(500).render("auth/login", {
+        title: "Login",
+        CSS: "login.css",
+        username,
+        error: ["Unable to start session. Please try again."],
+      });
+    }
+
+    return res.redirect(redirectByRole(role));
+  });
 });
 
 app.get("/logout", (req, res) => {

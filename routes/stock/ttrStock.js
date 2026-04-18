@@ -28,19 +28,20 @@ const trimOr = (value, fallback = "") => {
 
 async function loadFsTtrRows() {
   const bindings = await VendorTtrBinding.find({})
-    .select("vendorTtrType vendorTtrMaterialCode ttrId")
+    .select("ttrId")
     .populate({
       path: "ttrId",
-      select: "ttrColor ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding",
+      select: "ttrProductId ttrType ttrMaterialCode ttrColor ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding",
     })
     .lean();
 
   return bindings
     .map((binding) => ({
       ttrId: binding.ttrId?._id?.toString() || "",
-      ttrType: trimOr(binding.vendorTtrType),
+      ttrProductId: trimOr(binding.ttrId?.ttrProductId),
+      ttrType: trimOr(binding.ttrId?.ttrType),
       ttrColor: trimOr(binding.ttrId?.ttrColor),
-      ttrMaterialCode: trimOr(binding.vendorTtrMaterialCode),
+      ttrMaterialCode: trimOr(binding.ttrId?.ttrMaterialCode),
       ttrWidth: trimOr(binding.ttrId?.ttrWidth),
       ttrMtrs: trimOr(binding.ttrId?.ttrMtrs),
       ttrInkFace: trimOr(binding.ttrId?.ttrInkFace),
@@ -211,7 +212,7 @@ router.post("/resolve", async (req, res) => {
     return res.json({
       found: true,
       ttrId: resolved.ttrId,
-      TtrProductId: resolved.ttrMaterialCode,
+      TtrProductId: resolved.ttrProductId || resolved.ttrMaterialCode,
     });
   } catch (err) {
     console.error("Resolve error ❌", err);

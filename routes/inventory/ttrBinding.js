@@ -10,7 +10,7 @@ import Username from "../../models/users/username.js";
 
 const router = express.Router();
 
-const formatTtrProductId = (n) => `VD | TTR | ${String(n).padStart(6, "0")}`;
+const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
 
 const parseTtrSeq = (productId) => {
   const match = String(productId || "").match(/(\d{6})$/);
@@ -18,7 +18,7 @@ const parseTtrSeq = (productId) => {
 };
 
 async function getNextTtrProductIdPreview() {
-  const latestTtr = await Ttr.findOne({ ttrProductId: /^VD \| TTR/ })
+  const latestTtr = await Ttr.findOne({ ttrProductId: /^FS \| TTR/ })
     .sort({ ttrProductId: -1 })
     .select("ttrProductId")
     .lean();
@@ -38,15 +38,6 @@ const DEFAULT_VENDOR_TTR_OVERRIDES = {
   minimumOrderQty: 1,
   ttrOdrFreq: "N/A",
   ttrCreditTerm: "N/A",
-  vendorTapePaperCode: "N/A",
-  vendorTapeGsm: 0,
-  tapeMtrsDel: 0,
-  tapeRatePerRoll: 0,
-  tapeSaleCost: 0,
-  tapeMinQty: 1,
-  tapeOdrQty: 1,
-  tapeOdrFreq: "N/A",
-  tapeCreditTerm: "N/A",
 };
 
 const trimOr = (value, fallback = "") => {
@@ -59,6 +50,9 @@ const numOr = (value, fallback = 0) => {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 };
+
+const normalizeCode = (value) => trimOr(value).toUpperCase();
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const TTR_SMART_FILTER_KEYS = [
   "ttrType",
@@ -76,27 +70,24 @@ const TTR_SMART_FILTER_KEYS = [
 const normalizeSmartFilterValue = (value) => trimOr(value);
 
 async function loadFsTtrRows() {
-  const bindings = await VendorTtrBinding.find({})
-    .select("vendorTtrType vendorTtrMaterialCode ttrId")
-    .populate({
-      path: "ttrId",
-      select: "ttrColor ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding",
-    })
+  const masters = await Ttr.find({})
+    .select("ttrProductId ttrType ttrColor ttrMaterialCode ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding ttrMinQty")
     .lean();
 
-  return bindings
-    .map((binding) => ({
-      ttrId: binding.ttrId?._id?.toString() || "",
-      ttrType: trimOr(binding.vendorTtrType),
-      ttrColor: trimOr(binding.ttrId?.ttrColor),
-      ttrMaterialCode: trimOr(binding.vendorTtrMaterialCode),
-      ttrWidth: trimOr(binding.ttrId?.ttrWidth),
-      ttrMtrs: trimOr(binding.ttrId?.ttrMtrs),
-      ttrInkFace: trimOr(binding.ttrId?.ttrInkFace),
-      ttrCoreId: trimOr(binding.ttrId?.ttrCoreId),
-      ttrCoreLength: trimOr(binding.ttrId?.ttrCoreLength),
-      ttrNotch: trimOr(binding.ttrId?.ttrNotch),
-      ttrWinding: trimOr(binding.ttrId?.ttrWinding),
+  return masters
+    .map((master) => ({
+      ttrId: master._id?.toString() || "",
+      ttrType: trimOr(master.ttrType),
+      ttrColor: trimOr(master.ttrColor),
+      ttrMaterialCode: trimOr(master.ttrMaterialCode),
+      ttrWidth: trimOr(master.ttrWidth),
+      ttrMtrs: trimOr(master.ttrMtrs),
+      ttrInkFace: trimOr(master.ttrInkFace),
+      ttrCoreId: trimOr(master.ttrCoreId),
+      ttrCoreLength: trimOr(master.ttrCoreLength),
+      ttrNotch: trimOr(master.ttrNotch),
+      ttrWinding: trimOr(master.ttrWinding),
+      ttrMinQty: trimOr(master.ttrMinQty),
     }))
     .filter(
       (row) =>
@@ -110,7 +101,8 @@ async function loadFsTtrRows() {
         row.ttrCoreId &&
         row.ttrCoreLength &&
         row.ttrNotch &&
-        row.ttrWinding,
+        row.ttrWinding &&
+        row.ttrMinQty,
     );
 }
 
@@ -203,7 +195,7 @@ router.get("/form/ttr-vendor-binding", async (req, res) => {
 router.post("/form/ttr-vendor-binding", async (req, res) => {
   try {
     const vendorUserId = trimOr(req.body.vendorUserId);
-    const sampleId = trimOr(req.body.sampleId || req.body.ttrProductId);
+    const ttrId = trimOr(req.body.ttrId);
     const ttrType = trimOr(req.body.ttrType);
     const ttrColor = trimOr(req.body.ttrColor, "BLACK");
     const ttrMaterialCode = trimOr(req.body.ttrMaterialCode);
@@ -214,27 +206,54 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
     const ttrCoreLength = trimOr(req.body.ttrCoreLength);
     const ttrNotch = trimOr(req.body.ttrNotch);
     const ttrWinding = trimOr(req.body.ttrWinding);
-    const ttrRecord = {
-      ttrProductId: sampleId,
-      ttrType,
-      ttrColor,
-      ttrMaterialCode,
-      ttrWidth: numOr(ttrWidth, 0),
-      ttrMtrs: numOr(ttrMtrs, 0),
-      ttrInkFace,
-      ttrCoreId,
-      ttrCoreLength: numOr(ttrCoreLength, 0),
-      ttrNotch,
-      ttrWinding,
-    };
+    const ttrMinQty = numOr(req.body.ttrMinQty, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty);
+    const vendorColor = trimOr(req.body.vendorTtrColor || ttrColor);
 
     const vendorUser = await VendorUser.findById(vendorUserId);
     if (!vendorUser) {
       return res.status(400).json({ success: false, message: "Invalid vendor user selected" });
     }
 
+    const ttr = await Ttr.findById(ttrId).select("ttrMaterialCode ttrType ttrColor ttrMinQty").lean();
+    if (!ttr) {
+      return res.status(400).json({ success: false, message: "Invalid TTR master selected" });
+    }
+
+    // Global rule: one vendor code can map to only one FS TTR across the system.
+    const incomingVendorCode = normalizeCode(ttrMaterialCode);
+    const incomingFsCode = normalizeCode(ttr.ttrMaterialCode);
+    const incomingFsId = String(ttr._id);
+    const existingMappings = await VendorTtrBinding.find({
+      vendorTtrMaterialCode: new RegExp(`^${escapeRegex(incomingVendorCode)}$`, "i"),
+    })
+      .select("vendorTtrMaterialCode ttrId vendorUserId")
+      .populate({ path: "ttrId", select: "ttrMaterialCode" })
+      .lean();
+
+    const mappingConflict = existingMappings.find((row) => {
+      const existingFsCode = normalizeCode(row.ttrId?.ttrMaterialCode);
+      const existingFsId = String(row.ttrId?._id || "");
+      return existingFsId && existingFsId !== incomingFsId && existingFsCode !== incomingFsCode;
+    });
+    if (mappingConflict) {
+      return res.status(400).json({
+        success: false,
+        message: `Vendor code ${ttrMaterialCode} is already mapped to FS code ${mappingConflict.ttrId?.ttrMaterialCode || "N/A"}.`,
+      });
+    }
+
+    const duplicateMappingForUser = existingMappings.find(
+      (row) => String(row.ttrId?._id || "") === incomingFsId && String(row.vendorUserId || "") === String(vendorUserId),
+    );
+    if (duplicateMappingForUser) {
+      return res.status(400).json({
+        success: false,
+        message: `Vendor code ${ttrMaterialCode} is already mapped to FS code ${ttr.ttrMaterialCode} for this user.`,
+      });
+    }
+
     if (
-      !sampleId ||
+      !ttrId ||
       !ttrType ||
       !ttrColor ||
       !ttrMaterialCode ||
@@ -249,58 +268,23 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
       return res.status(400).json({ success: false, message: "Please complete all required TTR fields" });
     }
 
-    const duplicateTtr = await Ttr.findOne({
-      ttrProductId: ttrRecord.ttrProductId,
-      ttrType: ttrRecord.ttrType,
-      ttrColor: ttrRecord.ttrColor,
-      ttrMaterialCode: ttrRecord.ttrMaterialCode,
-      ttrWidth: ttrRecord.ttrWidth,
-      ttrMtrs: ttrRecord.ttrMtrs,
-      ttrInkFace: ttrRecord.ttrInkFace,
-      ttrCoreId: ttrRecord.ttrCoreId,
-      ttrCoreLength: ttrRecord.ttrCoreLength,
-      ttrNotch: ttrRecord.ttrNotch,
-      ttrWinding: ttrRecord.ttrWinding,
-    })
-      .select("ttrProductId")
-      .lean();
-    if (duplicateTtr) {
-      return res.status(400).json({
-        success: false,
-        message: `TTR already exist with id: ${duplicateTtr.ttrProductId}`,
-      });
-    }
-
-    const ttr = await Ttr.create({
-      ...ttrRecord,
-      createdBy: req.session?.authUser?.username || "SYSTEM",
-    });
-
     const minimumOrderQty = numOr(
-      req.body.minimumOrderQty || req.body.tapeOdrQty,
+      req.body.minimumOrderQty || req.body.tapeOdrQty || req.body.ttrMinQty,
       DEFAULT_VENDOR_TTR_OVERRIDES.minimumOrderQty,
     );
     const vendorBindingData = {
       vendorUserId,
       ttrId: ttr._id,
-      vendorTtrMaterialCode: trimOr(req.body.vendorTtrMaterialCode || ttrMaterialCode),
-      vendorTtrType: trimOr(req.body.vendorTtrType || ttrType),
+      vendorTtrMaterialCode: incomingVendorCode,
+      vendorTtrType: ttrType,
+      vendorTtrColor: vendorColor,
       ttrMtrsDel: trimOr(req.body.tapeMtrsDel, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMtrsDel),
       ttrRatePerRoll: numOr(req.body.tapeRatePerRoll, DEFAULT_VENDOR_TTR_OVERRIDES.ttrRatePerRoll),
       ttrSaleCost: numOr(req.body.tapeSaleCost, DEFAULT_VENDOR_TTR_OVERRIDES.ttrSaleCost),
-      ttrMinQty: numOr(req.body.tapeMinQty, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty),
+      ttrMinQty,
       ttrOdrQty: minimumOrderQty,
       ttrOdrFreq: trimOr(req.body.tapeOdrFreq, DEFAULT_VENDOR_TTR_OVERRIDES.ttrOdrFreq),
       ttrCreditTerm: trimOr(req.body.tapeCreditTerm, DEFAULT_VENDOR_TTR_OVERRIDES.ttrCreditTerm),
-      vendorTapePaperCode: DEFAULT_VENDOR_TTR_OVERRIDES.vendorTapePaperCode,
-      vendorTapeGsm: DEFAULT_VENDOR_TTR_OVERRIDES.vendorTapeGsm,
-      tapeMtrsDel: numOr(req.body.tapeMtrsDel, DEFAULT_VENDOR_TTR_OVERRIDES.tapeMtrsDel),
-      tapeRatePerRoll: numOr(req.body.tapeRatePerRoll, DEFAULT_VENDOR_TTR_OVERRIDES.tapeRatePerRoll),
-      tapeSaleCost: numOr(req.body.tapeSaleCost, DEFAULT_VENDOR_TTR_OVERRIDES.tapeSaleCost),
-      tapeMinQty: numOr(req.body.tapeMinQty, DEFAULT_VENDOR_TTR_OVERRIDES.tapeMinQty),
-      tapeOdrQty: minimumOrderQty,
-      tapeOdrFreq: trimOr(req.body.tapeOdrFreq, DEFAULT_VENDOR_TTR_OVERRIDES.tapeOdrFreq),
-      tapeCreditTerm: trimOr(req.body.tapeCreditTerm, DEFAULT_VENDOR_TTR_OVERRIDES.tapeCreditTerm),
     };
 
     const vendorTtrBinding = await VendorTtrBinding.create({
@@ -779,7 +763,8 @@ router.get("/ttr-vendor/view", async (req, res) => {
         location: binding.vendorUserId?.userLocation || "",
         vendorTtrMaterialCode: binding.vendorTtrMaterialCode || "",
         vendorTtrType: binding.vendorTtrType || "",
-        ttrOdrQty: binding.ttrOdrQty ?? 0,
+        vendorTtrColor: binding.vendorTtrColor || "",
+        ttrMinQty: binding.ttrId?.ttrMinQty ?? binding.ttrOdrQty ?? 0,
         status: binding.status || "N/A",
       };
     });
@@ -816,13 +801,18 @@ router.get("/ttr-vendor/compare/:id", async (req, res) => {
     const user = binding.vendorUserId || {};
 
     const compareRows = [
-      { field: "Sample ID", orgValue: ttr.ttrProductId || "N/A", clientValue: ttr.ttrProductId || "N/A" },
-      // Keep compare mapping aligned with save + vendor view:
-      // ttr* fields are primary TTR specs; vendorTtr* fields are FS override specs.
-      { field: "Material Code", orgValue: ttr.ttrMaterialCode || "N/A", clientValue: binding.vendorTtrMaterialCode || "N/A" },
-      { field: "Type", orgValue: ttr.ttrType || "N/A", clientValue: binding.vendorTtrType || "N/A" },
-      { field: "Color", orgValue: ttr.ttrColor || "N/A", clientValue: ttr.ttrColor || "N/A" },
-      { field: "Minimum Order Qty", orgValue: binding.ttrOdrQty ?? "N/A", clientValue: "-" },
+      { field: "Material Code", orgValue: binding.vendorTtrMaterialCode || "N/A", clientValue: ttr.ttrMaterialCode || "N/A" },
+      { field: "Type", orgValue: binding.vendorTtrType || "N/A", clientValue: ttr.ttrType || "N/A" },
+      { field: "Color", orgValue: binding.vendorTtrColor || "N/A", clientValue: ttr.ttrColor || "N/A" },
+      { field: "Sample ID", orgValue: "-", clientValue: ttr.ttrProductId || "N/A" },
+      { field: "Width", orgValue: "-", clientValue: ttr.ttrWidth ?? "N/A" },
+      { field: "Meters", orgValue: "-", clientValue: ttr.ttrMtrs ?? "N/A" },
+      { field: "Ink Face", orgValue: "-", clientValue: ttr.ttrInkFace || "N/A" },
+      { field: "Core ID", orgValue: "-", clientValue: ttr.ttrCoreId ?? "N/A" },
+      { field: "Core Length", orgValue: "-", clientValue: ttr.ttrCoreLength ?? "N/A" },
+      { field: "Notch", orgValue: "-", clientValue: ttr.ttrNotch || "N/A" },
+      { field: "Winding", orgValue: "-", clientValue: ttr.ttrWinding || "N/A" },
+      { field: "Minimum Qty", orgValue: "-", clientValue: ttr.ttrMinQty ?? "N/A" },
       { field: "Status", orgValue: binding.status || "N/A", clientValue: "-" },
     ];
 
@@ -830,8 +820,8 @@ router.get("/ttr-vendor/compare/:id", async (req, res) => {
       title: "Vendor TTR Compare",
       CSS: false,
       JS: false,
-      itemTitle: "Vendor TTR Details",
-      sectionTitle: "TTR Details (Vendor Override - Fairtech)",
+      itemTitle: "Fairtech TTR Details",
+      sectionTitle: "TTR Details (Vendor - Fairtech)",
       orgLabel: "Vendor",
       clientLabel: "Fairtech",
       clientName: user?.vendorName || "",
@@ -861,22 +851,14 @@ router.get("/ttr/compare/:id", async (req, res) => {
 
     const ttr = binding.ttrId || {};
     const user = binding.userId || {};
-    const vendorMappedFs = ttr?._id
-      ? await VendorTtrBinding.findOne({ ttrId: ttr._id })
-        .select("vendorTtrMaterialCode vendorTtrType")
-        .sort({ updatedAt: -1, createdAt: -1 })
-        .lean()
-      : null;
-    const fsMaterialCode = trimOr(vendorMappedFs?.vendorTtrMaterialCode) || ttr.ttrMaterialCode || "N/A";
-    const fsType = trimOr(vendorMappedFs?.vendorTtrType) || ttr.ttrType || "N/A";
 
     const compareRows = [
       {
         field: "Material Code",
-        orgValue: fsMaterialCode,
+        orgValue: ttr.ttrMaterialCode || "N/A",
         clientValue: binding.ttrClientMaterialCode || "N/A",
       },
-      { field: "Type", orgValue: fsType, clientValue: binding.clientTtrType || "N/A" },
+      { field: "Type", orgValue: ttr.ttrType || "N/A", clientValue: binding.clientTtrType || "N/A" },
       { field: "Color", orgValue: ttr.ttrColor || "N/A", clientValue: ttr.ttrColor || "N/A" },
       { field: "Ink Face", orgValue: ttr.ttrInkFace || "N/A", clientValue: ttr.ttrInkFace || "N/A" },
       { field: "Width", orgValue: ttr.ttrWidth ?? "N/A", clientValue: ttr.ttrWidth ?? "N/A" },

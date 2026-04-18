@@ -14,19 +14,6 @@ const ttrSchema = new mongoose.Schema(
     ttrType: {
       type: String,
       required: true,
-      enum: [
-        "WAX",
-        "WAX PREMIUM",
-        "WAX COLOR",
-        "WAX RESIN",
-        "WAX RESIN PREMIUM",
-        "WAX RESIN COLOR",
-        "RESIN",
-        "RESIN COLOR",
-        "SCRATCH PROOF",
-        "WASHCARE",
-        "TTO",
-      ],
       trim: true,
       index: true,
     },
@@ -88,6 +75,13 @@ const ttrSchema = new mongoose.Schema(
       required: true,
       enum: ["NORMAL", "LEFT", "CENTER"],
       default: "NORMAL",
+    },
+
+    ttrMinQty: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
     },
 
     ttrSignature: {

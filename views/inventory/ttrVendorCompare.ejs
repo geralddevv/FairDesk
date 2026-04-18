@@ -193,6 +193,19 @@
     color: #1f2a44;
   }
 
+  .diff-table .section-row td {
+    background: #eef5fb;
+    color: #044a78;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .diff-table .detail-row .key-col {
+    color: #385173;
+    font-weight: 600;
+  }
+
   .diff-pill {
     display: inline-block;
     margin-left: 6px;
@@ -215,6 +228,13 @@
 
   .tape-details-body {
     padding: 22px 24px 24px;
+  }
+
+  .section-caption {
+    margin: 0 0 10px;
+    color: #5a6586;
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .tape-table {
@@ -310,11 +330,17 @@
           </thead>
           <tbody>
             <% compareRows.forEach(row => { %>
+              <% if (row.rowClass === "section-row") { %>
+                <tr class="section-row">
+                  <td colspan="3"><%= row.field %></td>
+                </tr>
+              <% } else { %>
               <tr>
                 <td class="key-col"><%= row.field %></td>
                 <td><%= row.orgValue %></td>
                 <td class="resolved"><%= row.clientValue %></td>
               </tr>
+              <% } %>
             <% }) %>
           </tbody>
         </table>
