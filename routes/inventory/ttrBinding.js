@@ -30,16 +30,6 @@ async function getNextTtrProductIdPreview() {
   return formatTtrProductId(nextSeq);
 }
 
-const DEFAULT_TTR_SPECS = {
-  ttrWidth: 0,
-  ttrMtrs: 0,
-  ttrInkFace: "IN",
-  ttrCoreId: "1",
-  ttrCoreLength: 0,
-  ttrNotch: "NO",
-  ttrWinding: "NORMAL",
-};
-
 const DEFAULT_VENDOR_TTR_OVERRIDES = {
   ttrMtrsDel: "0",
   ttrRatePerRoll: 0,
@@ -70,15 +60,96 @@ const numOr = (value, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+const TTR_SMART_FILTER_KEYS = [
+  "ttrType",
+  "ttrColor",
+  "ttrMaterialCode",
+  "ttrWidth",
+  "ttrMtrs",
+  "ttrInkFace",
+  "ttrCoreId",
+  "ttrCoreLength",
+  "ttrNotch",
+  "ttrWinding",
+];
+
+const normalizeSmartFilterValue = (value) => trimOr(value);
+
+async function loadFsTtrRows() {
+  const bindings = await VendorTtrBinding.find({})
+    .select("vendorTtrType vendorTtrMaterialCode ttrId")
+    .populate({
+      path: "ttrId",
+      select: "ttrColor ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding",
+    })
+    .lean();
+
+  return bindings
+    .map((binding) => ({
+      ttrId: binding.ttrId?._id?.toString() || "",
+      ttrType: trimOr(binding.vendorTtrType),
+      ttrColor: trimOr(binding.ttrId?.ttrColor),
+      ttrMaterialCode: trimOr(binding.vendorTtrMaterialCode),
+      ttrWidth: trimOr(binding.ttrId?.ttrWidth),
+      ttrMtrs: trimOr(binding.ttrId?.ttrMtrs),
+      ttrInkFace: trimOr(binding.ttrId?.ttrInkFace),
+      ttrCoreId: trimOr(binding.ttrId?.ttrCoreId),
+      ttrCoreLength: trimOr(binding.ttrId?.ttrCoreLength),
+      ttrNotch: trimOr(binding.ttrId?.ttrNotch),
+      ttrWinding: trimOr(binding.ttrId?.ttrWinding),
+    }))
+    .filter(
+      (row) =>
+        row.ttrId &&
+        row.ttrType &&
+        row.ttrColor &&
+        row.ttrMaterialCode &&
+        row.ttrWidth &&
+        row.ttrMtrs &&
+        row.ttrInkFace &&
+        row.ttrCoreId &&
+        row.ttrCoreLength &&
+        row.ttrNotch &&
+        row.ttrWinding,
+    );
+}
+
+function rowMatchesSmartFilters(row, selected, excludeKey = "") {
+  for (const key of TTR_SMART_FILTER_KEYS) {
+    if (key === excludeKey) continue;
+    const selectedValue = normalizeSmartFilterValue(selected[key]);
+    if (!selectedValue) continue;
+    if (normalizeSmartFilterValue(row[key]) !== selectedValue) return false;
+  }
+  return true;
+}
+
+function distinctValues(rows, key) {
+  const values = new Set();
+  rows.forEach((row) => {
+    const value = normalizeSmartFilterValue(row[key]);
+    if (value) values.add(value);
+  });
+  return Array.from(values);
+}
+
 /* GET : Load TTR Binding Form */
 router.get("/form/ttr-binding", async (req, res) => {
   try {
-    const [clients, types, colors, materialCodes] = await Promise.all([
+    const [clients, fsRows] = await Promise.all([
       Client.distinct("clientName"),
-      Ttr.distinct("ttrType"),
-      Ttr.distinct("ttrColor"),
-      Ttr.distinct("ttrMaterialCode"),
+      loadFsTtrRows(),
     ]);
+    const types = distinctValues(fsRows, "ttrType");
+    const colors = distinctValues(fsRows, "ttrColor");
+    const materialCodes = distinctValues(fsRows, "ttrMaterialCode");
+    const widths = distinctValues(fsRows, "ttrWidth");
+    const mtrsList = distinctValues(fsRows, "ttrMtrs");
+    const inkFaces = distinctValues(fsRows, "ttrInkFace");
+    const coreIds = distinctValues(fsRows, "ttrCoreId");
+    const coreLengths = distinctValues(fsRows, "ttrCoreLength");
+    const notches = distinctValues(fsRows, "ttrNotch");
+    const windings = distinctValues(fsRows, "ttrWinding");
 
     res.render("inventory/ttrBinding.ejs", {
       title: "Client TTR",
@@ -89,6 +160,13 @@ router.get("/form/ttr-binding", async (req, res) => {
       types,
       colors,
       materialCodes,
+      widths,
+      mtrsList,
+      inkFaces,
+      coreIds,
+      coreLengths,
+      notches,
+      windings,
     });
   } catch (err) {
     console.error(err);
@@ -129,23 +207,23 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
     const ttrType = trimOr(req.body.ttrType);
     const ttrColor = trimOr(req.body.ttrColor, "BLACK");
     const ttrMaterialCode = trimOr(req.body.ttrMaterialCode);
-    const ttrWidth = trimOr(req.body.ttrWidth, String(DEFAULT_TTR_SPECS.ttrWidth));
-    const ttrMtrs = trimOr(req.body.ttrMtrs, String(DEFAULT_TTR_SPECS.ttrMtrs));
-    const ttrInkFace = trimOr(req.body.ttrInkFace, DEFAULT_TTR_SPECS.ttrInkFace);
-    const ttrCoreId = trimOr(req.body.ttrCoreId, DEFAULT_TTR_SPECS.ttrCoreId);
-    const ttrCoreLength = trimOr(req.body.ttrCoreLength, String(DEFAULT_TTR_SPECS.ttrCoreLength));
-    const ttrNotch = trimOr(req.body.ttrNotch, DEFAULT_TTR_SPECS.ttrNotch);
-    const ttrWinding = trimOr(req.body.ttrWinding, DEFAULT_TTR_SPECS.ttrWinding);
+    const ttrWidth = trimOr(req.body.ttrWidth);
+    const ttrMtrs = trimOr(req.body.ttrMtrs);
+    const ttrInkFace = trimOr(req.body.ttrInkFace);
+    const ttrCoreId = trimOr(req.body.ttrCoreId);
+    const ttrCoreLength = trimOr(req.body.ttrCoreLength);
+    const ttrNotch = trimOr(req.body.ttrNotch);
+    const ttrWinding = trimOr(req.body.ttrWinding);
     const ttrRecord = {
       ttrProductId: sampleId,
       ttrType,
       ttrColor,
       ttrMaterialCode,
-      ttrWidth: numOr(ttrWidth, DEFAULT_TTR_SPECS.ttrWidth),
-      ttrMtrs: numOr(ttrMtrs, DEFAULT_TTR_SPECS.ttrMtrs),
+      ttrWidth: numOr(ttrWidth, 0),
+      ttrMtrs: numOr(ttrMtrs, 0),
       ttrInkFace,
       ttrCoreId,
-      ttrCoreLength: numOr(ttrCoreLength, DEFAULT_TTR_SPECS.ttrCoreLength),
+      ttrCoreLength: numOr(ttrCoreLength, 0),
       ttrNotch,
       ttrWinding,
     };
@@ -159,7 +237,14 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
       !sampleId ||
       !ttrType ||
       !ttrColor ||
-      !ttrMaterialCode
+      !ttrMaterialCode ||
+      !ttrWidth ||
+      !ttrMtrs ||
+      !ttrInkFace ||
+      !ttrCoreId ||
+      !ttrCoreLength ||
+      !ttrNotch ||
+      !ttrWinding
     ) {
       return res.status(400).json({ success: false, message: "Please complete all required TTR fields" });
     }
@@ -450,44 +535,72 @@ router.get("/form/ttr-binding/client/:name", async (req, res) => {
 /* GET : Filter TTR Specs (cascading smart form) */
 router.get("/form/ttr-binding/filter-specs", async (req, res) => {
   try {
-    const {
-      ttrType,
-      ttrColor,
-      ttrMaterialCode,
-    } = req.query;
-
-    const flex = (val) => {
-      if (!val && val !== 0) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
+    const selected = {
+      ttrType: normalizeSmartFilterValue(req.query.ttrType),
+      ttrColor: normalizeSmartFilterValue(req.query.ttrColor),
+      ttrMaterialCode: normalizeSmartFilterValue(req.query.ttrMaterialCode),
+      ttrWidth: normalizeSmartFilterValue(req.query.ttrWidth),
+      ttrMtrs: normalizeSmartFilterValue(req.query.ttrMtrs),
+      ttrInkFace: normalizeSmartFilterValue(req.query.ttrInkFace),
+      ttrCoreId: normalizeSmartFilterValue(req.query.ttrCoreId),
+      ttrCoreLength: normalizeSmartFilterValue(req.query.ttrCoreLength),
+      ttrNotch: normalizeSmartFilterValue(req.query.ttrNotch),
+      ttrWinding: normalizeSmartFilterValue(req.query.ttrWinding),
     };
 
-    const buildFilter = (excludeKey) => {
-      const f = {};
-      if (ttrType && excludeKey !== "ttrType") f.ttrType = flex(ttrType);
-      if (ttrColor && excludeKey !== "ttrColor") f.ttrColor = flex(ttrColor);
-      if (ttrMaterialCode && excludeKey !== "ttrMaterialCode") f.ttrMaterialCode = flex(ttrMaterialCode);
-      return f;
-    };
-
-    const [types, colors, materialCodes] = await Promise.all([
-      Ttr.distinct("ttrType", buildFilter("ttrType")),
-      Ttr.distinct("ttrColor", buildFilter("ttrColor")),
-      Ttr.distinct("ttrMaterialCode", buildFilter("ttrMaterialCode")),
-    ]);
+    const fsRows = await loadFsTtrRows();
+    const types = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrType")),
+      "ttrType",
+    );
+    const colors = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrColor")),
+      "ttrColor",
+    );
+    const materialCodes = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrMaterialCode")),
+      "ttrMaterialCode",
+    );
+    const widths = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrWidth")),
+      "ttrWidth",
+    );
+    const mtrsList = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrMtrs")),
+      "ttrMtrs",
+    );
+    const inkFaces = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrInkFace")),
+      "ttrInkFace",
+    );
+    const coreIds = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrCoreId")),
+      "ttrCoreId",
+    );
+    const coreLengths = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrCoreLength")),
+      "ttrCoreLength",
+    );
+    const notches = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrNotch")),
+      "ttrNotch",
+    );
+    const windings = distinctValues(
+      fsRows.filter((row) => rowMatchesSmartFilters(row, selected, "ttrWinding")),
+      "ttrWinding",
+    );
 
     res.json({
       types,
       colors,
       materialCodes,
+      widths,
+      mtrsList,
+      inkFaces,
+      coreIds,
+      coreLengths,
+      notches,
+      windings,
     });
   } catch (err) {
     console.error("FILTER SPECS ERROR:", err);
@@ -499,47 +612,54 @@ router.get("/form/ttr-binding/filter-specs", async (req, res) => {
 router.get("/form/ttr-binding/resolve-ttr", async (req, res) => {
   console.log("Resolve TTR query:", req.query);
   try {
-    const {
-      ttrType,
-      ttrColor,
-      ttrMaterialCode,
-    } = req.query;
+    const ttrType = normalizeSmartFilterValue(req.query.ttrType);
+    const ttrColor = normalizeSmartFilterValue(req.query.ttrColor);
+    const ttrMaterialCode = normalizeSmartFilterValue(req.query.ttrMaterialCode);
+    const ttrWidth = normalizeSmartFilterValue(req.query.ttrWidth);
+    const ttrMtrs = normalizeSmartFilterValue(req.query.ttrMtrs);
+    const ttrInkFace = normalizeSmartFilterValue(req.query.ttrInkFace);
+    const ttrCoreId = normalizeSmartFilterValue(req.query.ttrCoreId);
+    const ttrCoreLength = normalizeSmartFilterValue(req.query.ttrCoreLength);
+    const ttrNotch = normalizeSmartFilterValue(req.query.ttrNotch);
+    const ttrWinding = normalizeSmartFilterValue(req.query.ttrWinding);
 
     if (
       !ttrType ||
       !ttrColor ||
-      !ttrMaterialCode
+      !ttrMaterialCode ||
+      !ttrWidth ||
+      !ttrMtrs ||
+      !ttrInkFace ||
+      !ttrCoreId ||
+      !ttrCoreLength ||
+      !ttrNotch ||
+      !ttrWinding
     ) {
       return res.status(400).json(null);
     }
 
-    const flex = (val) => {
-      if (!val && val !== 0) return val;
-      const arr = [val];
-      if (typeof val === "string") {
-        const t = val.trim();
-        if (t !== val) arr.push(t);
-        const n = Number(t);
-        if (t !== "" && !isNaN(n)) arr.push(n);
-      } else {
-        arr.push(String(val));
-      }
-      return { $in: arr };
-    };
+    const fsRows = await loadFsTtrRows();
+    const resolved = fsRows.find(
+      (row) =>
+        row.ttrType === ttrType &&
+        row.ttrColor === ttrColor &&
+        row.ttrMaterialCode === ttrMaterialCode &&
+        row.ttrWidth === ttrWidth &&
+        row.ttrMtrs === ttrMtrs &&
+        row.ttrInkFace === ttrInkFace &&
+        row.ttrCoreId === ttrCoreId &&
+        row.ttrCoreLength === ttrCoreLength &&
+        row.ttrNotch === ttrNotch &&
+        row.ttrWinding === ttrWinding,
+    );
 
-    const ttr = await Ttr.findOne({
-      ttrType: flex(ttrType),
-      ttrColor: flex(ttrColor),
-      ttrMaterialCode: flex(ttrMaterialCode),
-    }).lean();
-
-    if (!ttr) {
+    if (!resolved) {
       return res.status(404).json(null);
     }
 
     res.status(200).json({
-      ttrId: ttr._id,
-      ttrMaterialCode: ttr.ttrMaterialCode,
+      ttrId: resolved.ttrId,
+      ttrMaterialCode: resolved.ttrMaterialCode,
     });
   } catch (err) {
     console.error(err);
@@ -697,8 +817,10 @@ router.get("/ttr-vendor/compare/:id", async (req, res) => {
 
     const compareRows = [
       { field: "Sample ID", orgValue: ttr.ttrProductId || "N/A", clientValue: ttr.ttrProductId || "N/A" },
-      { field: "Material Code", orgValue: binding.vendorTtrMaterialCode || "N/A", clientValue: ttr.ttrMaterialCode || "N/A" },
-      { field: "Type", orgValue: binding.vendorTtrType || "N/A", clientValue: ttr.ttrType || "N/A" },
+      // Keep compare mapping aligned with save + vendor view:
+      // ttr* fields are primary TTR specs; vendorTtr* fields are FS override specs.
+      { field: "Material Code", orgValue: ttr.ttrMaterialCode || "N/A", clientValue: binding.vendorTtrMaterialCode || "N/A" },
+      { field: "Type", orgValue: ttr.ttrType || "N/A", clientValue: binding.vendorTtrType || "N/A" },
       { field: "Color", orgValue: ttr.ttrColor || "N/A", clientValue: ttr.ttrColor || "N/A" },
       { field: "Minimum Order Qty", orgValue: binding.ttrOdrQty ?? "N/A", clientValue: "-" },
       { field: "Status", orgValue: binding.status || "N/A", clientValue: "-" },
@@ -739,14 +861,22 @@ router.get("/ttr/compare/:id", async (req, res) => {
 
     const ttr = binding.ttrId || {};
     const user = binding.userId || {};
+    const vendorMappedFs = ttr?._id
+      ? await VendorTtrBinding.findOne({ ttrId: ttr._id })
+        .select("vendorTtrMaterialCode vendorTtrType")
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .lean()
+      : null;
+    const fsMaterialCode = trimOr(vendorMappedFs?.vendorTtrMaterialCode) || ttr.ttrMaterialCode || "N/A";
+    const fsType = trimOr(vendorMappedFs?.vendorTtrType) || ttr.ttrType || "N/A";
 
     const compareRows = [
       {
         field: "Material Code",
-        orgValue: ttr.ttrMaterialCode || "N/A",
+        orgValue: fsMaterialCode,
         clientValue: binding.ttrClientMaterialCode || "N/A",
       },
-      { field: "Type", orgValue: ttr.ttrType || "N/A", clientValue: binding.clientTtrType || "N/A" },
+      { field: "Type", orgValue: fsType, clientValue: binding.clientTtrType || "N/A" },
       { field: "Color", orgValue: ttr.ttrColor || "N/A", clientValue: ttr.ttrColor || "N/A" },
       { field: "Ink Face", orgValue: ttr.ttrInkFace || "N/A", clientValue: ttr.ttrInkFace || "N/A" },
       { field: "Width", orgValue: ttr.ttrWidth ?? "N/A", clientValue: ttr.ttrWidth ?? "N/A" },

@@ -36,7 +36,7 @@
     <input type="hidden" name="ttrId" id="resolvedTtrId" />
 
     <div class="span-seven">
-      <label for="ttr-material-code">Material Code</label>
+      <label for="ttr-material-code">FS Code</label>
       <select name="ttrMaterialCode" id="ttr-material-code" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
         <% materialCodes?.forEach(mc => { %>
@@ -45,7 +45,7 @@
       </select>
     </div>
     <div class="span-five">
-      <label for="ttr-type">Type</label>
+      <label for="ttr-type">FS Type</label>
       <select name="ttrType" id="ttr-type" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
         <% types?.forEach(t => { %>
