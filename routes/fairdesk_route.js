@@ -2038,23 +2038,15 @@ function buildVendorUserSignature(source, vendorId) {
 // Route to handle VENDOR form submission
 router.post("/form/vendor", async (req, res) => {
   try {
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
     const vendorId = String(req.body.vendorId || "").trim();
     const vendorName = String(req.body.vendorName || "").trim();
     const vendorGst = String(req.body.vendorGst || "").trim();
     const vendorPan = String(req.body.vendorPan || "").trim();
     const vendorSignature = hashSignature(buildVendorSignature(req.body));
 
-    // Prevent duplicates (vendorId is unique, but also guard by name / GST / PAN).
+    // Prevent duplicates only by full vendor signature.
     const alreadyExists = await Vendor.exists({
-      $or: [
-        { vendorSignature },
-        vendorId ? { vendorId } : null,
-        vendorName ? { vendorName: new RegExp(`^${escapeRegex(vendorName)}$`, "i") } : null,
-        vendorGst ? { vendorGst: new RegExp(`^${escapeRegex(vendorGst)}$`, "i") } : null,
-        vendorPan ? { vendorPan: new RegExp(`^${escapeRegex(vendorPan)}$`, "i") } : null,
-      ].filter(Boolean),
+      vendorSignature,
     });
     if (alreadyExists) {
       return res.status(400).json({ success: false, message: "vendor already exist" });

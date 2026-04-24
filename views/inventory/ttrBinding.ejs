@@ -187,7 +187,7 @@
             <input type="text" id="ttr-rate-per-roll" class="form-control" name="ttrRatePerRoll" placeholder="Enter rate per roll" required />
           </div>            
           <div class="span-six">
-            <label for="ttr-sale-cost">Sales Cost</label>
+            <label for="ttr-sale-cost"> Sales sq mtrs Cost</label>
             <input type="text" id="ttr-sale-cost" class="form-control" name="ttrSaleCost" placeholder="Enter Sales Cost" required />
           </div>           
 
@@ -222,6 +222,7 @@
       </div>
 
 <!-- ===== RATE CALCULATION & JS ===== -->
+<script src="/js/choices.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   /* ================= ELEMENTS ================= */
@@ -303,6 +304,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  let smartFilterBusy = false;
+
   /* ================= HELPERS ================= */
   function resetUserFields() {
     userIdInput.value = "";
@@ -348,6 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const apiKey = fieldToApiKey[id];
         const filteredValues = data[apiKey] || [];
         const currentValue = document.getElementById(id)?.value || "";
+        const filteredValueSet = new Set(filteredValues.map((v) => String(v)));
 
         const newChoices = filteredValues.map(v => ({
           value: String(v),
@@ -368,15 +372,33 @@ document.addEventListener("DOMContentLoaded", () => {
           "label",
           true
         );
+
+        if (currentValue && filteredValueSet.has(String(currentValue))) {
+          choicesInstance.setChoiceByValue(String(currentValue));
+        } else if (changedFieldId !== "reset-all" && filteredValues.length === 1 && !currentValue) {
+          choicesInstance.setChoiceByValue(String(filteredValues[0]));
+        } else if (!filteredValues.length) {
+          document.getElementById(id).value = "";
+        }
       });
 
       // If any fields were auto-selected, re-run filter to cascade
       if (autoSelected.length > 0) {
         await filterSpecs(autoSelected[0]);
-        resolveTtr();
       }
     } catch (err) {
       console.error("Filter specs error:", err);
+    }
+  }
+
+  async function handleSmartFilterChange(changedFieldId) {
+    if (smartFilterBusy) return;
+    smartFilterBusy = true;
+    try {
+      await filterSpecs(changedFieldId);
+      await resolveTtr();
+    } finally {
+      smartFilterBusy = false;
     }
   }
 
@@ -478,10 +500,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ================= SPEC CHANGE HANDLER ================= */
   ttrFields.forEach(id => {
-    document.getElementById(id)?.addEventListener("change", async () => {
-      await filterSpecs(id);
-      resolveTtr();
-    });
+    const field = document.getElementById(id);
+    if (!field) return;
+    field.addEventListener("change", () => handleSmartFilterChange(id));
+    field.addEventListener("addItem", () => handleSmartFilterChange(id));
   });
 
   /* ================= RESET SPECS ================= */

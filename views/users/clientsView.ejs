@@ -188,6 +188,10 @@
   /* ===== Table ===== */
   const tableData = <%- JSON.stringify(jsonData) %>;
 
+  function normalizeStatus(value) {
+    return String(value ?? "").trim().toUpperCase();
+  }
+
   const table = new Tabulator("#master-table", {
     data: tableData,
     layout: "fitColumns",
@@ -234,6 +238,10 @@
         field: "clientStatus",
         headerSort: true,
         headerFilter: "select",
+        headerFilterFunc: (headerValue, rowValue) => {
+          if (!headerValue) return true;
+          return normalizeStatus(rowValue) === normalizeStatus(headerValue);
+        },
         headerFilterParams: {
           values: {
             "": "All",
@@ -247,8 +255,9 @@
         },
         formatter: (cell) => {
           const v = cell.getValue();
-          const color = v === "ACTIVE" ? "#28a745" : "#dc3545";
-          return `<span style="font-weight:600;color:${color}">${v}</span>`;
+          const status = normalizeStatus(v);
+          const color = status === "ACTIVE" ? "#28a745" : "#dc3545";
+          return `<span style="font-weight:600;color:${color}">${v || "-"}</span>`;
         },
       },
     ],

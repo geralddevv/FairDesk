@@ -101,8 +101,7 @@ async function loadFsTtrRows() {
         row.ttrCoreId &&
         row.ttrCoreLength &&
         row.ttrNotch &&
-        row.ttrWinding &&
-        row.ttrMinQty,
+        row.ttrWinding,
     );
 }
 
