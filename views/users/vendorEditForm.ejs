@@ -1,0 +1,194 @@
+<% layout('/layout/boilerplate') -%>
+<style>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f0f2f5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #044A78;
+    border-radius: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #044A78;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #044A78 #f0f2f5;
+  }
+
+  .custom-scrollbar input[type="checkbox"] {
+    accent-color: #044A78;
+  }
+</style>
+
+<%
+  const selectedCommodities = Array.isArray(vendor.commodities)
+    ? vendor.commodities.map((c) => String(c))
+    : typeof vendor.commodities === "string" && vendor.commodities
+      ? [String(vendor.commodities)]
+      : [];
+  const isChecked = (value) => selectedCommodities.includes(value) ? "checked" : "";
+%>
+
+<div class="main-content">
+  <div>
+    <div class="span-full form-subheading gap" style="margin-bottom: 1rem;">
+      <div class="client-switch active">
+        <h1>Edit Vendor</h1>
+      </div>
+    </div>
+
+    <form id="vendor-edit-form" class="client-content span-full needs-validation" action="/fairdesk/vendor/edit/<%= vendor._id %>" method="post" autocomplete="off" novalidate>
+      <div class="span-five">
+        <label for="vendor-id">Vendor Id</label>
+        <input type="text" value="<%= vendor.vendorId %>" id="vendor-id" class="form-control input-tag" name="vendorId" readonly required />
+      </div>
+
+      <div class="span-six">
+        <label for="vendor-name">Vendor Name</label>
+        <input type="text" id="vendor-name" class="form-control input-tag" name="vendorName" value="<%= vendor.vendorName %>" required />
+      </div>
+
+      <div class="span-six">
+        <label for="vendor-status">Vendor Status</label>
+        <select name="vendorStatus" id="vendor-status" class="form-control select-tag" required>
+          <option value="ACTIVE" <%= vendor.vendorStatus === "ACTIVE" ? "selected" : "" %>>ACTIVE</option>
+          <option value="INACTIVE" <%= vendor.vendorStatus === "INACTIVE" ? "selected" : "" %>>INACTIVE</option>
+          <option value="BLACKLISTED" <%= vendor.vendorStatus === "BLACKLISTED" ? "selected" : "" %>>BLACKLISTED</option>
+          <option value="OTHERS" <%= vendor.vendorStatus === "OTHERS" ? "selected" : "" %>>OTHERS</option>
+        </select>
+      </div>
+
+      <div class="span-seven">
+        <label for="ho-location">H/O Location</label>
+        <input type="text" id="ho-location" class="form-control input-tag" name="hoLocation" value="<%= vendor.hoLocation %>" required />
+      </div>
+
+      <div class="span-eight">
+        <label for="warehouse-location">Warehouse Location</label>
+        <input type="text" id="warehouse-location" class="form-control input-tag" name="warehouseLocation" value="<%= vendor.warehouseLocation %>" required />
+      </div>
+
+      <div class="span-full form-subheading">
+        <h1>Commodities</h1>
+      </div>
+
+      <div class="span-full">
+        <div class="custom-scrollbar" style="display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; overflow-x: auto; padding: 8px 14px; background: #e9f0f6; border-radius: 8px; column-gap: 24px;">
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="Face Paper" style="width: 16px; height: 16px;" <%= isChecked("Face Paper") %> />
+            Face Paper
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="Adhesive" style="width: 16px; height: 16px;" <%= isChecked("Adhesive") %> />
+            Adhesive
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="Release Paper" style="width: 16px; height: 16px;" <%= isChecked("Release Paper") %> />
+            Release Paper
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="SL (Paper)" style="width: 16px; height: 16px;" <%= isChecked("SL (Paper)") %> />
+            SL (Paper)
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="Packaging" style="width: 16px; height: 16px;" <%= isChecked("Packaging") %> />
+            Packaging
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="TTR" style="width: 16px; height: 16px;" <%= isChecked("TTR") %> />
+            TTR
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="POS Roll" style="width: 16px; height: 16px;" <%= isChecked("POS Roll") %> />
+            POS Roll
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="Taffeta" style="width: 16px; height: 16px;" <%= isChecked("Taffeta") %> />
+            Taffeta
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="IT" style="width: 16px; height: 16px;" <%= isChecked("IT") %> />
+            IT
+          </label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+            <input type="checkbox" name="commodities" value="Others" style="width: 16px; height: 16px;" <%= isChecked("Others") %> />
+            Others
+          </label>
+        </div>
+      </div>
+
+      <div class="span-dual">
+        <label for="vendor-gst">GST</label>
+        <input type="text" maxlength="15" id="vendor-gst" class="form-control" name="vendorGst" value="<%= vendor.vendorGst %>" required />
+      </div>
+
+      <div class="span-dual">
+        <label for="vendor-msme">MSME</label>
+        <input type="text" maxlength="15" id="vendor-msme" class="form-control" name="vendorMsme" value="<%= vendor.vendorMsme %>" required />
+      </div>
+
+      <div class="span-dual">
+        <label for="vendor-gumasta">Gumasta</label>
+        <input type="text" id="vendor-gumasta" class="form-control" name="vendorGumasta" value="<%= vendor.vendorGumasta %>" required />
+      </div>
+
+      <div class="span-dual">
+        <label for="vendor-pan">PAN</label>
+        <input type="text" maxlength="10" id="vendor-pan" class="form-control" name="vendorPan" value="<%= vendor.vendorPan %>" required />
+      </div>
+
+      <div class="span-full btn-grp" style="flex-direction: row-reverse;">
+        <button class="submit-btn" id="vendor-edit-submit" type="submit">Update Vendor Details</button>
+        <button type="button" id="cancelBtn">Cancel Edit</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById("vendor-edit-form");
+  const submitBtn = document.getElementById("vendor-edit-submit");
+
+  document.getElementById("cancelBtn").addEventListener("click", () => {
+    window.location.href = "/fairdesk/vendor/view";
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    submitBtn.disabled = true;
+
+    try {
+      const res = await fetch(form.action, {
+        method: "POST",
+        body: new FormData(form),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        submitBtn.disabled = false;
+        if (window.showToast) window.showToast(data?.message || "Failed to update vendor", true);
+        return;
+      }
+
+      window.location.href = data.redirect || "/fairdesk/vendor/view";
+    } catch (err) {
+      console.error(err);
+      submitBtn.disabled = false;
+      if (window.showToast) window.showToast("Failed to update vendor", true);
+    }
+  });
+</script>

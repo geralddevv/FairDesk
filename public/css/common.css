@@ -206,7 +206,7 @@ nav h1 {
   border-radius: 0.35rem;
   transition: none;
   padding: 12px;
-  gap: 20px;
+  gap: 14px;
   margin: 0px 0px;
   cursor: pointer;
 }
@@ -258,13 +258,13 @@ nav h1 {
 }
 
 .nav-items i {
-  font-size: 18px;
+  font-size: 16px;
   text-align: center;
 }
 
 .nav-items-para {
   color: white;
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;

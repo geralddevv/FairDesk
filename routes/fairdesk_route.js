@@ -2091,6 +2091,75 @@ router.get("/form/vendor/:name", async (req, res) => {
   res.status(200).json(vendorName);
 });
 
+router.get("/vendor/edit/:id", async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id).lean();
+    if (!vendor) {
+      req.flash("notification", "Vendor not found");
+      return res.redirect("/fairdesk/vendor/view");
+    }
+
+    res.render("users/vendorEditForm.ejs", {
+      title: "Edit Vendor",
+      CSS: "tabOpt.css",
+      JS: false,
+      vendor,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR EDIT GET ERROR:", err);
+    req.flash("notification", "Failed to load vendor edit page");
+    res.redirect("/fairdesk/vendor/view");
+  }
+});
+
+router.post("/vendor/edit/:id", async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: "Vendor not found" });
+    }
+
+    const updatedData = {
+      vendorId: String(req.body.vendorId || "").trim(),
+      vendorName: String(req.body.vendorName || "").trim(),
+      vendorStatus: String(req.body.vendorStatus || "").trim(),
+      hoLocation: String(req.body.hoLocation || "").trim(),
+      warehouseLocation: String(req.body.warehouseLocation || "").trim(),
+      commodities: Array.isArray(req.body.commodities)
+        ? req.body.commodities.map((c) => String(c).trim()).filter(Boolean)
+        : req.body.commodities
+          ? [String(req.body.commodities).trim()].filter(Boolean)
+          : [],
+      vendorGst: String(req.body.vendorGst || "").trim(),
+      vendorMsme: String(req.body.vendorMsme || "").trim(),
+      vendorGumasta: String(req.body.vendorGumasta || "").trim(),
+      vendorPan: String(req.body.vendorPan || "").trim(),
+    };
+
+    updatedData.vendorSignature = hashSignature(buildVendorSignature(updatedData));
+
+    const duplicate = await Vendor.findOne({
+      _id: { $ne: req.params.id },
+      vendorSignature: updatedData.vendorSignature,
+    }).lean();
+
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: "vendor already exist" });
+    }
+
+    await Vendor.findByIdAndUpdate(req.params.id, updatedData, { runValidators: true });
+    req.flash("notification", "Vendor updated successfully!");
+    res.json({ success: true, redirect: "/fairdesk/vendor/view" });
+  } catch (err) {
+    console.error("VENDOR EDIT POST ERROR:", err);
+    if (err?.code === 11000) {
+      return res.status(409).json({ success: false, message: "vendor already exist" });
+    }
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 // Route to handle VENDOR USER form submission
 router.post("/form/vendor-user", async (req, res) => {
   try {

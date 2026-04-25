@@ -187,6 +187,7 @@ router.post("/create", async (req, res) => {
 router.get("/view", async (req, res) => {
   try {
     const pettyList = await PettyCash.find().lean();
+    const allLogs = sortPettyCashLogs(await PettyCashLog.find({}).lean()).reverse();
 
     const snapshot = pettyList.map((p) => ({
       location: p.location,
@@ -197,6 +198,7 @@ router.get("/view", async (req, res) => {
 
     res.render("accounting/pettycashDisp", {
       jsonData: snapshot,
+      allLogs,
       title: "Petty Cash View",
       navigator: "pettycash",
       CSS: "tableDisp.css",

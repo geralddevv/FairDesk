@@ -823,6 +823,7 @@ router.get("/ttr-vendor/compare/:id", async (req, res) => {
       sectionTitle: "TTR Details (Vendor - Fairtech)",
       orgLabel: "Vendor",
       clientLabel: "Fairtech",
+      editBindingUrl: `/fairdesk/ttr-vendor-binding/edit/${binding._id}?returnTo=${encodeURIComponent(`/fairdesk/ttr-vendor/compare/${binding._id}`)}`,
       clientName: user?.vendorName || "",
       userName: user?.userName || "",
       compareRows,
@@ -832,6 +833,109 @@ router.get("/ttr-vendor/compare/:id", async (req, res) => {
     console.error("VENDOR TTR COMPARE ERROR:", err);
     req.flash("notification", "Failed to load Vendor TTR comparison");
     res.redirect("back");
+  }
+});
+
+/* GET : Load Vendor TTR Binding Edit Form */
+router.get("/ttr-vendor-binding/edit/:id", async (req, res) => {
+  try {
+    const binding = await VendorTtrBinding.findById(req.params.id).populate("vendorUserId").populate("ttrId");
+
+    if (!binding) {
+      req.flash("notification", "Vendor TTR binding not found");
+      return res.redirect("back");
+    }
+
+    res.render("inventory/ttrVendorBindingEdit.ejs", {
+      title: "Edit Vendor TTR Binding",
+      binding,
+      returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR TTR EDIT GET ERROR:", err);
+    req.flash("notification", "Failed to load Vendor TTR Binding Edit");
+    res.redirect("back");
+  }
+});
+
+/* POST : Update Vendor TTR Binding */
+router.post("/ttr-vendor-binding/edit/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const binding = await VendorTtrBinding.findById(id);
+    if (!binding) {
+      return res.status(404).json({ success: false, message: "Vendor TTR binding not found" });
+    }
+
+    const ttr = await Ttr.findById(binding.ttrId).select("ttrMaterialCode").lean();
+    if (!ttr) {
+      return res.status(400).json({ success: false, message: "Invalid TTR master selected" });
+    }
+
+    const vendorTtrMaterialCode = trimOr(req.body.vendorTtrMaterialCode);
+    const vendorTtrType = trimOr(req.body.vendorTtrType);
+    const vendorTtrColor = trimOr(req.body.vendorTtrColor, "BLACK");
+    const incomingVendorCode = normalizeCode(vendorTtrMaterialCode);
+    const incomingFsCode = normalizeCode(ttr.ttrMaterialCode);
+    const incomingFsId = String(binding.ttrId);
+
+    const existingMappings = await VendorTtrBinding.find({
+      _id: { $ne: binding._id },
+      vendorTtrMaterialCode: new RegExp(`^${escapeRegex(incomingVendorCode)}$`, "i"),
+    })
+      .select("vendorTtrMaterialCode ttrId vendorUserId")
+      .populate({ path: "ttrId", select: "ttrMaterialCode" })
+      .lean();
+
+    const mappingConflict = existingMappings.find((row) => {
+      const existingFsCode = normalizeCode(row.ttrId?.ttrMaterialCode);
+      const existingFsId = String(row.ttrId?._id || "");
+      return existingFsId && existingFsId !== incomingFsId && existingFsCode !== incomingFsCode;
+    });
+
+    if (mappingConflict) {
+      return res.status(400).json({
+        success: false,
+        message: `Vendor code ${vendorTtrMaterialCode} is already mapped to FS code ${mappingConflict.ttrId?.ttrMaterialCode || "N/A"}.`,
+      });
+    }
+
+    const duplicateMappingForUser = await VendorTtrBinding.findOne({
+      _id: { $ne: binding._id },
+      vendorUserId: binding.vendorUserId,
+      ttrId: binding.ttrId,
+    }).lean();
+
+    if (duplicateMappingForUser) {
+      return res.status(400).json({
+        success: false,
+        message: "This vendor binding already exists for this user.",
+      });
+    }
+
+    binding.vendorTtrMaterialCode = incomingVendorCode;
+    binding.vendorTtrType = vendorTtrType;
+    binding.vendorTtrColor = vendorTtrColor;
+
+    await binding.save();
+
+    req.flash("notification", "Vendor TTR binding updated successfully!");
+    res.json({
+      success: true,
+      redirect: req.body.returnTo || `/fairdesk/ttr-vendor/compare/${binding._id}`,
+    });
+  } catch (err) {
+    console.error("VENDOR TTR EDIT POST ERROR:", err);
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "A vendor TTR binding with this exact configuration already exists.",
+      });
+    }
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

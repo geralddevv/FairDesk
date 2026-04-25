@@ -1,6 +1,35 @@
 <!--- Link to boilerplate.ejs -->
 <% layout('/layout/boilerplate') -%>
 
+<style>
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f0f2f5;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #044A78;
+    border-radius: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #044A78;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #044A78 #f0f2f5;
+  }
+
+  .custom-scrollbar input[type="checkbox"] {
+    accent-color: #044A78;
+  }
+</style>
+
 <div class="main-content">
   <div>
     <div class="span-full form-subheading gap" style="margin-bottom: 1rem;">
@@ -47,7 +76,7 @@
     </div>
 
     <div class="span-full">
-      <div style="display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; overflow-x: auto; padding: 8px 14px; background: #e9f0f6; border-radius: 8px; column-gap: 24px;">
+      <div class="custom-scrollbar" style="display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; overflow-x: auto; padding: 8px 14px; background: #e9f0f6; border-radius: 8px; column-gap: 24px;">
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
           <input type="checkbox" name="commodities" value="Face Paper" style="width: 16px; height: 16px;">
           Face Paper
@@ -67,6 +96,18 @@
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
           <input type="checkbox" name="commodities" value="Packaging" style="width: 16px; height: 16px;">
           Packaging
+        </label>
+        <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+          <input type="checkbox" name="commodities" value="TTR" style="width: 16px; height: 16px;">
+          TTR
+        </label>
+        <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+          <input type="checkbox" name="commodities" value="POS Roll" style="width: 16px; height: 16px;">
+          POS Roll
+        </label>
+        <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
+          <input type="checkbox" name="commodities" value="Taffeta" style="width: 16px; height: 16px;">
+          Taffeta
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
           <input type="checkbox" name="commodities" value="IT" id="commodity-it" style="width: 16px; height: 16px;">

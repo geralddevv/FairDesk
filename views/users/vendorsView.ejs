@@ -157,7 +157,7 @@
       <div class="vendor-modal-title" id="vendorModalTitle"></div>
 
       <div class="vendor-modal-actions">
-        <a href="/fairdesk/form/vendor" class="vendor-action-btn">Open Form</a>
+        <a href="#" class="vendor-action-btn" id="vendorEditLink">Edit</a>
         <span class="vendor-close" onclick="closeVendorModal()">&times;</span>
       </div>
     </div>
@@ -210,10 +210,8 @@
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const hasUsers = Array.isArray(row.users) && row.users.length > 0;
-          if (!hasUsers) {
-            return `<span style="color:#dc2626;font-weight:600;text-decoration:underline;text-decoration-color:#dc2626;">${cell.getValue()}</span>`;
-          }
-          return cell.getValue();
+          const color = hasUsers ? "#044a78" : "#dc2626";
+          return `<span class="client-name-cell" style="color:${color};text-decoration:underline;text-underline-offset:2px;">${cell.getValue()}</span>`;
         },
 
         cellClick: (e, cell) => {
@@ -261,8 +259,14 @@
   async function openVendorModal(vendorName) {
     const res = await fetch(`/fairdesk/form/vendor/${encodeURIComponent(vendorName)}`);
     const vendor = await res.json();
+    const editLink = document.getElementById("vendorEditLink");
 
     document.getElementById("vendorModalTitle").innerText = vendor.vendorName || vendorName;
+    if (editLink) {
+      editLink.href = vendor._id ? `/fairdesk/vendor/edit/${encodeURIComponent(vendor._id)}` : "#";
+      editLink.style.pointerEvents = vendor._id ? "auto" : "none";
+      editLink.style.opacity = vendor._id ? "1" : "0.5";
+    }
 
     const fields = [
       ["Vendor ID", vendor.vendorId],

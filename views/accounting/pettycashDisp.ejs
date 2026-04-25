@@ -39,6 +39,13 @@
   <div id="master-table"></div>
 </div>
 
+<div class="main-content" style="padding-top: 0;">
+  <div class="span-full form-subheading" style="margin: 8px 0 10px;">
+    <h1 style="margin: 0;">Recent Transactions</h1>
+  </div>
+  <div id="recent-transactions-table"></div>
+</div>
+
 <!-- ===== EDIT LOG DIALOG ===== -->
 <div
   id="pc-edit-dialog"
@@ -123,6 +130,7 @@
 
 <script>
   const tableData = <%- JSON.stringify(jsonData) %>;
+  const allLogsData = <%- JSON.stringify(allLogs || []) %>;
   const snapshotData = [...tableData];
   let currentLocation = null;
 
@@ -256,6 +264,37 @@
     pagination: "local",
     paginationSize: 30,
     columns: baseColumns,
+  });
+
+  const recentColumns = [
+    { title: "Location", field: "location", headerSort: false },
+    { title: "From", field: "from" },
+    { title: "To", field: "to" },
+    { title: "Opening Balance", field: "openingBalance" },
+    {
+      title: "Amount",
+      field: "amount",
+      formatter: (c) => {
+        const r = c.getRow().getData();
+        return r.type === "OUTWARD" ? `- â‚¹${c.getValue()}` : `+ â‚¹${c.getValue()}`;
+      },
+    },
+    { title: "Closing Balance", field: "closingBalance" },
+    { title: "Type", field: "type" },
+    { title: "Reason", field: "reason" },
+    {
+      title: "Date",
+      field: "entryDate",
+      formatter: (cell) => formatDateOnly(cell.getValue() || cell.getRow().getData().createdAt),
+    },
+  ];
+
+  const recentTable = new Tabulator("#recent-transactions-table", {
+    data: allLogsData,
+    layout: "fitColumns",
+    pagination: "local",
+    paginationSize: 10,
+    columns: recentColumns,
   });
 
   /* ===== BACK ===== */
