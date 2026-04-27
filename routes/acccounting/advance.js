@@ -21,7 +21,7 @@ router.get("/create", async (req, res) => {
   });
 });
 
-/* ADD / UPDATE ADVANCE (WITH 50% RULE + LOGS) */
+/* ADD / UPDATE ADVANCE (WITH 100% RULE + LOGS) */
 router.post("/create", async (req, res) => {
   try {
     const { employeeId, advanceAmount } = req.body;
@@ -39,8 +39,8 @@ router.post("/create", async (req, res) => {
       return res.status(400).json({ success: false, message: "Employee not found" });
     }
 
-    /* 50% ADVANCE LIMIT */
-    const maxAllowedAdvance = emp.basicSalary * 0.5;
+    /* 100% ADVANCE LIMIT */
+    const maxAllowedAdvance = emp.basicSalary * 1;
 
     /* FETCH EXISTING ADVANCE */
     let advance = await Advance.findOne({ employee: empObjectId });

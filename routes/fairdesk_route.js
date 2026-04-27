@@ -2244,6 +2244,8 @@ router.post("/form/vendor-user", async (req, res) => {
       userName,
       userContact,
       userEmail,
+      dropLocation: String(req.body.dropLocation || "").trim(),
+      dropLocation1: String(req.body.dropLocation1 || "").trim(),
       vendorUserSignature,
     });
 

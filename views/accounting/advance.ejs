@@ -120,7 +120,7 @@
 
 <!-- ================= ADVANCE TOAST ================= -->
 <div id="advance-toast" class="advance-toast">
-  Advance cannot exceed 50% of basic salary.
+  Advance cannot exceed 100% of basic salary.
 </div>
 
 <!-- ================= CHOICES JS ================= -->
@@ -234,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
       currentAdvanceBalance = Number(advance?.currentBalance || 0);
       advanceBalanceInput.value = currentAdvanceBalance;
 
-      maxAdvanceAllowed = Number(emp.basicSalary || 0) * 0.5;
+      maxAdvanceAllowed = Number(emp.basicSalary || 0) * 1;
 
     } catch (err) {
       console.error(err);
@@ -252,16 +252,34 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
     const entered = Number(advanceAmountInput.value || 0);
 
     if (currentAdvanceBalance + entered > maxAdvanceAllowed) {
-      e.preventDefault();
-      showToast(
-        `Advance limit exceeded. Max allowed: ₹${maxAdvanceAllowed}`
-      );
+      showToast(`Advance limit exceeded. Max allowed: Rs ${maxAdvanceAllowed}`);
+      return;
     }
-  });
 
+    fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.message || "Failed to save advance");
+        }
+
+        window.location.href = data.redirect || "/fairdesk/advance/create";
+      })
+      .catch((err) => {
+        console.error(err);
+        showToast(err.message || "Failed to save advance");
+      });
+  });
 });
 </script>
+
 
