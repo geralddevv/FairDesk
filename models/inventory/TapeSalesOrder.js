@@ -86,6 +86,20 @@ const tapeSalesOrderSchema = new mongoose.Schema(
       type: String,
       default: "SYSTEM",
     },
+
+    submissionToken: {
+      type: String,
+      trim: true,
+      immutable: true,
+      sparse: true,
+    },
+
+    orderSignature: {
+      type: String,
+      trim: true,
+      immutable: true,
+      sparse: true,
+    },
   },
   {
     timestamps: true,
@@ -97,5 +111,7 @@ tapeSalesOrderSchema.index({ tapeId: 1, status: 1, sourceLocation: 1 });
 // Speeds up pending list & user-based lookups
 tapeSalesOrderSchema.index({ status: 1, createdAt: -1 });
 tapeSalesOrderSchema.index({ userId: 1, status: 1 });
+tapeSalesOrderSchema.index({ submissionToken: 1 }, { unique: true, sparse: true });
+tapeSalesOrderSchema.index({ orderSignature: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.TapeSalesOrder || mongoose.model("TapeSalesOrder", tapeSalesOrderSchema);

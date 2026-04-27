@@ -52,6 +52,32 @@ function canonicalizeLocationName(value) {
     .replace(/^[.,]+|[.,]+$/g, "");
 }
 
+function buildSalesOrderSignature({
+  itemType,
+  itemId,
+  userId,
+  quantity,
+  estimatedDate,
+  poNumber,
+  sourceLocation,
+  orderRate,
+  createdBy,
+}) {
+  return hashSignature(
+    [
+      itemType || "",
+      itemId || "",
+      userId || "",
+      String(quantity ?? ""),
+      String(estimatedDate || ""),
+      canonicalizeLocationName(sourceLocation || ""),
+      String(poNumber || "").trim(),
+      String(orderRate ?? ""),
+      String(createdBy || ""),
+    ].join("|"),
+  );
+}
+
 router.use((req, res, next) => {
   const role = req.session?.authUser?.role;
   if (!role) return res.redirect("/login");
@@ -419,11 +445,24 @@ router.post("/form/labels", async (req, res) => {
 });
 
 router.get("/form/labels/:name", async (req, res) => {
-  let clientData = await Client.findOne({ clientName: req.params.name }).populate("users");
-  let clientName = clientData;
-  console.log(clientName.users);
-  console.log(clientName);
-  res.status(200).json(clientName);
+  try {
+    const rawName = String(req.params.name || "");
+    const normalizedName = rawName.trim().replace(/\s+/g, " ");
+    const clientData = await Client.findOne({
+      clientName: new RegExp(`^${escapeRegexLiteral(normalizedName)}$`, "i"),
+    })
+      .populate("users")
+      .lean();
+
+    if (!clientData) {
+      return res.status(404).json({ success: false, message: "Client not found" });
+    }
+
+    res.status(200).json(clientData);
+  } catch (err) {
+    console.error("FORM LABELS LOOKUP ERROR:", err);
+    res.status(500).json({ success: false, message: "Failed to load client data" });
+  }
 });
 
 // ----------------------------------Samples---------------------------------->
@@ -2313,6 +2352,7 @@ router.post("/ttr/edit/:id", async (req, res) => {
 router.get("/sales/order", async (req, res) => {
   const { orderId } = req.query;
   const clientsPromise = Client.distinct("clientName");
+  const submissionToken = crypto.randomUUID();
 
   const orderPromise = orderId
     ? TapeSalesOrder.findById(orderId)
@@ -2330,6 +2370,7 @@ router.get("/sales/order", async (req, res) => {
     clients,
     orderToEdit,
     logs,
+    submissionToken,
     CSS: false,
     JS: false,
     title: orderToEdit ? "Edit Sales Order" : "Sales Order",
@@ -2747,29 +2788,8 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
 // Submit Sales Order (Create or Update)
 router.post("/sales/order", async (req, res) => {
   try {
-    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, locationRadio, userLocation, poNumber, orderRate } = req.body;
+    const { orderId, itemType, userId, itemId, quantity, estimatedDate, remarks, sourceLocation, locationRadio, userLocation, poNumber, orderRate, submissionToken } = req.body;
     const createdByUser = req.user?.username || "SYSTEM";
-    const qtyNum = Number(quantity);
-
-    // Idempotency guard: if two identical create requests arrive within a short window,
-    // treat the later one as duplicate and do not create a second order.
-    if (!orderId && itemId && Number.isFinite(qtyNum) && qtyNum > 0) {
-      const duplicateWindowStart = new Date(Date.now() - 15000);
-      const recentDuplicate = await TapeSalesOrder.findOne({
-        status: "PENDING",
-        tapeBinding: itemId,
-        quantity: qtyNum,
-        poNumber: String(poNumber || "").trim(),
-        createdBy: createdByUser,
-        createdAt: { $gte: duplicateWindowStart },
-      })
-        .select("_id")
-        .lean();
-
-      if (recentDuplicate) {
-        return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
-      }
-    }
 
     if (["TAPE", "POS_ROLL", "TAFETA", "TTR"].includes(itemType) && canonicalizeLocationName(locationRadio) === "ALL") {
       return res.status(400).json({ success: false, message: "Location cannot be ALL. Please select a specific location." });
@@ -2845,6 +2865,22 @@ router.post("/sales/order", async (req, res) => {
       } else {
         // CREATE new order
         data.createdBy = createdByUser;
+        data.orderSignature = buildSalesOrderSignature({
+          itemType,
+          itemId,
+          userId: binding.userId,
+          quantity: data.quantity,
+          estimatedDate,
+          poNumber,
+          sourceLocation: sourceLocationForSave,
+          orderRate: finalOrderRate,
+          createdBy: createdByUser,
+        });
+        data.submissionToken = String(submissionToken || "").trim() || undefined;
+        const existingOrder = await TapeSalesOrder.findOne({ orderSignature: data.orderSignature }).select("_id").lean();
+        if (existingOrder) {
+          return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
+        }
         const newOrder = await TapeSalesOrder.create(data);
 
         // Action Log entry for creation
@@ -2888,6 +2924,22 @@ router.post("/sales/order", async (req, res) => {
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
         data.createdBy = createdByUser;
+        data.orderSignature = buildSalesOrderSignature({
+          itemType,
+          itemId,
+          userId: binding.userId,
+          quantity: data.quantity,
+          estimatedDate,
+          poNumber,
+          sourceLocation: sourceLocationForSave,
+          orderRate: finalOrderRate,
+          createdBy: createdByUser,
+        });
+        data.submissionToken = String(submissionToken || "").trim() || undefined;
+        const existingOrder = await TapeSalesOrder.findOne({ orderSignature: data.orderSignature }).select("_id").lean();
+        if (existingOrder) {
+          return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
+        }
         const newOrder = await TapeSalesOrder.create(data);
         await SalesOrderLog.create({
           orderId: newOrder._id,
@@ -2926,6 +2978,22 @@ router.post("/sales/order", async (req, res) => {
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
         data.createdBy = createdByUser;
+        data.orderSignature = buildSalesOrderSignature({
+          itemType,
+          itemId,
+          userId: binding.userId,
+          quantity: data.quantity,
+          estimatedDate,
+          poNumber,
+          sourceLocation: sourceLocationForSave,
+          orderRate: finalOrderRate,
+          createdBy: createdByUser,
+        });
+        data.submissionToken = String(submissionToken || "").trim() || undefined;
+        const existingOrder = await TapeSalesOrder.findOne({ orderSignature: data.orderSignature }).select("_id").lean();
+        if (existingOrder) {
+          return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
+        }
         const newOrder = await TapeSalesOrder.create(data);
         await SalesOrderLog.create({
           orderId: newOrder._id,
@@ -2964,6 +3032,22 @@ router.post("/sales/order", async (req, res) => {
         res.json({ success: true, redirect: "/fairdesk/sales/pending" });
       } else {
         data.createdBy = createdByUser;
+        data.orderSignature = buildSalesOrderSignature({
+          itemType,
+          itemId,
+          userId: binding.userId,
+          quantity: data.quantity,
+          estimatedDate,
+          poNumber,
+          sourceLocation: sourceLocationForSave,
+          orderRate: finalOrderRate,
+          createdBy: createdByUser,
+        });
+        data.submissionToken = String(submissionToken || "").trim() || undefined;
+        const existingOrder = await TapeSalesOrder.findOne({ orderSignature: data.orderSignature }).select("_id").lean();
+        if (existingOrder) {
+          return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
+        }
         const newOrder = await TapeSalesOrder.create(data);
         await SalesOrderLog.create({
           orderId: newOrder._id,
@@ -2979,6 +3063,20 @@ router.post("/sales/order", async (req, res) => {
     }
   } catch (err) {
     console.error("ORDER SUBMIT ERROR:", err);
+    const duplicateSubmissionToken =
+      err?.code === 11000 &&
+      ((err?.keyPattern &&
+        (Object.prototype.hasOwnProperty.call(err.keyPattern, "submissionToken") ||
+          Object.prototype.hasOwnProperty.call(err.keyPattern, "orderSignature"))) ||
+        (err?.keyValue &&
+          (Object.prototype.hasOwnProperty.call(err.keyValue, "submissionToken") ||
+            Object.prototype.hasOwnProperty.call(err.keyValue, "orderSignature"))) ||
+        String(err?.message || "").includes("submissionToken") ||
+        String(err?.message || "").includes("orderSignature"));
+
+    if (duplicateSubmissionToken) {
+      return res.json({ success: true, redirect: "/fairdesk/sales/pending", duplicate: true });
+    }
     const sourceLocError = err?.errors?.sourceLocation;
     if (sourceLocError) {
       return res.status(400).json({ success: false, message: "no location is selected" });
@@ -3082,7 +3180,13 @@ router.get("/sales/order/confirm", async (req, res) => {
           },
         ]),
         TapeSalesOrder.aggregate([
-          { $match: { tapeId: tapeObjectId, status: "PENDING" } },
+          {
+            $match: {
+              tapeId: tapeObjectId,
+              status: "PENDING",
+              _id: { $ne: new mongoose.Types.ObjectId(orderId) },
+            },
+          },
           {
             $group: {
               _id: "$sourceLocation",
@@ -3243,7 +3347,11 @@ router.post("/sales/order/status", async (req, res) => {
 
       // Validate sufficient stock
       if (currentStock < qty) {
-        req.flash("notification", `Insufficient stock at ${location}. Available: ${currentStock}, Required: ${qty}`);
+        const message = `Cannot dispatch ${qty}. Only ${currentStock} available at ${location}.`;
+        if (wantsJson) {
+          return res.status(400).json({ success: false, message });
+        }
+        req.flash("notification", message);
         return res.redirect("/fairdesk/sales/pending");
       }
 

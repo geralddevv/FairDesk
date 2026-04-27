@@ -115,6 +115,7 @@
 
   /* Dialog references */
   let customDialog, dialogMessage, dialogYes, dialogNo, cancelReasonWrap, cancelReasonInput;
+  let detailsDialog, detailsBody, detailsCloseBtn;
   let currentConfirmCallback = null;
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -124,7 +125,9 @@
     dialogNo = document.getElementById("custom-dialog-no");
     cancelReasonWrap = document.getElementById("cancel-reason-wrap");
     cancelReasonInput = document.getElementById("cancel-reason-input");
-
+    detailsDialog = document.getElementById("pending-order-details-dialog");
+    detailsBody = document.getElementById("pending-order-details-body");
+    detailsCloseBtn = document.getElementById("pending-order-details-close");
     dialogYes.addEventListener("click", () => {
       // Validate reason if cancelling
       if (cancelReasonWrap.style.display !== "none") {
@@ -140,6 +143,16 @@
     });
 
     dialogNo.addEventListener("click", closeCustomDialog);
+    if (detailsCloseBtn) {
+      detailsCloseBtn.addEventListener("click", closeOrderDetailsDialog);
+    }
+    if (detailsDialog) {
+      detailsDialog.addEventListener("click", (event) => {
+        if (event.target === detailsDialog) {
+          closeOrderDetailsDialog();
+        }
+      });
+    }
 
     // Enter key support for confirmation
     document.addEventListener("keydown", (e) => {
@@ -176,6 +189,125 @@
     currentConfirmCallback = null;
     cancelReasonInput.value = "";
   }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function formatDate(value) {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "2-digit" });
+  }
+
+  function getItemType(row) {
+    let itemType = "TAPE";
+    if (row.onModel === "PosRoll") itemType = "POS_ROLL";
+    if (row.onModel === "Tafeta") itemType = "TAFETA";
+    if (row.onModel === "Ttr") itemType = "TTR";
+    if (row.onModel === "Label") itemType = "LABEL";
+    return itemType;
+  }
+
+  function getItemName(row) {
+    const tape = row.tapeId;
+    if (!tape) return "N/A";
+    if (tape.tapePaperCode) return `${tape.tapePaperCode} ${tape.tapeGsm}gsm`;
+    if (tape.posPaperCode) return `${tape.posPaperCode} ${tape.posGsm}gsm`;
+    if (tape.tafetaMaterialCode) return `${tape.tafetaMaterialCode} ${tape.tafetaGsm}gsm`;
+    if (tape.ttrColor) return `${tape.ttrColor} ${tape.ttrWidth}mm x ${tape.ttrMtrs}m`;
+    if (tape.labelWidth) return `${tape.labelWidth}x${tape.labelHeight}`;
+    return "Unknown Item";
+  }
+
+  function closeOrderDetailsDialog() {
+    if (detailsDialog) detailsDialog.style.display = "none";
+  }
+
+  window.viewPendingOrder = function (orderId) {
+    const order = orderData.find((row) => String(row._id) === String(orderId));
+    if (!order || !detailsDialog || !detailsBody) return;
+
+    const itemType = getItemType(order);
+    const itemName = getItemName(order);
+    const client = order.userId?.clientName || "N/A";
+    const user = order.userId?.userName || "N/A";
+    const sourceLocation = order.sourceLocation || "N/A";
+    const poNumber = order.poNumber || "N/A";
+    const remarks = order.remarks || "N/A";
+    const orderRate = order.orderRate ?? "N/A";
+    const quantity = Number(order.quantity) || 0;
+    const dispatched = Number(order.dispatchedQuantity) || 0;
+    const remaining = Math.max(quantity - dispatched, 0);
+
+    detailsBody.innerHTML = `
+      <div class="tape-details-card">
+        <div class="details-scroll-area">
+          <div class="tape-details-header">
+            <div class="header-copy">
+              <h1>${escapeHtml(itemName)}</h1>
+              <div class="header-subtitle">${escapeHtml(client)} | ${escapeHtml(user)}</div>
+            </div>
+            <div class="header-actions">
+              <span class="header-action-link" style="pointer-events: none;">
+                <i class="fa-solid fa-box"></i>
+                ${escapeHtml(itemType)}
+              </span>
+              <button
+                id="pending-order-details-close"
+                type="button"
+                class="header-action-link"
+                onclick="closeOrderDetailsDialog()"
+                style="border: none; cursor: pointer; font-weight: 700;"
+                aria-label="Close dialog"
+                title="Close dialog"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="tape-details-body">
+            <div class="details-list-scroll">
+              <h3 class="section-title">Order Details</h3>
+              <table class="diff-table">
+                <thead>
+                  <tr>
+                    <th class="key-col">Field</th>
+                    <th>Fairtech</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td class="key-col">Item Type</td><td class="resolved">${escapeHtml(itemType)}</td></tr>
+                  <tr><td class="key-col">Client</td><td class="resolved">${escapeHtml(client)}</td></tr>
+                  <tr><td class="key-col">User</td><td class="resolved">${escapeHtml(user)}</td></tr>
+                  <tr><td class="key-col">Source Location</td><td class="resolved">${escapeHtml(sourceLocation)}</td></tr>
+                  <tr><td class="key-col">PO Number</td><td class="resolved">${escapeHtml(poNumber)}</td></tr>
+                  <tr><td class="key-col">Quantity</td><td class="resolved">${escapeHtml(quantity)}</td></tr>
+                  <tr><td class="key-col">Dispatched</td><td class="resolved">${escapeHtml(dispatched)}</td></tr>
+                  <tr><td class="key-col">Remaining</td><td class="resolved">${escapeHtml(remaining)}</td></tr>
+                  <tr><td class="key-col">Order Rate</td><td class="resolved">${escapeHtml(orderRate)}</td></tr>
+                  <tr><td class="key-col">Estimated Date</td><td class="resolved">${escapeHtml(formatDate(order.estimatedDate))}</td></tr>
+                  <tr>
+                    <td class="key-col">Remarks</td>
+                    <td class="resolved" style="white-space: pre-wrap; line-height: 1.6;">${escapeHtml(remarks)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        </div>
+    `;
+
+    detailsDialog.style.display = "flex";
+  };
 
   // Handler for cancel request
   window.requestCancel = function (orderId) {
@@ -240,7 +372,7 @@
         title: "Actions",
         hozAlign: "center",
         headerSort: false,
-        width: 140,
+        width: 180,
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const client = row.userId ? row.userId.clientName : "";
@@ -255,24 +387,32 @@
           const confirmUrl = `/fairdesk/sales/order/confirm?orderId=${row._id}&type=${itemType}&client=${encodeURIComponent(client)}&user=${user}&item=${item}`;
           const editUrl = `/fairdesk/sales/order?orderId=${row._id}&type=${itemType}&client=${encodeURIComponent(client)}&user=${user}&item=${item}`;
           return `
-                <div style="display:flex; gap:5px; justify-content:center;">
+                <div style="display:flex; gap:6px; justify-content:center; flex-wrap:nowrap; align-items:center; white-space:nowrap;">
+                    <button
+                        onclick="viewPendingOrder('${row._id}')"
+                        style="height:24px; padding:2px 10px; background:#111827; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px; transition: background 0.2s; display:inline-flex; align-items:center; gap:4px; font-weight:600;"
+                        onmouseover="this.style.background='#374151'"
+                        onmouseout="this.style.background='#111827'"
+                        title="View Details">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
                     <a href="javascript:void(0)"
                         onclick="checkCreateOrder('${confirmUrl}')"
-                        style="height:20px; padding:2px 10px; background:#10b981; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px; transition: background 0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:3px; font-weight:500;"
+                        style="height:24px; padding:2px 10px; background:#10b981; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px; transition: background 0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600;"
                         onmouseover="this.style.background='#059669'"
                         onmouseout="this.style.background='#10b981'"
                         title="Create Order">
-                        <i class="fa-solid fa-truck-moving""></i>
+                        <i class="fa-solid fa-truck-moving"></i>
                     </a>
                     <button onclick="requestCancel('${row._id}')"
-                        style="height:20px; padding:2px 10px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px; transition: background 0.2s;"
+                        style="height:24px; padding:2px 10px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px; transition: background 0.2s; font-weight:600;"
                         onmouseover="this.style.background='#dc2626'"
                         onmouseout="this.style.background='#ef4444'"
                         title="Cancel Order">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                     <a href="${editUrl}"
-                        style="height:20px; padding:2px 10px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px; transition: background 0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:3px; font-weight:500;"
+                        style="height:24px; padding:2px 10px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px; transition: background 0.2s; text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-weight:600;"
                         onmouseover="this.style.background='#2563eb'"
                         onmouseout="this.style.background='#3b82f6'"
                         title="Edit Order">
@@ -285,13 +425,15 @@
       {
         title: "Date",
         field: "createdAt",
+        width: 105,
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
-      { title: "Client", field: "userId.clientName" },
-      { title: "User", field: "userId.userName" },
+      { title: "Client", field: "userId.clientName", width: 200 },
+      { title: "User", field: "userId.userName", width: 150 },
       {
         title: "Item Type",
         field: "onModel",
+        width: 100,
         formatter: (cell) => {
           const val = cell.getValue();
           if (val === "PosRoll") return "POS Roll";
@@ -304,6 +446,7 @@
       {
         title: "Item Details",
         field: "tapeId",
+        width: 200,
         formatter: (cell) => {
           const tape = cell.getValue();
           if (!tape) return "N/A";
@@ -324,6 +467,7 @@
         title: "Qty",
         field: "quantity",
         hozAlign: "center",
+        width: 70,
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const quantity = row.quantity;
@@ -340,10 +484,11 @@
           return quantity;
         },
       },
-      { title: "Source", field: "sourceLocation", hozAlign: "center" },
+      { title: "Source", field: "sourceLocation", hozAlign: "center", width: 80 },
       {
         title: "Est. Delivery",
         field: "estimatedDate",
+        width: 120,
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
       { title: "Remarks", field: "remarks" },
@@ -486,6 +631,298 @@
     </div>
   </div>
 </div>
+
+<!-- Pending Order Details Dialog -->
+<div
+  id="pending-order-details-dialog"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.54);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    backdrop-filter: blur(6px);
+  "
+  >
+  <div id="pending-order-details-body" style="width: min(1180px, 100%); animation: detailsPopIn 0.2s ease-out;"></div>
+</div>
+
+<style>
+  @keyframes detailsPopIn {
+    0% {
+      transform: scale(0.96);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .tape-details-card {
+    position: relative;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 18px 42px rgba(4, 74, 120, 0.14);
+    border: none;
+    overflow: hidden;
+  }
+
+  .details-scroll-area {
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: #044a78 #f0f2f5;
+  }
+
+  .details-scroll-area::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .details-scroll-area::-webkit-scrollbar-track {
+    background: #f0f2f5;
+    border-radius: 999px;
+  }
+
+  .details-scroll-area::-webkit-scrollbar-thumb {
+    background: #044a78;
+    border-radius: 999px;
+  }
+
+  .details-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: #044a78;
+  }
+
+  .tape-details-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 26px 26px 24px;
+    background:
+      radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 34%),
+      linear-gradient(135deg, #044a78 0%, #03365a 100%);
+    color: #fff;
+  }
+
+  .header-copy {
+    max-width: 100%;
+  }
+
+  .tape-details-header h1 {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    line-height: 1.15;
+  }
+
+  .header-subtitle {
+    margin-top: 10px;
+    font-size: 14px;
+    opacity: 0.92;
+    line-height: 1.5;
+  }
+
+  .header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .header-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    backdrop-filter: blur(8px);
+    transition: background 0.18s ease;
+  }
+
+  .header-action-link:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .section-title {
+    margin: 0 0 14px;
+    color: #044a78;
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .tape-details-body {
+    padding: 14px 16px 16px;
+  }
+
+  .details-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .summary-card {
+    background: linear-gradient(180deg, #f8fbff 0%, #f3f7fb 100%);
+    border: 1px solid #dce8f4;
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  .summary-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #66758f;
+    margin-bottom: 8px;
+  }
+
+  .summary-value {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    color: #1f2a44;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  .details-list-scroll {
+    max-height: calc(100vh - 340px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: #044a78 #f0f2f5;
+  }
+
+  .details-list-scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .details-list-scroll::-webkit-scrollbar-track {
+    background: #f0f2f5;
+    border-radius: 999px;
+  }
+
+  .details-list-scroll::-webkit-scrollbar-thumb {
+    background: #044a78;
+    border-radius: 999px;
+  }
+
+  .details-list-scroll::-webkit-scrollbar-thumb:hover {
+    background: #044a78;
+  }
+
+  .diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e6eaf2;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .diff-table th,
+  .diff-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e6eaf2;
+    text-align: left;
+    font-size: 13px;
+    vertical-align: top;
+  }
+
+  .diff-table th {
+    background: #f4f7ff;
+    color: #044a78;
+    font-weight: 700;
+  }
+
+  .diff-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .diff-table .key-col {
+    width: 32%;
+    color: #5a6586;
+    font-weight: 600;
+  }
+
+  .diff-table .resolved {
+    font-weight: 700;
+    color: #1f2a44;
+  }
+
+  .details-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  }
+
+  .details-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+  }
+
+  .details-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0f172a;
+    word-break: break-word;
+  }
+
+  @media (max-width: 768px) {
+    .tape-details-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-top: 24px;
+    }
+
+    .details-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tape-details-body {
+      padding: 12px 12px 14px;
+    }
+
+    .details-list-scroll {
+      max-height: calc(100vh - 420px);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .details-summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
 
 <style>
   @keyframes popIn {

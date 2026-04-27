@@ -3,6 +3,7 @@
 <div class="main-content">
   <form action="<%= typeof confirmMode !== 'undefined' && confirmMode ? '/fairdesk/sales/order/status' : '/fairdesk/sales/order' %>" method="post" class="needs-validation" autocomplete="off" novalidate>
     <input type="hidden" name="orderId" value="<%= typeof orderToEdit !== 'undefined' && orderToEdit ? orderToEdit._id : '' %>" />
+    <input type="hidden" name="submissionToken" value="<%= typeof submissionToken !== 'undefined' && submissionToken ? submissionToken : '' %>" />
     <% if (typeof confirmMode !== 'undefined' && confirmMode) { %>
       <input type="hidden" name="status" value="CONFIRMED" />
     <% } %>
@@ -340,6 +341,7 @@
   const quantityInput = document.getElementById("quantity");
   const estimatedDateInput = document.getElementById("estimated-date");
   const remarksInput = document.getElementById("remarks");
+  const confirmQuantityInput = document.getElementById("confirm-quantity");
   const orderForm = document.querySelector("form");
   const submitButton = orderForm?.querySelector('button[type="submit"]');
 
@@ -349,6 +351,36 @@
       .toUpperCase()
       .replace(/\s+/g, " ")
       .replace(/^[.,]+|[.,]+$/g, "");
+  }
+
+  function normalizeLookupText(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ");
+  }
+
+  function resolveSelectValue(selectEl, rawValue) {
+    const target = normalizeLookupText(rawValue);
+    if (!target || !selectEl?.options) return target;
+
+    const targetLower = target.toLowerCase();
+    for (const option of Array.from(selectEl.options)) {
+      const optionValue = normalizeLookupText(option.value);
+      const optionLabel = normalizeLookupText(option.textContent);
+      if (optionValue.toLowerCase() === targetLower || optionLabel.toLowerCase() === targetLower) {
+        return option.value;
+      }
+    }
+
+    return target;
+  }
+
+  function setChoiceValue(choicesInstance, selectEl, rawValue) {
+    if (!choicesInstance) return false;
+    const resolvedValue = resolveSelectValue(selectEl, rawValue);
+    if (!resolvedValue) return false;
+    choicesInstance.setChoiceByValue(resolvedValue);
+    return true;
   }
 
   let currentSourceLocation = "";
@@ -668,6 +700,19 @@
     syncSourceLocation(loc);
   }
 
+  function setLocationField(value) {
+    if (!locationChoices) return;
+    const loc = normalizeLocationName(value || "");
+    locationChoices.clearStore();
+    locationChoices.setChoices(
+      loc ? [{ value: loc, label: loc, selected: true }] : [{ value: "", label: "N/A", disabled: true, selected: true }],
+      "value",
+      "label",
+      true,
+    );
+    locationSelect.value = loc;
+  }
+
   // ======= EVENT LISTENERS (Smart Cascading Filter) =======
 
   // 1. Item Type → filter clients, reset everything downstream
@@ -722,6 +767,58 @@
     return field.validationMessage || `Please enter a valid ${getFieldLabel(field).toLowerCase()}.`;
   }
 
+  function getSelectedStockLocation() {
+    const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
+    const selectedChipLocation = normalizeLocationName(document.querySelector(".location-option.selected")?.dataset?.location || "");
+    const radioLocation = normalizeLocationName(selectedRadio?.value || "");
+    const fallbackLocation = normalizeLocationName(currentSourceLocation || sourceLocationInput.value || locationSelect.value || selectedChipLocation || "");
+    return {
+      selectedRadio,
+      radioLocation,
+      selectedLocation: radioLocation && radioLocation !== "ALL" ? radioLocation : fallbackLocation,
+    };
+  }
+
+  function getAvailableStockForSelectedLocation(selectedRadio) {
+    if (!selectedRadio) return 0;
+    const balance = Number.parseInt(selectedRadio.dataset.balance || "", 10);
+    if (Number.isFinite(balance)) return balance;
+    const qty = Number.parseInt(selectedRadio.dataset.qty || "", 10);
+    return Number.isFinite(qty) ? qty : 0;
+  }
+
+  function getAvailableStockForLocation(locationName) {
+    const normalizedLocation = normalizeLocationName(locationName);
+    if (!normalizedLocation) return 0;
+
+    if (normalizedLocation === "ALL") {
+      const totalBalance = Number.parseInt(stockInfo?.balance ?? stockInfo?.totalStock ?? 0, 10);
+      return Number.isFinite(totalBalance) ? totalBalance : 0;
+    }
+
+    const locationEntry = (stockInfo?.locations || []).find((entry) => normalizeLocationName(entry?.location) === normalizedLocation);
+    if (locationEntry) {
+      const balance = Number.parseInt(locationEntry.balance ?? locationEntry.qty ?? 0, 10);
+      return Number.isFinite(balance) ? balance : 0;
+    }
+
+    const selectedRadio = document.querySelector(`input[name="locationRadio"][value="${normalizedLocation}"]`);
+    return getAvailableStockForSelectedLocation(selectedRadio);
+  }
+
+  function selectStockLocation(locationName) {
+    const normalizedLocation = normalizeLocationName(locationName);
+    if (!normalizedLocation) return false;
+
+    const stockDisplay = document.getElementById("stock-display");
+    const radio = stockDisplay?.querySelector(`input[name="locationRadio"][value="${normalizedLocation}"]`);
+    if (!radio) return false;
+
+    radio.checked = true;
+    radio.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+
   function setSubmittingState(isSubmitting) {
     if (!orderForm) return;
     orderForm.dataset.submitting = isSubmitting ? "1" : "0";
@@ -731,6 +828,7 @@
   // Form validation — prevent submit on invalid fields, disallow ALL location, and enforce min qty
   orderForm.addEventListener("submit", async function (e) {
     e.preventDefault();
+    e.stopImmediatePropagation();
     if (orderForm.dataset.submitting === "1") return false;
     setSubmittingState(true);
 
@@ -745,11 +843,7 @@
     const itemType = itemTypeSelect.value;
     const qty = parseInt(quantityInput.value) || 0;
     const selectedOption = itemChoices.getValue();
-    const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
-    const selectedChipLocation = normalizeLocationName(document.querySelector(".location-option.selected")?.dataset?.location || "");
-    const radioLocation = normalizeLocationName(selectedRadio?.value || "");
-    const fallbackLocation = normalizeLocationName(currentSourceLocation || sourceLocationInput.value || locationSelect.value || selectedChipLocation || "");
-    const selectedLocation = radioLocation && radioLocation !== "ALL" ? radioLocation : fallbackLocation;
+    const { selectedRadio, radioLocation, selectedLocation } = getSelectedStockLocation();
     
     // Check Source Location - ALL is not allowed for stock-based items
     if (itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA" || itemType === "TTR") {
@@ -766,13 +860,24 @@
       sourceLocationInput.value = selectedLocation;
     }
 
+    const dispatchQty = confirmMode ? (parseInt(confirmQuantityInput?.value) || 0) : qty;
+    if (confirmMode) {
+      const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || selectedLocation || selectedRadio?.value || "");
+      const availableQty = getAvailableStockForLocation(confirmLocation);
+      if (dispatchQty > availableQty) {
+        showToast("Cannot dispatch, Not enought stocks", "error");
+        setSubmittingState(false);
+        return;
+      }
+    }
+
     // Check Minimum Order Qty
     if (selectedOption && selectedOption.customProperties) {
       const minQty = parseInt(selectedOption.customProperties.minQty) || 0;
       if (qty < minQty) {
         showToast(`Order quantity (${qty}) is less than Minimum Order Quantity (${minQty}).`, "error");
         setSubmittingState(false);
-        return false;
+        return;
       }
     }
 
@@ -888,19 +993,19 @@
       requestAnimationFrame(() => window.scrollTo(0, parseInt(savedScroll)));
     }
     const params = new URLSearchParams(window.location.search);
-    let type = params.get("type");
-    let client = params.get("client");
-    let userId = params.get("user");
-    let itemId = params.get("item");
+    let type = normalizeLookupText(params.get("type"));
+    let client = normalizeLookupText(params.get("client"));
+    let userId = normalizeLookupText(params.get("user"));
+    let itemId = normalizeLookupText(params.get("item"));
 
     // Fallback to orderToEdit if params are missing (Robust Prefill)
     if (orderToEdit) {
       if (!type && orderToEdit.tapeBinding) type = "TAPE"; 
-      if (!client && orderToEdit.userId && orderToEdit.userId.clientName) client = orderToEdit.userId.clientName;
-      if (!userId && orderToEdit.userId && orderToEdit.userId._id) userId = orderToEdit.userId._id;
+      if (!client && orderToEdit.userId && orderToEdit.userId.clientName) client = normalizeLookupText(orderToEdit.userId.clientName);
+      if (!userId && orderToEdit.userId && orderToEdit.userId._id) userId = String(orderToEdit.userId._id);
       // Check if tapeBinding is populated or ID
-      if (!itemId && orderToEdit.tapeBinding && orderToEdit.tapeBinding._id) itemId = orderToEdit.tapeBinding._id;
-      else if (!itemId && orderToEdit.tapeBinding) itemId = orderToEdit.tapeBinding;
+      if (!itemId && orderToEdit.tapeBinding && orderToEdit.tapeBinding._id) itemId = String(orderToEdit.tapeBinding._id);
+      else if (!itemId && orderToEdit.tapeBinding) itemId = String(orderToEdit.tapeBinding);
     }
 
     // ==========================================
@@ -969,7 +1074,12 @@
           }], "value", "label", true);
 
           // 4. Update Stock Display
-          updateStockDisplay();
+          await updateStockDisplay();
+          if (orderToEdit.sourceLocation) {
+            selectStockLocation(orderToEdit.sourceLocation);
+          } else if (orderToEdit.userId?.userLocation) {
+            selectStockLocation(orderToEdit.userId.userLocation);
+          }
 
          // 5. Pre-fill confirm fields
          const today = new Date();
@@ -1002,7 +1112,9 @@
            orderRateInput.value = String(orderToEdit.orderRate);
            orderRateInput.dataset.fromOrder = "true";
          }
-         if (orderToEdit.userId?.userLocation) setLocationFromUser(orderToEdit.userId);
+         if (orderToEdit.userId?.userLocation) {
+           setLocationField(orderToEdit.userId.userLocation);
+         }
          if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
          if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
          if (orderToEdit.estimatedDate) {
@@ -1023,6 +1135,7 @@
          if (orderRateInput) orderRateInput.readOnly = true;
          estimatedDateInput.readOnly = true;
          remarksInput.readOnly = true;
+         locationChoices.disable();
 
          // EXIT early - do not run standard load logic
          return;
@@ -1030,16 +1143,18 @@
     }
 
     if (type) {
-      itemTypeChoices.setChoiceByValue(type);
+      await loadClients(type);
+      setChoiceValue(itemTypeChoices, itemTypeSelect, type);
     }
-    
+
     if (client) {
-      const decodedClient = decodeURIComponent(client);
-      clientChoices.setChoiceByValue(decodedClient);
-      
-      if (clientChoices.getValue(true)) {
-        // Pass itemId to loadUsers to prevent double fetching
-        await loadUsers(decodedClient, userId, itemId);
+      const decodedClient = normalizeLookupText(client);
+      const selectedClient = setChoiceValue(clientChoices, clientSelect, decodedClient)
+        ? resolveSelectValue(clientSelect, decodedClient)
+        : decodedClient;
+
+      if (selectedClient) {
+        await loadUsers(selectedClient, userId || null, itemId || null);
       }
     }
 
