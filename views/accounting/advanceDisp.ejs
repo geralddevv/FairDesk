@@ -72,6 +72,48 @@
   <div id="master-table"></div>
 </div>
 
+<div
+  id="advance-edit-dialog"
+  style="display:none; position:fixed; inset:0; background:rgba(17,24,39,0.55); z-index:9999; align-items:center; justify-content:center;"
+>
+  <div style="background:#fff; width:460px; max-width:92vw; border-radius:14px; padding:20px 22px; box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+      <h3 style="margin:0; color:#0f172a; font-size:18px;">
+        <i class="fa-solid fa-pen-to-square" style="margin-right:6px; color:#2563eb;"></i>Edit Advance Entry
+      </h3>
+      <button type="button" onclick="closeAdvanceEditDialog()" style="border:none; background:transparent; color:#6b7280; font-size:18px; cursor:pointer;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <input type="hidden" id="advance-edit-id" />
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px; color:#6b7280; font-weight:600;">Amount</label>
+      <input type="number" id="advance-edit-amount" min="1" style="width:100%; height:42px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#ffffff; color:#0f172a; font-size:14px;" />
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button type="button" onclick="closeAdvanceEditDialog()" style="padding:9px 16px; border:1px solid #e2e8f0; background:white; color:#334155; border-radius:8px; cursor:pointer;">Cancel</button>
+      <button type="button" onclick="submitAdvanceEdit()" style="padding:9px 16px; border:none; background:#044A78; color:white; border-radius:8px; cursor:pointer;">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div
+  id="advance-delete-dialog"
+  style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;"
+>
+  <div style="background:#fff; width:430px; max-width:92vw; border-radius:10px; padding:18px 20px;">
+    <h3 style="margin:0 0 10px; color:#b91c1c; font-size:17px;">
+      <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>Delete Advance Entry
+    </h3>
+    <p style="margin:0 0 14px; color:#374151;">Are you sure you want to delete this manual advance entry?</p>
+    <input type="hidden" id="advance-delete-id" />
+    <div style="display:flex; justify-content:flex-end; gap:10px;">
+      <button type="button" onclick="closeAdvanceDeleteDialog()" style="padding:8px 16px; border:1px solid #d1d5db; background:white; color:#374151; border-radius:6px; cursor:pointer;">Cancel</button>
+      <button type="button" onclick="submitAdvanceDelete()" style="padding:8px 16px; border:none; background:#ef4444; color:white; border-radius:6px; cursor:pointer;">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= SCRIPTS ================= -->
 
 <!-- Tabulator -->
@@ -106,6 +148,7 @@
   /* ===== Table ===== */
   const tableData = <%- JSON.stringify(jsonData) %>;
   const snapshotData = [...tableData];
+  let currentEmployeeId = null;
 
   const baseColumns = [
     {
@@ -149,6 +192,30 @@
     { title: "Type", field: "type" },
     { title: "Source", field: "source" },
     { title: "Date", field: "date" },
+    {
+      title: "Actions",
+      width: 90,
+      hozAlign: "center",
+      headerHozAlign: "center",
+      headerSort: false,
+      formatter: (cell) => {
+        const row = cell.getRow().getData();
+        if (!row.canEdit) return "-";
+
+        return `<button class="advance-log-btn advance-log-edit" title="Edit" style="height:20px; width:28px; padding:0; margin-right:6px; border:1px solid #d1d5db; background:#fff; border-radius:4px; cursor:pointer; line-height:1;">
+            <i class="fa-solid fa-pen-to-square" style="font-size:11px; color:#044A78;"></i>
+          </button>
+          <button class="advance-log-btn advance-log-delete" title="Delete" style="height:20px; width:28px; padding:0; border:1px solid #fca5a5; background:#fee2e2; border-radius:4px; cursor:pointer; line-height:1;">
+            <i class="fa-solid fa-trash" style="font-size:11px; color:#b91c1c;"></i>
+          </button>`;
+      },
+      cellClick: (e, cell) => {
+        const row = cell.getRow().getData();
+        if (!row.canEdit) return;
+        if (e.target.closest(".advance-log-edit")) openAdvanceEditDialog(row);
+        if (e.target.closest(".advance-log-delete")) openAdvanceDeleteDialog(row);
+      },
+    },
   ];
 
   const table = new Tabulator("#master-table", {
@@ -164,6 +231,7 @@
     if (!e.target.classList.contains("emp-link")) return;
 
     const employeeId = e.target.dataset.id;
+    currentEmployeeId = employeeId;
 
     const res = await fetch(
       `/fairdesk/advance/employee/${employeeId}/logs`
@@ -196,6 +264,7 @@
 
       document.querySelector(".indi-head h1").innerText = "Advance";
       document.getElementById("backToSnapshot").style.display = "none";
+      currentEmployeeId = null;
   });
 
   /* ===== Downloads ===== */
@@ -213,4 +282,104 @@
     });
     downloadSelector.classList.remove("download-selector--active");
   });
+
+  const advanceEditDialog = document.getElementById("advance-edit-dialog");
+  const advanceDeleteDialog = document.getElementById("advance-delete-dialog");
+
+  function openAdvanceEditDialog(row) {
+    document.getElementById("advance-edit-id").value = row._id;
+    document.getElementById("advance-edit-amount").value = row.amount;
+    advanceEditDialog.style.display = "flex";
+  }
+
+  function closeAdvanceEditDialog() {
+    advanceEditDialog.style.display = "none";
+  }
+
+  function openAdvanceDeleteDialog(row) {
+    document.getElementById("advance-delete-id").value = row._id;
+    advanceDeleteDialog.style.display = "flex";
+  }
+
+  function closeAdvanceDeleteDialog() {
+    advanceDeleteDialog.style.display = "none";
+  }
+
+  function updateAdvanceSnapshot(summary) {
+    const row = snapshotData.find((item) => String(item.employeeId) === String(currentEmployeeId));
+    if (!row) return;
+    row.currentBalance = summary.currentBalance;
+    row.status = summary.status;
+    row.updatedAt = new Date(summary.updatedAt || Date.now()).toLocaleDateString();
+  }
+
+  async function refreshAdvanceLogs() {
+    if (!currentEmployeeId) return;
+
+    const res = await fetch(`/fairdesk/advance/employee/${currentEmployeeId}/logs`);
+    const data = await res.json();
+    table.replaceData(data.history || []);
+
+    const summary = data.summary || { currentBalance: 0, status: "CLOSED" };
+    const statusClass = summary.status.toLowerCase();
+    document.querySelector(".indi-head h1").innerHTML =
+      `Advance - Outstanding:
+       <span class="loan-highlight ${statusClass}">
+         Rs.${summary.currentBalance} (${summary.status})
+       </span>`;
+  }
+
+  async function submitAdvanceEdit() {
+    const id = document.getElementById("advance-edit-id").value;
+    const amount = Number(document.getElementById("advance-edit-amount").value);
+
+    if (!id || amount <= 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/fairdesk/advance/logs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to update advance entry.");
+        return;
+      }
+
+      updateAdvanceSnapshot(data.summary);
+      await refreshAdvanceLogs();
+      closeAdvanceEditDialog();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update advance entry.");
+    }
+  }
+
+  async function submitAdvanceDelete() {
+    const id = document.getElementById("advance-delete-id").value;
+    if (!id) return;
+
+    try {
+      const res = await fetch(`/fairdesk/advance/logs/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to delete advance entry.");
+        return;
+      }
+
+      updateAdvanceSnapshot(data.summary);
+      await refreshAdvanceLogs();
+      closeAdvanceDeleteDialog();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete advance entry.");
+    }
+  }
 </script>
+

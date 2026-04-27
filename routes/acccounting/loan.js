@@ -6,6 +6,115 @@ import LoanLog from "../../models/accounting/LoanLog.js";
 
 const router = express.Router();
 
+function sortLoanLogs(logs) {
+  return [...logs].sort((a, b) => {
+    const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (aCreated !== bCreated) return aCreated - bCreated;
+    return String(a._id).localeCompare(String(b._id));
+  });
+}
+
+function isLoanResetLog(log, nextLog) {
+  return (
+    log?.source === "MANUAL" &&
+    log?.type === "DEBIT" &&
+    nextLog?.source === "MANUAL" &&
+    nextLog?.type === "CREDIT"
+  );
+}
+
+async function recomputeLoanLogs(employeeId, loanId, { overrideId = null, overrideAmount = null, deleteIds = [] } = {}) {
+  const logs = sortLoanLogs(await LoanLog.find({ employee: employeeId }).lean());
+  const deleteSet = new Set(deleteIds.map((id) => String(id)));
+  const ops = [];
+  let running = 0;
+  let pendingResetBase = null;
+
+  for (let i = 0; i < logs.length; i += 1) {
+    const log = logs[i];
+    const nextLog = logs[i + 1];
+
+    if (deleteSet.has(String(log._id))) {
+      continue;
+    }
+
+    const isOverride = overrideId && String(log._id) === String(overrideId);
+    const amount = isOverride ? overrideAmount : log.amount;
+    let openingBalance = running;
+    let closingBalance = running;
+
+    if (isLoanResetLog(log, nextLog) && !deleteSet.has(String(nextLog?._id))) {
+      openingBalance = running;
+      closingBalance = 0;
+      pendingResetBase = running;
+    } else if (pendingResetBase !== null && log.source === "MANUAL" && log.type === "CREDIT") {
+      openingBalance = pendingResetBase;
+      closingBalance = pendingResetBase + amount;
+      pendingResetBase = null;
+    } else if (log.type === "CREDIT") {
+      openingBalance = running;
+      closingBalance = running + amount;
+      pendingResetBase = null;
+    } else {
+      openingBalance = running;
+      closingBalance = running - amount;
+      pendingResetBase = null;
+    }
+
+    if (closingBalance < 0) {
+      throw new Error("This change would make the loan balance negative.");
+    }
+
+    const update = {};
+    if (openingBalance !== log.openingBalance) update.openingBalance = openingBalance;
+    if (closingBalance !== log.closingBalance) update.closingBalance = closingBalance;
+    if (isLoanResetLog(log, nextLog) && amount !== openingBalance) update.amount = openingBalance;
+    if (isOverride && amount !== log.amount) update.amount = amount;
+
+    if (Object.keys(update).length) {
+      ops.push({
+        updateOne: {
+          filter: { _id: log._id },
+          update: { $set: update },
+        },
+      });
+    }
+
+    running = closingBalance;
+  }
+
+  if (deleteSet.size) {
+    for (const deleteId of deleteSet) {
+      ops.push({
+        deleteOne: {
+          filter: { _id: deleteId },
+        },
+      });
+    }
+  }
+
+  if (ops.length) {
+    await LoanLog.bulkWrite(ops);
+  }
+
+  const loan = await Loan.findById(loanId);
+  if (!loan) {
+    throw new Error("Loan record not found.");
+  }
+
+  loan.currentBalance = running;
+  loan.status = running === 0 ? "CLOSED" : "ACTIVE";
+  await loan.save();
+
+  return {
+    currentBalance: running,
+    status: loan.status,
+    emi: loan.emi,
+    updatedAt: loan.updatedAt,
+  };
+}
+
 /* SHOW LOAN FORM */
 router.get("/create", async (req, res) => {
   const employees = await Employee.find({ isActive: true });
@@ -148,6 +257,7 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
   }
 
   const formatted = logs.map((l) => ({
+    _id: l._id,
     employeeName: l.employee?.empName || "-",
     empId: l.employee?.empId || "-",
 
@@ -157,6 +267,9 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
 
     type: l.type, // CREDIT / DEBIT
     source: l.source, // MANUAL / PAYROLL
+    canEdit: l.source === "MANUAL" && l.type === "CREDIT",
+    canDelete: l.source === "MANUAL" && l.type === "CREDIT",
+    createdAt: l.createdAt,
     date: new Date(l.createdAt).toLocaleDateString(),
   }));
 
@@ -169,6 +282,71 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
     },
     history: formatted,
   });
+});
+
+router.patch("/logs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const amount = Number(req.body.amount) || 0;
+
+    if (amount <= 0) {
+      return res.status(400).json({ message: "Amount must be greater than 0." });
+    }
+
+    const log = await LoanLog.findById(id);
+    if (!log) {
+      return res.status(404).json({ message: "Loan log not found." });
+    }
+
+    if (log.source !== "MANUAL" || log.type !== "CREDIT") {
+      return res.status(400).json({ message: "Only manual loan entries can be edited." });
+    }
+
+    const summary = await recomputeLoanLogs(log.employee, log.loan, {
+      overrideId: log._id,
+      overrideAmount: amount,
+    });
+
+    return res.json({ ok: true, summary });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message || "Failed to update loan log." });
+  }
+});
+
+router.delete("/logs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const log = await LoanLog.findById(id);
+
+    if (!log) {
+      return res.status(404).json({ message: "Loan log not found." });
+    }
+
+    if (log.source !== "MANUAL" || log.type !== "CREDIT") {
+      return res.status(400).json({ message: "Only manual loan entries can be deleted." });
+    }
+
+    const logs = sortLoanLogs(await LoanLog.find({ employee: log.employee }).lean());
+    const index = logs.findIndex((item) => String(item._id) === String(log._id));
+    const deleteIds = [log._id];
+
+    if (index > 0) {
+      const previousLog = logs[index - 1];
+      if (isLoanResetLog(previousLog, log)) {
+        deleteIds.push(previousLog._id);
+      }
+    }
+
+    const summary = await recomputeLoanLogs(log.employee, log.loan, {
+      deleteIds,
+    });
+
+    return res.json({ ok: true, summary });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ message: err.message || "Failed to delete loan log." });
+  }
 });
 
 export default router;

@@ -189,12 +189,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const empIdInput = document.getElementById("emp-id");
   const advanceBalanceInput = document.getElementById("advance-balance");
   const advanceAmountInput = document.querySelector('[name="advanceAmount"]');
+  const advanceDateInput = document.querySelector('[name="advanceDate"]');
   const form = document.querySelector("form");
 
   const toast = document.getElementById("advance-toast");
 
   let maxAdvanceAllowed = 0;
   let currentAdvanceBalance = 0;
+
+  if (advanceDateInput && !advanceDateInput.value) {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    advanceDateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
 
   function showToast(message) {
     toast.textContent = message;
@@ -263,7 +272,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     fetch(form.action, {
       method: "POST",
-      body: new FormData(form),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: new URLSearchParams(new FormData(form)),
     })
       .then(async (res) => {
         const data = await res.json().catch(() => null);
@@ -272,7 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
           throw new Error(data?.message || "Failed to save advance");
         }
 
-        window.location.href = data.redirect || "/fairdesk/advance/create";
+        window.location.href = data.redirect || "/fairdesk/advance/view";
       })
       .catch((err) => {
         console.error(err);
