@@ -68,18 +68,16 @@
       <input type="number" id="ttr-mtrs" class="form-control" name="ttrMtrs" value="<%= ttr.ttrMtrs %>" required />
     </div>
 
-    <div class="span-seven">
+    <div class="span-six">
       <label for="ttr-ink-face">Ink face</label>
-      <select name="ttrInkFace" id="ttr-ink-face" class="form-control select-tag" required>
-        <option value="IN" <%= ttr.ttrInkFace === "IN" ? "selected" : "" %>>IN</option>
-        <option value="OUT" <%= ttr.ttrInkFace === "OUT" ? "selected" : "" %>>OUT</option>
-      </select>
+      <input type="text" id="ttr-ink-face" class="form-control" name="ttrInkFace" value="<%= ttr.ttrInkFace || 'OUT' %>" readonly />
     </div>
     <div class="span-six">
       <label for="ttr-core-id">Core ID</label>
       <select name="ttrCoreId" id="ttr-core-id" class="form-control select-tag" required>
         <option value="1" <%= String(ttr.ttrCoreId) === "1" ? "selected" : "" %>>1</option>
         <option value="0.5" <%= String(ttr.ttrCoreId) === "0.5" ? "selected" : "" %>>0.5</option>
+        <option value='0.5"with extra core' <%= String(ttr.ttrCoreId) === '0.5"with extra core' ? "selected" : "" %>>0.5"with extra core</option>
       </select>
     </div>
     <div class="span-six">

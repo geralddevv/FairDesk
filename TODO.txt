@@ -1,0 +1,13 @@
+HR:
+total value in loan and advance and comma in lakhs,
+total expense in current month in pettycash
+filtering in every column in everything
+if one field is incomplete show red line employee
+pettycash total in heading
+request form - not given
+
+vendor coord edit form 
+ttr remove in ink face ✔️
+seprate vendor and client in navbar
+user count in client as we have in vendor edit dialog ✔️
+add that 3 columns active inactive and stocks in details page

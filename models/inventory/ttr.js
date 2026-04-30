@@ -49,13 +49,14 @@ const ttrSchema = new mongoose.Schema(
     ttrInkFace: {
       type: String,
       required: true,
-      enum: ["IN", "OUT"],
+      enum: ["OUT"],
+      default: "OUT",
     },
 
     ttrCoreId: {
       type: String,
       required: true,
-      enum: ["1", "0.5"],
+      enum: ["1", "0.5", '0.5"with extra core'],
     },
 
     ttrCoreLength: {

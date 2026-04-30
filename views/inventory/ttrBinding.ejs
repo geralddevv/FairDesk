@@ -188,7 +188,7 @@
           </div>            
           <div class="span-six">
             <label for="ttr-sale-cost"> Sales sq mtrs Cost</label>
-            <input type="text" id="ttr-sale-cost" class="form-control" name="ttrSaleCost" placeholder="Enter Sales Cost" required />
+            <input type="text" id="ttr-sale-cost" class="form-control" name="ttrSaleCost" placeholder="Auto-calculated" tabindex="-1" required readonly />
           </div>           
 
           <div class="span-full form-subheading">
@@ -496,6 +496,9 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = false;
 
     document.getElementById("ttr-client-material-code").value = values["ttr-material-code"];
+
+    // Recalculate sale cost whenever a new TTR is resolved (width/mtrs may have changed)
+    calcSaleCost();
   }
 
   /* ================= SPEC CHANGE HANDLER ================= */
@@ -556,6 +559,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ================= RATE CALC ================= */
+  const ratePerRollInput = document.getElementById("ttr-rate-per-roll");
+  const saleCostInput    = document.getElementById("ttr-sale-cost");
+
+  function calcSaleCost() {
+    const widthEl = document.getElementById("ttr-width");
+    const mtrsEl  = document.getElementById("ttr-mtrs");
+    if (!widthEl || !mtrsEl || !ratePerRollInput || !saleCostInput) return;
+
+    const width = Number(widthEl.value);
+    const mtrs  = Number(mtrsEl.value);
+    const rate  = Number(ratePerRollInput.value);
+
+    if (!width || !mtrs || !rate) {
+      saleCostInput.value = "";
+      return;
+    }
+
+    const area = (width * mtrs) / 1000;
+    saleCostInput.value = (rate / area).toFixed(4);
+  }
+
+  if (ratePerRollInput) {
+    ratePerRollInput.addEventListener("input", calcSaleCost);
+  }
 });
 
 /* ================= CUSTOM TOAST ================= */

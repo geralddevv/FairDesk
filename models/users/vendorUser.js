@@ -18,6 +18,7 @@ const vendorUserSchema = new mongoose.Schema({
   dropLocation1: { type: String },
   deliveryMode: { type: String },
   deliveryLocation: { type: String },
+  deliveryLocation1: { type: String },
   vendorPayment: { type: String },
   SelfDispatch: { type: String },
   vendorStatus: { type: String },

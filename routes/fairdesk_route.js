@@ -652,7 +652,7 @@ function buildTtrSignature(source) {
 const DEFAULT_TTR_SPECS = {
   ttrWidth: 0,
   ttrMtrs: 0,
-  ttrInkFace: "IN",
+  ttrInkFace: "OUT",
   ttrCoreId: "1",
   ttrCoreLength: 0,
   ttrNotch: "NO",
@@ -741,6 +741,7 @@ router.get("/form/ttr/exists", async (req, res) => {
       ttrType: trimOr(req.query.ttrType),
       ttrColor: trimOr(req.query.ttrColor, "BLACK"),
       ttrMaterialCode: trimOr(req.query.ttrMaterialCode),
+      ttrInkFace: "OUT",
       ttrMinQty: numOr(req.query.ttrMinQty, DEFAULT_TTR_SPECS.ttrMinQty),
     };
 
@@ -865,7 +866,7 @@ router.post("/form/ttr", async (req, res) => {
       ttrMaterialCode: String(req.body.ttrMaterialCode).trim(),
       ttrWidth: widthVal,
       ttrMtrs: Number(req.body.ttrMtrs),
-      ttrInkFace: String(req.body.ttrInkFace).trim(),
+      ttrInkFace: "OUT",
       ttrCoreId: String(req.body.ttrCoreId).trim(),
       ttrCoreLength: coreLengthNum,
       ttrNotch: String(req.body.ttrNotch).trim(),
@@ -2071,6 +2072,17 @@ function buildVendorUserSignature(source, vendorId) {
     normalizeVendorUserName(source.userName),
     normalizeVendorUserEmail(source.userEmail),
     normalizeVendorUserContact(source.userContact),
+    normalizeVendorPart(source.userLocation),
+    normalizeVendorPart(source.dispatchAddress),
+    normalizeVendorPart(source.transportName),
+    normalizeVendorPart(source.transportContact),
+    normalizeVendorPart(source.dropLocation),
+    normalizeVendorPart(source.dropLocation1),
+    normalizeVendorPart(source.deliveryMode),
+    normalizeVendorPart(source.deliveryLocation),
+    normalizeVendorPart(source.deliveryLocation1),
+    normalizeVendorPart(source.vendorPayment),
+    normalizeVendorPart(source.SelfDispatch),
   ].join("||");
 }
 
@@ -2125,9 +2137,13 @@ router.post("/form/vendor", async (req, res) => {
 });
 
 router.get("/form/vendor/:name", async (req, res) => {
-  let vendorData = await Vendor.findOne({ vendorName: req.params.name });
-  let vendorName = vendorData;
-  res.status(200).json(vendorName);
+  const vendorData = await Vendor.findOne({ vendorName: req.params.name }).lean();
+  if (!vendorData) {
+    return res.status(404).json({ message: "Vendor not found" });
+  }
+
+  vendorData.userCount = await VendorUser.countDocuments({ vendorId: vendorData.vendorId });
+  res.status(200).json(vendorData);
 });
 
 router.get("/vendor/edit/:id", async (req, res) => {
@@ -2246,6 +2262,8 @@ router.post("/form/vendor-user", async (req, res) => {
       userEmail,
       dropLocation: String(req.body.dropLocation || "").trim(),
       dropLocation1: String(req.body.dropLocation1 || "").trim(),
+      deliveryLocation: String(req.body.deliveryLocation || "").trim(),
+      deliveryLocation1: String(req.body.deliveryLocation1 || "").trim(),
       vendorUserSignature,
     });
 
@@ -2293,7 +2311,7 @@ router.post("/ttr/edit/:id", async (req, res) => {
       ttrMaterialCode: String(req.body.ttrMaterialCode || "").trim(),
       ttrWidth: widthVal,
       ttrMtrs: Number(req.body.ttrMtrs),
-      ttrInkFace: String(req.body.ttrInkFace || "").trim(),
+      ttrInkFace: "OUT",
       ttrCoreId: String(req.body.ttrCoreId || "").trim(),
       ttrCoreLength: Number(req.body.ttrCoreLength),
       ttrNotch: String(req.body.ttrNotch || "").trim(),
@@ -2690,7 +2708,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
       const user = await Username.findById(userId)
         .populate({
           path: "ttr",
-          populate: { path: "ttrId", select: "ttrColor ttrWidth ttrMtrs" },
+          populate: { path: "ttrId", select: "ttrType ttrWidth ttrMtrs" },
           select: "ttrMinQty ttrRatePerRoll ttrId",
         })
         .lean();
@@ -2772,7 +2790,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         }));
         return {
           _id: binding._id,
-          displayName: `${binding.ttrId?.ttrColor || ""} ${binding.ttrId?.ttrWidth || ""}mm x ${binding.ttrId?.ttrMtrs || ""}m`,
+          displayName: `${binding.ttrId?.ttrType || ""} ${binding.ttrId?.ttrWidth || ""}mm x ${binding.ttrId?.ttrMtrs || ""}m`,
           minOrderQty: binding.ttrMinQty || 0,
           rate: binding.ttrRatePerRoll || 0,
           stock: stockInfo,
@@ -3099,7 +3117,7 @@ router.get("/sales/pending", async (req, res) => {
       .populate({
         path: "tapeId",
         select:
-          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrColor ttrWidth ttrMtrs",
+          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
       })
       .populate({
         path: "tapeBinding",
@@ -3136,7 +3154,7 @@ router.get("/sales/order/confirm", async (req, res) => {
       .populate({
         path: "tapeId",
         select:
-          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrColor ttrWidth ttrMtrs",
+          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
       })
       .populate({
         path: "tapeBinding",
@@ -3261,7 +3279,7 @@ router.get("/sales/order/logs", async (req, res) => {
           {
             path: "tapeId",
             select:
-              "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrColor ttrWidth ttrMtrs",
+              "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
           },
         ],
       })
@@ -4010,10 +4028,22 @@ router.get("/master/view", async (req, res) => {
 // ----------------------------------Vendor display----------------------------------
 router.get("/vendor/view", async (req, res) => {
   try {
-    const jsonData = await Vendor.find()
-      .select("vendorId vendorName vendorStatus hoLocation warehouseLocation commodities vendorGst vendorMsme vendorGumasta vendorPan users")
-      .populate({ path: "users", select: "_id" })
-      .sort({ vendorName: 1 });
+    const [jsonData, userCounts] = await Promise.all([
+      Vendor.find()
+        .select("vendorId vendorName vendorStatus hoLocation warehouseLocation commodities vendorGst vendorMsme vendorGumasta vendorPan users")
+        .populate({ path: "users", select: "_id" })
+        .sort({ vendorName: 1 })
+        .lean(),
+      VendorUser.aggregate([{ $group: { _id: "$vendorId", count: { $sum: 1 } } }]),
+    ]);
+
+    const userCountByVendorId = new Map(
+      userCounts.map((entry) => [String(entry._id || ""), Number(entry.count || 0)]),
+    );
+
+    jsonData.forEach((vendor) => {
+      vendor.userCount = userCountByVendorId.get(String(vendor.vendorId || "")) || 0;
+    });
 
     res.render("users/vendorsView.ejs", {
       jsonData,

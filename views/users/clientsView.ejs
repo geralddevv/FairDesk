@@ -222,6 +222,18 @@
         },
       },
       {
+        title: "Users",
+        field: "userCount",
+        width: 90,
+        hozAlign: "center",
+        headerHozAlign: "center",
+        sorter: "number",
+        formatter: (cell) => {
+          const value = Number(cell.getValue() || 0);
+          return `<span style="font-weight:600;color:#044a78">${value}</span>`;
+        },
+      },
+      {
         title: "Type",
         field: "clientType",
         headerSort: true,

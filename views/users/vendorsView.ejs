@@ -209,7 +209,7 @@
 
         formatter: (cell) => {
           const row = cell.getRow().getData();
-          const hasUsers = Array.isArray(row.users) && row.users.length > 0;
+          const hasUsers = Number(row.userCount || 0) > 0;
           const color = hasUsers ? "#044a78" : "#dc2626";
           return `<span class="client-name-cell" style="color:${color};text-decoration:underline;text-underline-offset:2px;">${cell.getValue()}</span>`;
         },
@@ -239,6 +239,15 @@
           const color = v === "ACTIVE" ? "#28a745" : "#dc3545";
           return `<span style="font-weight:600;color:${color}">${v}</span>`;
         },
+      },
+      {
+        title: "Users",
+        field: "userCount",
+        hozAlign: "center",
+        headerHozAlign: "center",
+        width: 110,
+        sorter: "number",
+        formatter: (cell) => Number(cell.getValue() || 0),
       },
       { title: "H/O Location", field: "hoLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
       { title: "Warehouse Location", field: "warehouseLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
@@ -278,7 +287,6 @@
       ["MSME", vendor.vendorMsme],
       ["Gumasta", vendor.vendorGumasta],
       ["PAN", vendor.vendorPan],
-      ["Linked Users", Array.isArray(vendor.users) ? vendor.users.length : 0],
     ];
 
     const body = document.getElementById("vendorModalBody");

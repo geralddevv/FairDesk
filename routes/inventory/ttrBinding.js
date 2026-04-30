@@ -208,6 +208,13 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
     const ttrMinQty = numOr(req.body.ttrMinQty, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty);
     const vendorColor = trimOr(req.body.vendorTtrColor || ttrColor);
 
+    if (!vendorUserId) {
+      return res.status(400).json({ success: false, message: "Vendor user is required" });
+    }
+    if (!ttrId) {
+      return res.status(400).json({ success: false, message: "TTR master could not be resolved" });
+    }
+
     const vendorUser = await VendorUser.findById(vendorUserId);
     if (!vendorUser) {
       return res.status(400).json({ success: false, message: "Invalid vendor user selected" });

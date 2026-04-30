@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fairdesk - <%= title %></title>
+    <link rel="icon" href="/assets/fairfavicon.png" type="image/png" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
+    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="/css/choices.min.css" />
+    <!-- <link rel="stylesheet" href="/css/ratecalculator.css" /> -->
+    <link rel="stylesheet" href="/css/common.css?v=5" />
+    <% if (CSS) { %>
+    <link rel="stylesheet" href="/css/<%= CSS %>" />
+    <% } %>
+
+    <style>
+      .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        right: -300px; /* start off-screen */
+        background-color: #d1e7dd; /* match sidebar dark */
+        color: #0a3646;
+        padding: 12px 40px 12px 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(255, 255, 255, 0.3);
+        z-index: 9999;
+        font-family: Arial, sans-serif;
+        font-size: 18px;
+        border-left: 4px solid #0a3646; /* green accent */
+        animation: slideIn 0.5s forwards;
+      }
+
+      .toast-close {
+        position: absolute;
+        right: 12px;
+        top: 6px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 18px;
+        color: #0a3646;
+      }
+
+
+
+      .toast-success {
+        background-color: #d1e7dd;
+        color: #0a3646;
+        border-left: 4px solid #0a3646;
+      }
+
+      .toast-error {
+        background-color: #f8d7da;
+        color: #842029;
+        border-left: 4px solid #842029;
+      }
+
+      @keyframes slideIn {
+        from {
+          right: -300px;
+          opacity: 0;
+        }
+        to {
+          right: 20px;
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          right: 20px;
+          opacity: 1;
+        }
+        to {
+          right: -300px;
+          opacity: 0;
+        }
+      }
+
+      /* Nav readability tweaks */
+      .side-nav {
+        background: linear-gradient(180deg, #044a78 0%, #03365a 100%);
+      }
+
+      .nav-opt-wrap {
+        background-color: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .side-nav:not(.nav-panel-toggle) .nav-opt-wrap {
+        width: 40px;
+        background-color: transparent;
+        border: none;
+      }
+
+      .nav-items {
+        height: 3.6rem;
+        padding: 5px 12px;
+        gap: 10px;
+      }
+
+      .nav-items i {
+        font-size: 16px;
+        opacity: 0.95;
+      }
+
+      .nav-items-para {
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.2px;
+        line-height: 1.2;
+      }
+
+      .nav-items:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .nav-items.active {
+        background-color: #022a45;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+      }
+
+      .nav-items.active .nav-items-para {
+        font-weight: 600;
+      }
+
+      /* Side-nav scrollbar width */
+      .side-nav::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .side-nav {
+        scrollbar-width: auto;
+      }
+
+      /* Header nav buttons */
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        justify-content: center;
+        padding: 0 12px;
+        position: relative;
+      }
+
+      nav h1 {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .header-nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        background: rgba(255, 255, 255, 0.14);
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 11px;
+        transition: background 0.18s ease, transform 0.18s ease;
+        cursor: pointer;
+      }
+
+      .header-nav:hover {
+        background: rgba(255, 255, 255, 0.22);
+        color: #ffffff;
+      }
+
+      .header-nav.disabled {
+        opacity: 0.55;
+        pointer-events: none;
+      }
+
+      .header-nav-wrap {
+        position: absolute;
+        left: 12px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .header-nav-right {
+        left: auto;
+        right: 12px;
+      }
+
+      .logout-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 9998;
+      }
+
+      .logout-modal.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .logout-dialog {
+        width: min(560px, 94vw);
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid rgba(4, 74, 120, 0.15);
+        box-shadow: 0 24px 60px rgba(4, 74, 120, 0.2);
+        padding: 2.2rem;
+        text-align: left;
+      }
+
+      .logout-title {
+        font-size: 1.45rem;
+        font-weight: 600;
+        color: #03365a;
+        margin: 0 0 0.4rem 0;
+      }
+
+      .logout-text {
+        margin: 0;
+        color: #4b5b6a;
+        font-size: 1.05rem;
+      }
+
+      .logout-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        margin-top: 1.55rem;
+      }
+
+      .logout-btn {
+        border-radius: 999px;
+        padding: 0.65rem 1.25rem;
+        font-weight: 600;
+        font-size: 1rem;
+        border: 1px solid rgba(4, 74, 120, 0.25);
+        background: #ffffff;
+        color: #03365a;
+        cursor: pointer;
+        text-decoration: none;
+      }
+
+      .logout-btn.primary {
+        background: #044a78;
+        color: #ffffff;
+        border-color: #044a78;
+      }
+    </style>
+  </head>
+  <body>
+    <% if ((notification && notification.length) || (error && error.length)) { %>
+    <div class="toast-notification <%= error && error.length ? 'toast-error' : 'toast-success' %>" id="toast">
+      <span> <%= error && error.length ? error[0] : notification[0] %> </span>
+      <span class="toast-close" onclick="hideToast()">×</span>
+    </div>
+    <% } %>
+
+    <nav>
+      <div class="header-nav-wrap">
+        <button type="button" class="header-nav" id="fdNavBack">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <button type="button" class="header-nav" id="fdNavForward">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+      <div class="header-nav-wrap header-nav-right">
+        <a href="/logout" class="header-nav" id="fdLogout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          Logout
+        </a>
+      </div>
+      <h1>Fairtech Systems</h1>
+    </nav>
+    <div class="logout-modal" id="logoutModal" aria-hidden="true">
+      <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+        <h2 class="logout-title" id="logoutTitle">Log out?</h2>
+        <p class="logout-text">You will need to sign in again to continue.</p>
+        <div class="logout-actions">
+          <button class="logout-btn" type="button" id="logoutCancel">Cancel</button>
+          <a class="logout-btn primary" href="/logout" id="logoutConfirm">Log out</a>
+        </div>
+      </div>
+    </div>
+    <div class="contain">
+      <!-- Navigation bar -->
+      <div class="side-nav">
+        <script>
+          // Instant sidebar restore — runs synchronously before paint
+          (function() {                                                                                                     
+            if (localStorage.getItem('fd_navExpanded') === 'expanded' || !localStorage.getItem('fd_navExpanded')) {                                                   
+              var el = document.querySelector('.side-nav');                                                                 
+              if (el) el.classList.add('nav-panel-toggle');                                                              
+            }                                                                                                               
+          })();                                                                                                             
+        </script> 
+        <div title="Expand" class="nav-items nav-toggle">
+          <i class="fa-solid fa-bars" style="color: #ffffff"></i>
+          <p class="nav-items-para">Navigation</p>
+        </div>
+
+        <% const isAdmin = authUser && authUser.role === "admin"; %>
+        <% const isHr = authUser && authUser.role === "hr"; %>
+        <% const isHod = authUser && authUser.role === "hod"; %>
+        <% const isSales = authUser && authUser.role === "sales"; %>
+        <% const canAdmin = isAdmin || isHod; %>
+        <% const canView = canAdmin || isSales; %>
+        <% const canStock = canAdmin || isSales; %>
+        <% const canOrders = canAdmin || isSales; %>
+
+        <% if (canView) { %>
+        <div class="nav-opt-wrap">
+          <div title="View" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Items View</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Tape View" class="<%= title === 'Tape View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tape/view'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div>                        
+            <div title="POS Roll View" class="<%= title === 'POS Roll View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pos-roll/view'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>                        
+            <div title="Tafeta View" class="<%= title === 'Tafeta View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tafeta/view'" >
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div>                        
+            <div title="TTR View" class="<%= title === 'TTR View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/ttr/view'" style="border-bottom: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>                        
+          </div>
+        </div>          
+        <div class="nav-opt-wrap" style="border: 2px solid #ffffff5d; padding: 0px 1px;">
+          <div title="View" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Vendor</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div class="nav-items" style="cursor: default; opacity: 0.6; pointer-events: none">
+              <p class="nav-items-para" style="font-size: 11px; letter-spacing: 1px">Form</p>
+            </div>            
+            <div title="Vendor Data" class="<%= title === 'Vendor Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-shop" style="color: #ffffff"></i>
+              <p class="nav-items-para">Vendor Data</p>
+            </div>
+            <div class="nav-items" style="cursor: default; opacity: 0.6; pointer-events: none">
+              <p class="nav-items-para" style="font-size: 11px; letter-spacing: 1px">Views</p>
+            </div>                       
+            <div title="Vendor List" class="<%= title === 'Vendor Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/vendor/view'" >
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Vendor List</p>
+            </div>
+            <div title="Vendor Details" class="<%= title === 'Vendor Coordinator View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/vendor/coordinator/view'" style="border-bottom: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Vendor Details</p>
+            </div>
+            <div class="nav-items" style="cursor: default; opacity: 0.6; pointer-events: none">
+              <p class="nav-items-para" style="font-size: 11px; letter-spacing: 1px">Bindings</p>
+            </div>            
+            <div title="FS TTR" class="<%= title === 'FS TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr-vendor-binding'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>
+            <div title="FS Tape" class="<%= title === 'FS Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/tape'" >
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div>
+            <div title="FS POS Roll" class="<%= title === 'FS POS Roll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/pos'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>
+            <div title="FS Tafeta" class="<%= title === 'FS Tafeta' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/tafeta'" style="border-bottom: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div>                                           
+          </div>
+        </div>
+
+        <div class="nav-opt-wrap">
+          <div title="View" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Client</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Client View" class="<%= title === 'Client View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/client/view'" style="border-top: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Client List</p>
+            </div>            
+            <div title="Client Details" class="<%= title === 'Client Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/master/view'" >
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Client Details</p>
+            </div>                     
+          </div>
+        </div>        
+
+        <% } %>
+
+        <% if (canAdmin) { %>
+        <div class="nav-opt-wrap">
+          <div title="Masters" class="masters-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Masters</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <!-- <div title="Labels" class="<%= title === 'Labels' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/labels'" style="border-top: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-address-card" style="color: #ffffff"></i>
+              <p class="nav-items-para">Labels</p>
+            </div> -->
+
+            <!-- <div title="Tape Master" class="<%= title === 'Tape Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-master'" >
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div> -->
+
+            <!-- <div title="POS Roll Master" class="<%= title === 'POS Roll Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/pos-roll-master'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>
+
+            <div title="Tafeta Master" class="<%= title === 'Tafeta Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tafeta-master'" >
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div> -->
+
+            <!-- <div title="TTR" class="<%= title === 'TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr'" >
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>             -->
+
+            <div title="Samples" class="<%= title === 'Samples' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/samples'" >
+              <i class="fa-solid fa-vials" style="color: #ffffff"></i>
+              <p class="nav-items-para">Samples</p>
+            </div>
+
+            <div title="Location Master" class="<%= title === 'Location Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/location'" style="border-bottom: 2px solid #ffffff9d" >
+              <i class="fa-solid fa-location-dot" style="color: #ffffff"></i>
+              <p class="nav-items-para">Location</p>
+            </div>            
+
+            <!-- <div title="Block" class="<%= title === 'Block' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/block'" >
+              <i class="fa-solid fa-cube" style="color: #ffffff"></i>
+              <p class="nav-items-para">Block</p>
+            </div> -->
+            <!-- <div title="Die" class="<%= title === 'Die' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/die'" style="border-bottom: 2px solid #ffffff9d" >
+              <i class="fa-solid fa-brush" style="color: #ffffff"></i>
+              <p class="nav-items-para">Die</p>
+            </div> -->
+          </div>
+        </div>
+
+        <div class="nav-opt-wrap">
+          <div title="Item Binding" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Item Binding</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Client TTR" class="<%= title === 'Client TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr-binding'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>            
+            <div title="Client Tape" class="<%= title === 'Client Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-binding'" >
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div>
+            <div title="Client POS Roll" class="<%= title === 'Client POS Roll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/pos-roll-binding'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>
+            <div title="Client Tafeta" class="<%= title === 'Client Tafeta' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tafeta-binding'" style="border-bottom: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- <div class="nav-opt-wrap">
+          <div title="Care" class="care-toggle nav-items">
+            <i class="fa-solid fa-circle-chevron-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Care</p>
+          </div>
+
+          <div class="nav-care-opt">
+            <div title="System ID" class="nav-items" onclick="window.location.href = '/fairdesk/form/systemid'">
+              <i class="fa-solid fa-id-badge" style="color: #ffffff"></i>
+              <p class="nav-items-para">System ID</p>
+            </div>
+            <div title="Care Call Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/carecallreport'" >
+              <i class="fa-solid fa-file" style="color: #ffffff"></i>
+              <p class="nav-items-para">Call Report</p>
+            </div>
+            <div title="Care Workshop Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/careworkshopreport'">
+              <i class="fa-solid fa-shop" style="color: #ffffff"></i>
+              <p class="nav-items-para">Workshop Report</p>
+            </div>
+            <div title="Carelead" class="nav-items" onclick="window.location.href = '/fairdesk/form/carelead'">
+              <i class="fa-solid fa-notes-medical" style="color: #ffffff"></i>
+              <p class="nav-items-para">Lead</p>
+            </div>
+            <div title="Care Quote" class="nav-items" onclick="window.location.href = '/fairdesk/form/carequote'">
+              <i class="fa-solid fa-quote-left" style="color: #ffffff"></i>
+              <p class="nav-items-para">Quote</p>
+            </div>
+          </div>
+        </div> -->
+        <!-- <div title="Rate Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/ratecalculator'">
+          <i class="fa-solid fa-calculator" style="color: #ffffff"></i>
+          <p class="nav-items-para">Rate Calculator</p>
+        </div> -->
+
+        <!-- <div class="nav-opt-wrap"> -->
+        <!-- <div title="Rate Calculator" class="calc-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Rate Calculator</p>
+          </div> -->
+
+        <!-- <div class="nav-calc-opt">
+            <div title="Sales Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/salescalc'">
+              <i class="fa-solid fa-money-bill-transfer" style="color: #ffffff"></i>
+              <p class="nav-items-para">Sales Calculator</p>
+            </div>
+          </div> -->
+
+        <% } %>
+        <% if (isAdmin || isHr) { %>
+        <div class="nav-opt-wrap">
+          <div title="Masters" class="masters-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">HR</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <!-- ===== VIEW HEADING ===== -->
+            <div class="nav-items" style="cursor: default; opacity: 0.6; pointer-events: none">
+              <p class="nav-items-para" style="font-size: 11px; letter-spacing: 1px">VIEWS</p>
+            </div>
+
+            <div title="Petty Cash View" class="<%= title === 'Petty Cash View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pettycash/view'" style="border-top: 2px solid #ffffff9d; margin-bottom: 5px">
+              <i class="fa-solid fa-money-bill-1" style="color: #ffffff"></i>
+              <p class="nav-items-para">Petty Cash</p>
+            </div>            
+
+            <div title="Employee View" class="<%= title === 'Employee View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/view'" >
+              <i class="fa-solid fa-users" style="color: #ffffff"></i>
+              <p class="nav-items-para">Employee</p>
+            </div>
+
+            <div title="Loan View" class="<%= title === 'Loan View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/loan/view'" >
+              <i class="fa-solid fa-handshake" style="color: #ffffff"></i>
+              <p class="nav-items-para">Loan</p>
+            </div>
+
+            <div title="Advance View" class="<%= title === 'Advance View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/advance/view'" >
+              <i class="fa-solid fa-arrow-up-1-9" style="color: #ffffff"></i>
+              <p class="nav-items-para">Advance</p>
+            </div>
+
+            <div title="Payroll View" class="<%= title === 'Payroll View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/payroll/view'" style="border-bottom: 2px solid #ffffff9d" >
+              <i class="fa-solid fa-address-book" style="color: #ffffff"></i>
+              <p class="nav-items-para">Payroll</p>
+            </div>
+
+            <!-- ===== DATA ENTRY HEADING ===== -->
+            <div class="nav-items" style="cursor: default; opacity: 0.6; pointer-events: none">
+              <p class="nav-items-para" style="font-size: 11px; letter-spacing: 1px">DATA ENTRY</p>
+            </div>
+
+            <div title="Petty Cash" class="<%= title === 'Petty Cash' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pettycash/create'" style="border-top: 2px solid #ffffff9d" >
+              <i class="fa-regular fa-money-bill-1" style="color: #ffffff"></i>
+              <p class="nav-items-para">Petty Cash</p>
+            </div>            
+
+            <div title="Employee Details" class="<%= title === 'Employee Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/create'" >
+              <i class="fa-solid fa-users" style="color: #ffffff"></i>
+              <p class="nav-items-para">Emp Details</p>
+            </div>
+
+            <div title="Loan" class="<%= title === 'Loan' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/loan/create'" >
+              <i class="fa-solid fa-handshake" style="color: #ffffff"></i>
+              <p class="nav-items-para">Loan</p>
+            </div>
+
+            <div title="Advance" class="<%= title === 'Advance' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/advance/create'" >
+              <i class="fa-solid fa-arrow-up-1-9" style="color: #ffffff"></i>
+              <p class="nav-items-para">Advance</p>
+            </div>
+
+            <div title="Payroll" class="<%= title === 'Payroll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/payroll/create'" >
+              <i class="fa-solid fa-address-book" style="color: #ffffff"></i>
+              <p class="nav-items-para">Payroll</p>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- <div class="nav-opt-wrap">
+          <div title="View" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Production</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Production Calculator" class="<%= title === 'Production Calculator' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/prodcalc'" >
+              <i class="fa-solid fa-industry" style="color: #ffffff"></i>
+              <p class="nav-items-para">Production Calculator</p>
+            </div>
+          </div>
+        </div> -->
+
+        <% if (canStock) { %>
+        <div class="nav-opt-wrap">
+          <div title="Orders" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Stocks</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Tape Stock" class="<%= title === 'Tape Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tapestock'" style="border-top: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div>
+            <div title="POS Roll Stock" class="<%= title === 'POS Roll Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/posrollstock'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>
+            <div title="Tafeta Stock" class="<%= title === 'Tafeta Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tafetastock'" >
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div>
+            <div title="TTR Stock" class="<%= title === 'TTR Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/ttrstock'" style="border-bottom: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+        <% if (canOrders) { %>
+        <div class="nav-opt-wrap">
+          <div title="Orders" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Orders</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Sales Order" class="<%= title === 'Sales Order' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/order'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-cart-plus" style="color: #ffffff"></i>
+              <p class="nav-items-para">Sales Order</p>
+            </div>
+            <div title="Pending Orders" class="<%= title === 'Pending Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/pending'" style="border-bottom: 2px solid #ffffff9d">
+              <i class="fa-solid fa-clock-rotate-left" style="color: #ffffff"></i>
+            <p class="nav-items-para">Pending Orders</p>
+          </div>  
+          </div>
+        </div>
+        <% } %>
+                  
+      </div>
+
+      <!--- Loading Content --->
+      <div class="page-content" id="pageContent"></div>
+        <%- body -%>
+      </div>
+    </div>
+
+    <script src="/js/common.js" defer></script>
+    <script src="/bootstrap/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/BTStrap.js" defer></script>
+    <script src="/js/choices.min.js" defer></script>
+    <% if(JS) { %>
+    <script src="/js/<%= JS %>" defer></script>
+    <% } %>
+
+
+    <script>
+      const toast = document.getElementById("toast");
+
+      function hideToast() {
+        toast.style.animation = "slideOut 0.5s forwards";
+        setTimeout(() => {
+          toast.style.display = "none";
+        }, 500);
+      }
+
+      // Auto hide after 5 seconds
+      if (toast) {
+        setTimeout(hideToast, 5000);
+      }
+
+
+      // Instantly hide and remove table spinners after page fully loads
+      window.addEventListener("load", () => {
+        document.querySelectorAll('.table-spinner').forEach(el => {
+          el.remove();
+        });
+      });
+
+      // Choices.js focus ring: toggle class on focusin/focusout
+      document.addEventListener("focusin", (e) => {
+        const choicesEl = e.target.closest(".choices");
+        if (choicesEl) choicesEl.classList.add("choices--focused");
+      });
+      document.addEventListener("focusout", (e) => {
+        const choicesEl = e.target.closest(".choices");
+        if (choicesEl) choicesEl.classList.remove("choices--focused");
+      });
+
+      const fdLogout = document.getElementById("fdLogout");
+      const logoutModal = document.getElementById("logoutModal");
+      const logoutCancel = document.getElementById("logoutCancel");
+      const logoutConfirm = document.getElementById("logoutConfirm");
+
+      if (fdLogout) {
+        fdLogout.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (logoutModal) {
+            logoutModal.classList.add("show");
+            logoutModal.setAttribute("aria-hidden", "false");
+          }
+        });
+      }
+
+      if (logoutCancel && logoutModal) {
+        logoutCancel.addEventListener("click", () => {
+          logoutModal.classList.remove("show");
+          logoutModal.setAttribute("aria-hidden", "true");
+        });
+      }
+
+      if (logoutModal) {
+        logoutModal.addEventListener("click", (e) => {
+          if (e.target === logoutModal) {
+            logoutModal.classList.remove("show");
+            logoutModal.setAttribute("aria-hidden", "true");
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

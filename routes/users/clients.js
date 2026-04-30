@@ -1,6 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import Client from "../../models/users/client.js";
+import Username from "../../models/users/username.js";
 
 const router = express.Router();
 
@@ -49,22 +50,35 @@ router.use((req, res, next) => {
 /* ================= CLIENTS VIEW ================= */
 router.get("/view", async (req, res) => {
   try {
-    const clients = await Client.find(
-      {},
-      {
-        clientId: 1,
-        clientName: 1,
-        clientType: 1,
-        hoLocation: 1,
-        accountHead: 1,
-        clientGst: 1,
-        clientPan: 1,
-        clientMsme: 1,
-        clientGumasta: 1,
-        clientStatus: 1,
-        users: 1,
-      },
-    ).sort({ clientName: 1 });
+    const [clients, userCounts] = await Promise.all([
+      Client.find(
+        {},
+        {
+          clientId: 1,
+          clientName: 1,
+          clientType: 1,
+          hoLocation: 1,
+          accountHead: 1,
+          clientGst: 1,
+          clientPan: 1,
+          clientMsme: 1,
+          clientGumasta: 1,
+          clientStatus: 1,
+          users: 1,
+        },
+      )
+        .sort({ clientName: 1 })
+        .lean(),
+      Username.aggregate([{ $group: { _id: "$clientId", count: { $sum: 1 } } }]),
+    ]);
+
+    const userCountByClientId = new Map(
+      userCounts.map((entry) => [String(entry._id || ""), Number(entry.count || 0)]),
+    );
+
+    clients.forEach((client) => {
+      client.userCount = userCountByClientId.get(String(client.clientId || "")) || 0;
+    });
 
     res.render("users/clientsView.ejs", {
       title: "Client View",

@@ -1040,12 +1040,11 @@
             else if (t.tafetaMaterialCode) tapeName = t.tafetaMaterialCode + " " + t.tafetaGsm + "gsm";
             else if (t.ttrProductId) {
               const parts = [
-                t.ttrProductId,
+                t.ttrType,
                 t.ttrWidth ? `${t.ttrWidth}` : null,
                 t.ttrMtrs ? `${t.ttrMtrs}m` : null,
-                t.ttrColor || null
               ].filter(Boolean);
-              tapeName = parts.join(" ");
+              tapeName = `${parts[0] || t.ttrProductId || "Item"} ${parts.slice(1).join(" ")}`.trim();
             }
          }
          
