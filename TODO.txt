@@ -12,9 +12,10 @@ if user dont put the po number dont allow to submit ✔️
 vendor coord edit form ✔️
 add a edit button in the pending page to edit the items (ttr/tape) ✔️ 
 show the whole details of the item in the sales order page ✔️
+add a view page for the stocks available in the items ✔️
 seperate vendor and client in navbar
 add that 3 columns active inactive and stocks in details page
 add option to add additional address in the vendor coordinator/client username
-add a view page for the stocks available in the items
 consider item combo options in the sales order page
 rate and current rate in the sales order
+add seamless scroll in the list

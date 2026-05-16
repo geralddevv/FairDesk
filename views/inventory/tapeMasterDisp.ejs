@@ -82,7 +82,11 @@
       field: `stock_${String(loc).replace(/[^A-Za-z0-9]+/g, "_")}`,
       hozAlign: "right",
       headerHozAlign: "center",
-      width: 110,
+      width: 85,
+      minWidth: 75,
+      maxWidth: 90,
+      widthGrow: 0,
+      widthShrink: 0,
       formatter: (cell) => {
         const v = Number(cell.getValue() || 0);
         return v === 0 ? "" : String(v);
@@ -145,7 +149,7 @@
     // Initialize Tabulator
     const table = new Tabulator("#master-table", {
       data: tableData,
-      layout: "fitColumns",
+      layout: "fitData",
       responsiveLayout: false,
       pagination: "local",
       paginationSize: 30,
