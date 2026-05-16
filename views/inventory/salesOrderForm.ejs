@@ -66,6 +66,8 @@
       </select>
     </div>
 
+    <div id="selected-item-details" class="span-full" style="padding:6px 8px;background:#fff;border:1px solid #044A78;border-radius:4px;display:none;"></div>
+
     <!-- ================= QUANTITY & DATE ================= -->
     <div class="span-full form-subheading">
       <h1>Order Info</h1>
@@ -521,7 +523,8 @@
         customProperties: {
           stock: JSON.stringify(item.stock || { totalStock: 0, locations: [] }),
           minQty: item.minOrderQty || 0,
-          rate: typeof item.rate !== "undefined" ? item.rate : null
+          rate: typeof item.rate !== "undefined" ? item.rate : null,
+          details: JSON.stringify(item.details || {})
         }
       }));
 
@@ -553,9 +556,64 @@
     orderRateInput.value = hasRate ? String(rate) : "";
   }
 
+  function getProfileDetailEntries(details) {
+    const d = details || {};
+    const type = String(d.type || "").toUpperCase();
+    const out = [];
+    const pushIf = (label, value) => {
+      if (value === null || value === undefined) return;
+      const text = String(value).trim();
+      if (!text) return;
+      out.push([label, text]);
+    };
+
+    if (type === "TTR") {
+      pushIf("Material Code", d.materialCode);
+      pushIf("Type", d.ttrType);
+      pushIf("Color", d.color);
+      pushIf("Ink Face", d.inkFace);
+      pushIf("Width", d.width);
+      pushIf("Meters", d.mtrs);
+      pushIf("Core ID", d.coreId);
+      pushIf("Core Length", d.coreLength);
+      pushIf("Notch", d.notch);
+      pushIf("Winding", d.winding);
+    } else if (type === "TAPE") {
+      pushIf("Paper Code", d.paperCode);
+      pushIf("GSM", d.gsm);
+      pushIf("Paper Type", d.paperType);
+      pushIf("Adhesive GSM", d.adhesiveGsm);
+      pushIf("Width", d.width);
+      pushIf("Meters", d.mtrs);
+      pushIf("Core ID", d.coreId);
+      pushIf("Finish", d.finish);
+    } else if (type === "POS_ROLL") {
+      pushIf("Paper Code", d.paperCode);
+      pushIf("GSM", d.gsm);
+      pushIf("Paper Type", d.paperType);
+      pushIf("Color", d.color);
+      pushIf("Width", d.width);
+      pushIf("Meters", d.mtrs);
+      pushIf("Core ID", d.coreId);
+    } else if (type === "TAFETA") {
+      pushIf("Material Code", d.materialCode);
+      pushIf("GSM", d.gsm);
+      pushIf("Material Type", d.materialType);
+      pushIf("Color", d.color);
+      pushIf("Width", d.width);
+      pushIf("Meters", d.mtrs);
+      pushIf("Core Length", d.coreLength);
+      pushIf("Notch", d.notch);
+      pushIf("Core ID", d.coreId);
+    }
+
+    return out;
+  }
+
   async function updateStockDisplay() {
     const selectedOption = itemChoices.getValue(); // Choices.js object
     const stockDisplay = document.getElementById("stock-display");
+    const detailsBox = document.getElementById("selected-item-details");
     updateRateDisplay(selectedOption);
     
     // Reset location selection
@@ -563,6 +621,32 @@
     hideStockWarning();
 
     if (selectedOption && selectedOption.customProperties && selectedOption.customProperties.stock) {
+      try {
+        const details = JSON.parse(selectedOption.customProperties.details || "{}");
+        const entries = getProfileDetailEntries(details);
+        if (entries.length > 0) {
+          detailsBox.innerHTML = `
+            <div style="display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:4px 8px;">
+              ${entries
+                .map(([label, v]) => {
+                  return `<div style="display:grid;grid-template-columns:180px 1fr;gap:8px;padding:4px 6px;border-bottom:1px solid #eef2f7;border-right:1px solid #e5e7eb;line-height:1.2;">
+                    <div style="font-size:12px;color:#6b7280;">${label}</div>
+                    <div style="font-size:12px;color:#111827;font-weight:600;">${v}</div>
+                  </div>`;
+                })
+                .join("")}
+            </div>
+          `;
+          detailsBox.style.display = "block";
+        } else {
+          detailsBox.style.display = "none";
+          detailsBox.innerHTML = "";
+        }
+      } catch (_) {
+        detailsBox.style.display = "none";
+        detailsBox.innerHTML = "";
+      }
+
       try {
         const stock = JSON.parse(selectedOption.customProperties.stock);
         
@@ -657,6 +741,10 @@
       }
     } else {
       stockDisplay.style.display = "none";
+      if (detailsBox) {
+        detailsBox.style.display = "none";
+        detailsBox.innerHTML = "";
+      }
     }
   }
 

@@ -2439,8 +2439,8 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
       const user = await Username.findById(userId)
         .populate({
           path: "tape",
-          populate: { path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish" },
-          select: "tapeMinQty tapeRatePerRoll tapeId",
+          populate: { path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish tapeColor tapeWidth tapeMtrs tapeCoreId tapeCoreLength tapeNotch tapeWinding" },
+          select: "tapeClientMaterialCode clientTapeGsm tapeMtrsDel tapeRatePerRoll tapeSaleCost tapeMinQty tapeOdrQty tapeOdrFreq tapeCreditTerm tapeId",
         })
         .lean();
 
@@ -2534,14 +2534,36 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           minOrderQty: binding.tapeMinQty || 0,
           rate: binding.tapeRatePerRoll || 0,
           stock: stockInfo,
+          details: {
+            type: "TAPE",
+            productId: binding.tapeId?.tapeProductId || "",
+            paperCode: binding.tapeId?.tapePaperCode || "",
+            gsm: binding.tapeId?.tapeGsm || "",
+            finish: binding.tapeId?.tapeFinish || "",
+            color: binding.tapeId?.tapeColor || "",
+            width: binding.tapeId?.tapeWidth || "",
+            mtrs: binding.tapeId?.tapeMtrs || "",
+            coreId: binding.tapeId?.tapeCoreId || "",
+            coreLength: binding.tapeId?.tapeCoreLength || "",
+            notch: binding.tapeId?.tapeNotch || "",
+            winding: binding.tapeId?.tapeWinding || "",
+            clientMaterialCode: binding.tapeClientMaterialCode || "",
+            clientGsm: binding.clientTapeGsm || "",
+            deliveredMtrs: binding.tapeMtrsDel || "",
+            saleCost: binding.tapeSaleCost || 0,
+            minQty: binding.tapeMinQty || 0,
+            orderQty: binding.tapeOdrQty || 0,
+            orderFreq: binding.tapeOdrFreq || "",
+            creditTerm: binding.tapeCreditTerm || "",
+          },
         };
       });
     } else if (type === "POS_ROLL") {
       const user = await Username.findById(userId)
         .populate({
           path: "posRoll",
-          populate: { path: "posRollId", select: "posProductId posPaperCode posGsm posColor" },
-          select: "posMinQty posRatePerRoll posRollId",
+          populate: { path: "posRollId", select: "posProductId posPaperCode posGsm posColor posWidth posMtrs posCoreId posCoreLength posNotch posWinding" },
+          select: "posClientMaterialCode clientPosGsm posMtrsDel posRatePerRoll posSaleCost posMinQty posOdrQty posOdrFreq posCreditTerm posRollId",
         })
         .lean();
 
@@ -2615,12 +2637,33 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           minOrderQty: binding.posMinQty || 0,
           rate: binding.posRatePerRoll || 0,
           stock: stockInfo,
+          details: {
+            type: "POS_ROLL",
+            productId: binding.posRollId?.posProductId || "",
+            paperCode: binding.posRollId?.posPaperCode || "",
+            gsm: binding.posRollId?.posGsm || "",
+            color: binding.posRollId?.posColor || "",
+            width: binding.posRollId?.posWidth || "",
+            mtrs: binding.posRollId?.posMtrs || "",
+            coreId: binding.posRollId?.posCoreId || "",
+            coreLength: binding.posRollId?.posCoreLength || "",
+            notch: binding.posRollId?.posNotch || "",
+            winding: binding.posRollId?.posWinding || "",
+            clientMaterialCode: binding.posClientMaterialCode || "",
+            clientGsm: binding.clientPosGsm || "",
+            deliveredMtrs: binding.posMtrsDel || "",
+            saleCost: binding.posSaleCost || 0,
+            minQty: binding.posMinQty || 0,
+            orderQty: binding.posOdrQty || 0,
+            orderFreq: binding.posOdrFreq || "",
+            creditTerm: binding.posCreditTerm || "",
+          },
         };
       });
     } else if (type === "TAFETA") {
       const tafetaBindings = await TafetaBinding.find({ userId })
-        .populate({ path: "tafetaId", select: "tafetaProductId tafetaMaterialCode tafetaGsm tafetaColor" })
-        .select("tafetaMinQty tafetaRatePerRoll tafetaId")
+        .populate({ path: "tafetaId", select: "tafetaProductId tafetaMaterialCode tafetaMaterialType tafetaGsm tafetaColor tafetaWidth tafetaMtrs tafetaCoreLen tafetaCoreId tafetaNotch" })
+        .select("tafetaClientMaterialCode clientTafetaGsm tafetaMtrsDel tafetaRatePerRoll tafetaSaleCost tafetaMinQty tafetaOdrQty tafetaOdrFreq tafetaCreditTerm tafetaId")
         .lean();
 
       const tafetaIds = tafetaBindings.map((b) => b.tafetaId?._id).filter(Boolean);
@@ -2692,6 +2735,27 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           minOrderQty: binding.tafetaMinQty || 0,
           rate: binding.tafetaRatePerRoll || 0,
           stock: stockInfo,
+          details: {
+            type: "TAFETA",
+            productId: binding.tafetaId?.tafetaProductId || "",
+            materialCode: binding.tafetaId?.tafetaMaterialCode || "",
+            materialType: binding.tafetaId?.tafetaMaterialType || "",
+            gsm: binding.tafetaId?.tafetaGsm || "",
+            color: binding.tafetaId?.tafetaColor || "",
+            width: binding.tafetaId?.tafetaWidth || "",
+            mtrs: binding.tafetaId?.tafetaMtrs || "",
+            coreLength: binding.tafetaId?.tafetaCoreLen || "",
+            coreId: binding.tafetaId?.tafetaCoreId || "",
+            notch: binding.tafetaId?.tafetaNotch || "",
+            clientMaterialCode: binding.tafetaClientMaterialCode || "",
+            clientGsm: binding.clientTafetaGsm || "",
+            deliveredMtrs: binding.tafetaMtrsDel || "",
+            saleCost: binding.tafetaSaleCost || 0,
+            minQty: binding.tafetaMinQty || 0,
+            orderQty: binding.tafetaOdrQty || 0,
+            orderFreq: binding.tafetaOdrFreq || "",
+            creditTerm: binding.tafetaCreditTerm || "",
+          },
         };
       });
     } else if (type === "LABEL") {
@@ -2705,13 +2769,20 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         minOrderQty: lbl.labelId?.minOrderQty || 0,
         rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
         stock: { locations: [], totalStock: 0 },
+        details: {
+          type: "LABEL",
+          width: lbl.labelId?.labelWidth || "",
+          height: lbl.labelId?.labelHeight || "",
+          minQty: lbl.labelId?.minOrderQty || 0,
+          rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
+        },
       }));
     } else if (type === "TTR") {
       const user = await Username.findById(userId)
         .populate({
           path: "ttr",
-          populate: { path: "ttrId", select: "ttrType ttrWidth ttrMtrs" },
-          select: "ttrMinQty ttrRatePerRoll ttrId",
+          populate: { path: "ttrId", select: "ttrProductId ttrType ttrColor ttrMaterialCode ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding" },
+          select: "ttrClientMaterialCode clientTtrType ttrMtrsDel ttrRatePerRoll ttrSaleCost ttrMinQty ttrOdrQty ttrOdrFreq ttrCreditTerm ttrId",
         })
         .lean();
 
@@ -2796,6 +2867,28 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           minOrderQty: binding.ttrMinQty || 0,
           rate: binding.ttrRatePerRoll || 0,
           stock: stockInfo,
+          details: {
+            type: "TTR",
+            productId: binding.ttrId?.ttrProductId || "",
+            ttrType: binding.ttrId?.ttrType || "",
+            color: binding.ttrId?.ttrColor || "",
+            materialCode: binding.ttrId?.ttrMaterialCode || "",
+            width: binding.ttrId?.ttrWidth || "",
+            mtrs: binding.ttrId?.ttrMtrs || "",
+            inkFace: binding.ttrId?.ttrInkFace || "",
+            coreId: binding.ttrId?.ttrCoreId || "",
+            coreLength: binding.ttrId?.ttrCoreLength || "",
+            notch: binding.ttrId?.ttrNotch || "",
+            winding: binding.ttrId?.ttrWinding || "",
+            clientMaterialCode: binding.ttrClientMaterialCode || "",
+            clientType: binding.clientTtrType || "",
+            deliveredMtrs: binding.ttrMtrsDel || "",
+            saleCost: binding.ttrSaleCost || 0,
+            minQty: binding.ttrMinQty || 0,
+            orderQty: binding.ttrOdrQty || 0,
+            orderFreq: binding.ttrOdrFreq || "",
+            creditTerm: binding.ttrCreditTerm || "",
+          },
         };
       });
     }
