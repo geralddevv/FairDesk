@@ -78,6 +78,12 @@ function buildSalesOrderSignature({
   );
 }
 
+function isTemplateOnlyInvoice(invoiceNumber) {
+  const value = String(invoiceNumber || "").trim();
+  if (!value) return true;
+  return /^TECH\|\d{2}-\d{2}\|[A-Z_]+\|$/i.test(value);
+}
+
 router.use((req, res, next) => {
   const role = req.session?.authUser?.role;
   if (!role) return res.redirect("/login");
@@ -2612,15 +2618,11 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         };
       });
     } else if (type === "TAFETA") {
-      const user = await Username.findById(userId)
-        .populate({
-          path: "tafeta",
-          populate: { path: "tafetaId", select: "tafetaProductId tafetaMaterialCode tafetaGsm tafetaColor" },
-          select: "tafetaMinQty tafetaRatePerRoll tafetaId",
-        })
+      const tafetaBindings = await TafetaBinding.find({ userId })
+        .populate({ path: "tafetaId", select: "tafetaProductId tafetaMaterialCode tafetaGsm tafetaColor" })
+        .select("tafetaMinQty tafetaRatePerRoll tafetaId")
         .lean();
 
-      const tafetaBindings = user?.tafeta || [];
       const tafetaIds = tafetaBindings.map((b) => b.tafetaId?._id).filter(Boolean);
       if (!tafetaIds.length) return res.json([]);
 
@@ -3305,7 +3307,7 @@ router.post("/sales/order/status", async (req, res) => {
   try {
     const accepts = req.headers.accept || "";
     const wantsJson = req.xhr || accepts.includes("application/json") || accepts.includes("text/json");
-    const { orderId, status, cancelReason, invoiceNumber, confirmDate, confirmQuantity } = req.body;
+    const { orderId, status, cancelReason, invoiceNumber, confirmDate, confirmQuantity, poNumber } = req.body;
     const order = await TapeSalesOrder.findById(orderId)
       .populate({ path: "tapeId", select: "tapeFinish tapePaperCode tapeGsm" })
       .lean();
@@ -3317,6 +3319,25 @@ router.post("/sales/order/status", async (req, res) => {
 
     const previousStatus = order.status;
     console.log(`[DEBUG] Order ${orderId}: Status change ${previousStatus} -> ${status}`);
+
+    if (status === "CONFIRMED") {
+      const incomingPo = String(poNumber || "").trim();
+      const existingPo = String(order.poNumber || "").trim();
+      if (!incomingPo && !existingPo) {
+        const message = "PO Number is required before confirming this order.";
+        if (wantsJson) return res.status(400).json({ success: false, message });
+        req.flash("notification", message);
+        return res.redirect("back");
+      }
+
+      const incomingInvoice = String(invoiceNumber || "").trim();
+      if (isTemplateOnlyInvoice(incomingInvoice)) {
+        const message = "Please enter Invoice Number before submitting the form.";
+        if (wantsJson) return res.status(400).json({ success: false, message });
+        req.flash("notification", message);
+        return res.redirect("back");
+      }
+    }
 
     // ========== CONFIRM: Deduct stock ==========
     let finalStatus = status;
@@ -3537,8 +3558,13 @@ router.post("/sales/order/status", async (req, res) => {
       await TapeSalesOrder.findByIdAndUpdate(orderId, { dispatchedQuantity: 0 });
     }
 
-    // Update the order status
-    await TapeSalesOrder.findByIdAndUpdate(orderId, { status: finalStatus });
+    // Update order status and PO number (if submitted on confirm page)
+    const updateData = { status: finalStatus };
+    if (typeof poNumber !== "undefined") {
+      const incomingPo = String(poNumber || "").trim();
+      if (incomingPo) updateData.poNumber = incomingPo;
+    }
+    await TapeSalesOrder.findByIdAndUpdate(orderId, updateData);
 
     if (finalStatus === "PENDING" && status === "CONFIRMED") {
       req.flash("notification", `Partially dispatched. remaining is pending.`);
@@ -4090,6 +4116,144 @@ router.get("/vendor/coordinator/view", async (req, res) => {
     console.error("VENDOR COORDINATOR VIEW ERROR:", err);
     req.flash("notification", "Failed to load vendor coordinator view");
     res.redirect("/fairdesk/form/vendor");
+  }
+});
+
+// ----------------------------------Vendor coordinator details----------------------------------
+router.get("/vendor/coordinator/details/:userId", async (req, res) => {
+  try {
+    const vendorUser = await VendorUser.findById(req.params.userId).lean();
+    if (!vendorUser) {
+      req.flash("notification", "Vendor coordinator not found");
+      return res.redirect("/fairdesk/vendor/coordinator/view");
+    }
+
+    const vendor = await Vendor.findOne({ vendorId: vendorUser.vendorId }).lean();
+
+    const stats = {
+      ttrs: vendorUser.ttr?.length || 0,
+      tapes: vendorUser.tape?.length || 0,
+      posRolls: vendorUser.posRoll?.length || 0,
+      tafetas: vendorUser.tafeta?.length || 0,
+    };
+
+    res.render("users/vendorUserDetails.ejs", {
+      title: "Vendor Coordinator Details",
+      CSS: false,
+      JS: false,
+      vendorUser,
+      vendor,
+      stats,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR COORDINATOR DETAILS ERROR:", err);
+    req.flash("notification", "Failed to load vendor coordinator details");
+    res.redirect("/fairdesk/vendor/coordinator/view");
+  }
+});
+
+// ----------------------------------Vendor coordinator edit----------------------------------
+router.get("/form/edit/vendor-user/:userId", async (req, res) => {
+  try {
+    const user = await VendorUser.findById(req.params.userId).lean();
+    if (!user) {
+      req.flash("notification", "Vendor coordinator not found");
+      return res.redirect("/fairdesk/vendor/coordinator/view");
+    }
+
+    res.render("users/editVendorUser.ejs", {
+      title: "Edit Vendor Coordinator",
+      CSS: "tabOpt.css",
+      JS: false,
+      user,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR COORDINATOR EDIT GET ERROR:", err);
+    req.flash("notification", "Failed to load vendor coordinator edit page");
+    res.redirect("/fairdesk/vendor/coordinator/view");
+  }
+});
+
+router.post("/form/edit/vendor-user/:userId", async (req, res) => {
+  try {
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const userId = req.params.userId;
+    const user = await VendorUser.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Vendor coordinator not found" });
+    }
+
+    const vendorId = String(req.body.vendorId || user.vendorId || "").trim();
+    const userName = String(req.body.userName || "").trim();
+    const userContact = String(req.body.userContact || "").trim();
+    const userEmail = String(req.body.userEmail || "")
+      .trim()
+      .toLowerCase();
+
+    const updatedData = {
+      vendorId,
+      vendorName: String(req.body.vendorName || "").trim(),
+      hoLocation: String(req.body.hoLocation || "").trim(),
+      warehouseLocation: String(req.body.warehouseLocation || "").trim(),
+      userName,
+      userLocation: String(req.body.userLocation || "").trim(),
+      userDepartment: String(req.body.userDepartment || "").trim(),
+      userContact,
+      userEmail,
+      dispatchAddress: String(req.body.dispatchAddress || "").trim(),
+      transportName: String(req.body.transportName || "").trim(),
+      transportContact: String(req.body.transportContact || "").trim(),
+      dropLocation: String(req.body.dropLocation || "").trim(),
+      dropLocation1: String(req.body.dropLocation1 || "").trim(),
+      deliveryMode: String(req.body.deliveryMode || "").trim(),
+      deliveryLocation: String(req.body.deliveryLocation || "").trim(),
+      deliveryLocation1: String(req.body.deliveryLocation1 || "").trim(),
+      vendorPayment: String(req.body.vendorPayment || "").trim(),
+      SelfDispatch: String(req.body.SelfDispatch || "").trim(),
+      vendorStatus: String(req.body.vendorStatus || "").trim(),
+      ownerName: String(req.body.ownerName || "").trim(),
+      ownerMobNo: String(req.body.ownerMobNo || "").trim(),
+      ownerEmail: String(req.body.ownerEmail || "").trim(),
+      vendorGst: String(req.body.vendorGst || "").trim(),
+      vendorMsme: String(req.body.vendorMsme || "").trim(),
+    };
+
+    updatedData.vendorUserSignature = hashSignature(buildVendorUserSignature(updatedData, vendorId));
+
+    const duplicateVendorUser = await VendorUser.findOne({
+      _id: { $ne: userId },
+      $or: [
+        { vendorUserSignature: updatedData.vendorUserSignature },
+        {
+          vendorId,
+          userName: new RegExp(`^${escapeRegex(userName)}$`, "i"),
+          userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i"),
+          userContact: new RegExp(`^${escapeRegex(userContact)}$`, "i"),
+        },
+      ],
+    }).lean();
+
+    if (duplicateVendorUser) {
+      return res.status(400).json({
+        success: false,
+        message: "vendor user already exist (same vendor + name + email + contact)",
+      });
+    }
+
+    await VendorUser.findByIdAndUpdate(userId, updatedData, { runValidators: true });
+    req.flash("notification", "Vendor coordinator updated successfully!");
+    return res.json({ success: true, redirect: `/fairdesk/vendor/coordinator/details/${userId}` });
+  } catch (err) {
+    console.error("VENDOR COORDINATOR EDIT POST ERROR:", err);
+    if (err?.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "vendor user already exist (same vendor + name + email + contact)",
+      });
+    }
+    return res.status(400).json({ success: false, message: err.message });
   }
 });
 

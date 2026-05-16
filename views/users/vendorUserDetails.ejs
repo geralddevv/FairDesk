@@ -1,0 +1,110 @@
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content">
+  <div class="client-details-container" style="width:100%;border:2px solid #044A78;border-radius:0.5rem;overflow:hidden;background:#fff;">
+    <header style="background:#044A78;color:#fff;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h1 style="margin:0;font-size:26px;"><%= vendorUser.vendorName %></h1>
+          <div style="font-size:14px;opacity:0.95;">Coordinator: <strong><%= vendorUser.userName %></strong></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="background:rgba(255,255,255,0.2);padding:6px 14px;border-radius:16px;font-size:14px;">
+            Vendor ID: <%= vendorUser.vendorId %>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px;">
+      <div style="border:2px solid #044A78;border-radius:10px;overflow:hidden;">
+        <h3 style="margin:0;background:#044A78;color:#fff;padding:8px 12px;">Vendor Details</h3>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Status</span><strong><%= vendorUser.vendorStatus || "N/A" %></strong></div>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>H/O Location</span><strong><%= vendorUser.hoLocation || "N/A" %></strong></div>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Warehouse</span><strong><%= vendorUser.warehouseLocation || "N/A" %></strong></div>
+        <div style="padding:10px 12px;display:flex;justify-content:space-between;"><span>GST</span><strong><%= vendorUser.vendorGst || vendor?.vendorGst || "N/A" %></strong></div>
+      </div>
+
+      <div style="border:2px solid #044A78;border-radius:10px;overflow:hidden;">
+        <h3 style="margin:0;background:#044A78;color:#fff;padding:8px 12px;">Coordinator Details</h3>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Department</span><strong><%= vendorUser.userDepartment || "N/A" %></strong></div>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Location</span><strong><%= vendorUser.userLocation || "N/A" %></strong></div>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Contact</span><strong><%= vendorUser.userContact || "N/A" %></strong></div>
+        <div style="padding:10px 12px;display:flex;justify-content:space-between;"><span>Email</span><strong><%= vendorUser.userEmail || "N/A" %></strong></div>
+      </div>
+    </div>
+
+    <div style="padding:0 20px 20px 20px;">
+      <div style="border:2px solid #044A78;border-radius:10px;overflow:hidden;">
+        <h3 style="margin:0;background:#044A78;color:#fff;padding:8px 12px;">Dispatch Details</h3>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Dispatch Address</span><strong><%= vendorUser.dispatchAddress || "N/A" %></strong></div>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Dispatch Type</span><strong><%= vendorUser.SelfDispatch ? "Self Dispatch" : "Transport" %></strong></div>
+        <div style="padding:10px 12px;border-bottom:1px solid #ddd;display:flex;justify-content:space-between;"><span>Transport Name</span><strong><%= vendorUser.transportName || "N/A" %></strong></div>
+        <div style="padding:10px 12px;display:flex;justify-content:space-between;"><span>Transport Contact</span><strong><%= vendorUser.transportContact || "N/A" %></strong></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 20px 20px 20px;">
+      <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;"><div style="font-size:13px;color:#666;">TTR</div><div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats.ttrs %></div></div>
+      <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;"><div style="font-size:13px;color:#666;">Tape</div><div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats.tapes %></div></div>
+      <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;"><div style="font-size:13px;color:#666;">POS Roll</div><div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats.posRolls %></div></div>
+      <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;"><div style="font-size:13px;color:#666;">Tafeta</div><div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats.tafetas %></div></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .fab-capsule {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: #044A78;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+  }
+
+  .fab-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+    border-radius: 50%;
+    transition: background 0.2s, transform 0.2s;
+  }
+
+  .fab-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(1.05);
+    color: #fff;
+  }
+
+  .fab-divider {
+    width: 2px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 8px;
+    border-radius: 2px;
+  }
+</style>
+
+<div class="fab-capsule">
+  <div title="Add Vendor" class="fab-item" onclick="window.location.href='/fairdesk/form/vendor'" style="cursor: pointer;">
+    <i class="fa-solid fa-building"></i>
+  </div>
+  <div class="fab-divider"></div>
+  <div title="Add Coordinator" class="fab-item" onclick="window.location.href='/fairdesk/form/vendor?tab=user'" style="cursor: pointer;">
+    <i class="fa-solid fa-user-plus"></i>
+  </div>
+  <div class="fab-divider"></div>
+  <div title="Edit Coordinator" class="fab-item" onclick="window.location.href='/fairdesk/form/edit/vendor-user/<%= vendorUser._id %>'" style="cursor: pointer;">
+    <i class="fa-solid fa-pen"></i>
+  </div>
+</div>

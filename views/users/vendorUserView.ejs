@@ -164,6 +164,16 @@
           headerFilter: "input",
           headerFilterPlaceholder: "Search",
           widthGrow: 2,
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row?._id) return cell.getValue() || "";
+            return `<span class="count-link">${cell.getValue() || ""}</span>`;
+          },
+          cellClick: (e, cell) => {
+            const row = cell.getRow().getData();
+            if (!row?._id) return;
+            window.location.href = `/fairdesk/vendor/coordinator/details/${encodeURIComponent(row._id)}`;
+          },
         },
         {
           title: "Status",

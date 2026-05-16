@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import TtrStock from "../../models/inventory/TtrStock.js";
 import TtrStockLog from "../../models/inventory/TtrStockLog.js";
 import Location from "../../models/system/location.js";
-import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
+import Ttr from "../../models/inventory/ttr.js";
 
 const router = express.Router();
 
@@ -27,28 +27,24 @@ const trimOr = (value, fallback = "") => {
 };
 
 async function loadFsTtrRows() {
-  const bindings = await VendorTtrBinding.find({})
-    .select("ttrId")
-    .populate({
-      path: "ttrId",
-      select: "ttrProductId ttrType ttrMaterialCode ttrColor ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding",
-    })
+  const masters = await Ttr.find({})
+    .select("ttrProductId ttrType ttrMaterialCode ttrColor ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding")
     .lean();
 
-  return bindings
-    .map((binding) => ({
-      ttrId: binding.ttrId?._id?.toString() || "",
-      ttrProductId: trimOr(binding.ttrId?.ttrProductId),
-      ttrType: trimOr(binding.ttrId?.ttrType),
-      ttrColor: trimOr(binding.ttrId?.ttrColor),
-      ttrMaterialCode: trimOr(binding.ttrId?.ttrMaterialCode),
-      ttrWidth: trimOr(binding.ttrId?.ttrWidth),
-      ttrMtrs: trimOr(binding.ttrId?.ttrMtrs),
-      ttrInkFace: trimOr(binding.ttrId?.ttrInkFace),
-      ttrCoreId: trimOr(binding.ttrId?.ttrCoreId),
-      ttrCoreLength: trimOr(binding.ttrId?.ttrCoreLength),
-      ttrNotch: trimOr(binding.ttrId?.ttrNotch),
-      ttrWinding: trimOr(binding.ttrId?.ttrWinding),
+  return masters
+    .map((master) => ({
+      ttrId: master?._id?.toString() || "",
+      ttrProductId: trimOr(master?.ttrProductId),
+      ttrType: trimOr(master?.ttrType),
+      ttrColor: trimOr(master?.ttrColor),
+      ttrMaterialCode: trimOr(master?.ttrMaterialCode),
+      ttrWidth: trimOr(master?.ttrWidth),
+      ttrMtrs: trimOr(master?.ttrMtrs),
+      ttrInkFace: trimOr(master?.ttrInkFace),
+      ttrCoreId: trimOr(master?.ttrCoreId),
+      ttrCoreLength: trimOr(master?.ttrCoreLength),
+      ttrNotch: trimOr(master?.ttrNotch),
+      ttrWinding: trimOr(master?.ttrWinding),
     }))
     .filter(
       (row) =>

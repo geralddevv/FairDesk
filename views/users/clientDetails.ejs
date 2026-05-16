@@ -417,323 +417,29 @@
                 <% } %>
             </div>
         </div>
-        
-        <!-- Labels Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">Labels</h2>
-                <span class="count-badge"><%= labels.length %> label(s)</span>
+
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:0 25px 25px 25px;">
+            <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;background:#fff;">
+                <div style="font-size:13px;color:#666;">Labels</div>
+                <div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats?.labels || 0 %></div>
             </div>
-            
-            <% if (labels.length > 0) { %>
-                <div class="products-grid">
-                    <% labels.forEach(function(label) { %>
-                        <div class="product-card">
-                            <div class="product-header">
-                                <div class="product-id">Label ID: <%= label._id %></div>
-                                <div class="product-title"><%= label.jobType %> Label</div>
-                            </div>
-                            <div class="product-body">
-                                <div class="product-specs">
-                                    <div class="spec-item">
-                                        <div class="spec-label">Paper Type</div>
-                                        <div class="spec-value"><%= label.paperType %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Dimensions</div>
-                                        <div class="spec-value"><%= label.labelWidth %>mm x <%= label.labelHeight %>mm</div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Varnish</div>
-                                        <div class="spec-value"><%= label.varnish %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Foil Number</div>
-                                        <div class="spec-value"><%= label.foilNo %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Per Roll Qty</div>
-                                        <div class="spec-value"><%= label.perRollQty %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Rate per 1000</div>
-                                        <div class="spec-value">₹<%= label.ratePerK %></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="product-footer">
-                                <div class="price">Sale Cost: ₹<%= label.saleCost %></div>
-                                <button class="action-btn">View Details</button>
-                            </div>
-                        </div>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <div class="no-data">
-                    <h3>No Labels Found</h3>
-                    <p>This client doesn't have any labels associated with their account.</p>
-                </div>
-            <% } %>
+            <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;background:#fff;">
+                <div style="font-size:13px;color:#666;">TTR</div>
+                <div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats?.ttrs || 0 %></div>
+            </div>
+            <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;background:#fff;">
+                <div style="font-size:13px;color:#666;">Tape</div>
+                <div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats?.tapes || 0 %></div>
+            </div>
+            <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;background:#fff;">
+                <div style="font-size:13px;color:#666;">POS Roll</div>
+                <div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats?.posRolls || 0 %></div>
+            </div>
+            <div style="padding:14px;border:1px solid #ddd;border-radius:10px;text-align:center;background:#fff;">
+                <div style="font-size:13px;color:#666;">Tafeta</div>
+                <div style="font-size:24px;font-weight:700;color:#044A78;"><%= stats?.tafetas || 0 %></div>
+            </div>
         </div>
-        
-        <!-- TTRs Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">TTRs</h2>
-                <span class="count-badge"><%= ttrs.length %> TTR(s)</span>
-            </div>
-            
-            <% if (ttrs.length > 0) { %>
-                <div class="products-grid">
-                    <% ttrs.forEach(function(ttr) { %>
-                        <div class="product-card">
-                            <div class="product-header">
-                                <div class="product-id"><%= ttr.productId %></div>
-                                <div class="product-title"><%= ttr.ttrType %> - <%= ttr.ttrColor %></div>
-                            </div>
-                            <div class="product-body">
-                                <div class="product-specs">
-                                    <div class="spec-item">
-                                        <div class="spec-label">Material Code</div>
-                                        <div class="spec-value"><%= ttr.ttrMaterialCode %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Width</div>
-                                        <div class="spec-value"><%= ttr.ttrWidth %>mm</div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Meters</div>
-                                        <div class="spec-value"><%= ttr.ttrMtrs %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Ink Face</div>
-                                        <div class="spec-value"><%= ttr.ttrInkFace %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Winding</div>
-                                        <div class="spec-value"><%= ttr.ttrWinding %></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="product-footer">
-                                <div class="price">Sale Cost: ₹<%= ttr.ttrSaleCost %></div>
-                                <button class="action-btn">View Details</button>
-                            </div>
-                        </div>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <div class="no-data">
-                    <h3>No TTRs Found</h3>
-                    <p>This client doesn't have any TTRs associated with their account.</p>
-                </div>
-            <% } %>
-        </div>
-        
-        <!-- Tapes Section -->
-        <!-- Tapes Section -->
-<div class="section">
-  <div class="section-header">
-    <h2 class="section-title">Tapes</h2>
-    <span class="count-badge"><%= tapes.length %> tape(s)</span>
-  </div>
-
-  <% if (tapes.length > 0) { %>
-    <div class="products-grid">
-      <% tapes.forEach(function(tape) { %>
-        <div class="product-card">
-
-          <div class="product-header">
-            <div class="product-id">
-              <%= tape.tapeId?.tapeProductId || "N/A" %>
-            </div>
-            <div class="product-title">
-              <%= tape.tapeId?.tapePaperType || "Tape" %>
-            </div>
-          </div>
-
-          <div class="product-body">
-            <div class="product-specs">
-
-              <div class="spec-item">
-                <div class="spec-label">Width</div>
-                <div class="spec-value">
-                  <%= tape.tapeId?.tapeWidth || "—" %>
-                </div>
-              </div>
-
-              <div class="spec-item">
-                <div class="spec-label">Delivered Meters</div>
-                <div class="spec-value">
-                  <%= tape.tapeMtrsDel %>
-                </div>
-              </div>
-
-              <div class="spec-item">
-                <div class="spec-label">Client GSM</div>
-                <div class="spec-value">
-                  <%= tape.clientTapeGsm %>
-                </div>
-              </div>
-
-              <div class="spec-item">
-                <div class="spec-label">Rate / Roll</div>
-                <div class="spec-value">
-                  ₹<%= tape.tapeRatePerRoll %>
-                </div>
-              </div>
-
-              <div class="spec-item">
-                <div class="spec-label">Min Qty</div>
-                <div class="spec-value">
-                  <%= tape.tapeMinQty %>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="product-footer">
-            <div class="price">
-              Sale Cost: ₹<%= tape.tapeSaleCost %>
-            </div>
-
-            <button
-              class="action-btn"
-              onclick="window.location.href='/fairdesk/tape/profile/<%= tape.tapeId?._id %>'"
-            >
-              View Tape Details
-            </button>
-          </div>
-
-        </div>
-      <% }); %>
-    </div>
-  <% } else { %>
-    <div class="no-data">
-      <h3>No Tapes Found</h3>
-      <p>This user has no tape orders.</p>
-    </div>
-  <% } %>
-</div>
-
-        <!-- POS Rolls Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">POS Rolls</h2>
-                <span class="count-badge"><%= posRolls ? posRolls.length : 0 %> POS Roll(s)</span>
-            </div>
-            
-            <% if (posRolls && posRolls.length > 0) { %>
-                <div class="products-grid">
-                    <% posRolls.forEach(function(pos) { %>
-                        <div class="product-card">
-
-                            <div class="product-header">
-                                <div class="product-id"><%= pos.posRollId?.posProductId || "N/A" %></div>
-                                <div class="product-title"><%= pos.posRollId?.posPaperType || "POS Roll" %></div>
-                            </div>
-
-                            <div class="product-body">
-                                <div class="product-specs">
-                                    <div class="spec-item">
-                                        <div class="spec-label">Width</div>
-                                        <div class="spec-value"><%= pos.posRollId?.posWidth || "—" %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Delivered Meters</div>
-                                        <div class="spec-value"><%= pos.posMtrsDel %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Client GSM</div>
-                                        <div class="spec-value"><%= pos.clientPosGsm %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Rate / Roll</div>
-                                        <div class="spec-value">₹<%= pos.posRatePerRoll %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Min Qty</div>
-                                        <div class="spec-value"><%= pos.posMinQty %></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="product-footer">
-                                <div class="price">Sale Cost: ₹<%= pos.posSaleCost %></div>
-                                <button class="action-btn">View Details</button>
-                            </div>
-
-                        </div>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <div class="no-data">
-                    <h3>No POS Rolls Found</h3>
-                    <p>This user doesn't have any POS rolls associated with their account.</p>
-                </div>
-            <% } %>
-        </div>
-
-        <!-- Tafetas Section -->
-        <div class="section">
-            <div class="section-header">
-                <h2 class="section-title">Tafetas</h2>
-                <span class="count-badge"><%= tafetas ? tafetas.length : 0 %> Tafeta(s)</span>
-            </div>
-            
-            <% if (tafetas && tafetas.length > 0) { %>
-                <div class="products-grid">
-                    <% tafetas.forEach(function(tafeta) { %>
-                        <div class="product-card">
-
-                            <div class="product-header">
-                                <div class="product-id"><%= tafeta.tafetaId?.tafetaProductId || "N/A" %></div>
-                                <div class="product-title"><%= tafeta.tafetaId?.tafetaMaterialType || "Tafeta" %></div>
-                            </div>
-
-                            <div class="product-body">
-                                <div class="product-specs">
-                                    <div class="spec-item">
-                                        <div class="spec-label">Width</div>
-                                        <div class="spec-value"><%= tafeta.tafetaId?.tafetaWidth || "—" %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Delivered Meters</div>
-                                        <div class="spec-value"><%= tafeta.tafetaMtrsDel %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Client GSM</div>
-                                        <div class="spec-value"><%= tafeta.clientTafetaGsm %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Rate / Roll</div>
-                                        <div class="spec-value">₹<%= tafeta.tafetaRatePerRoll %></div>
-                                    </div>
-                                    <div class="spec-item">
-                                        <div class="spec-label">Min Qty</div>
-                                        <div class="spec-value"><%= tafeta.tafetaMinQty %></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="product-footer">
-                                <div class="price">Sale Cost: ₹<%= tafeta.tafetaSaleCost %></div>
-                                <button class="action-btn">View Details</button>
-                            </div>
-
-                        </div>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <div class="no-data">
-                    <h3>No Tafetas Found</h3>
-                    <p>This user doesn't have any Tafetas associated with their account.</p>
-                </div>
-            <% } %>
-        </div>
-
-    
     </div>
     </div>
 
@@ -741,8 +447,7 @@
     <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="/js/BTStrap.js" defer></script>
     <script src="/js/choices.min.js"></script>
-    
-    </script>
+
     
 <!-- ================= FLOATING ACTION BUTTONS ================= -->
 <style>

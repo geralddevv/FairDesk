@@ -6,8 +6,14 @@ if one field is incomplete show red line employee
 pettycash total in heading
 request form - not given
 
-vendor coord edit form 
-ttr remove in ink face ✔️
+Am Main:
+solve problem in the ttr stock entry ✔️
+if user dont put the po number dont allow to submit ✔️
+vendor coord edit form ✔️
+add a edit button in the pending page to edit the items (ttr/tape) ✔️ 
 seprate vendor and client in navbar
-user count in client as we have in vendor edit dialog ✔️
 add that 3 columns active inactive and stocks in details page
+add option to add additional address in the vendor coordinator/client username
+add a view page for the stocks available in the items
+show the whole details of the item in the sales order page
+consider item combo options in the sales order page

@@ -825,6 +825,12 @@
     if (submitButton) submitButton.disabled = !!isSubmitting;
   }
 
+  function isTemplateOnlyInvoice(invoice) {
+    const value = String(invoice || "").trim();
+    if (!value) return true;
+    return /^TECH\|\d{2}-\d{2}\|[A-Z_]+\|$/i.test(value);
+  }
+
   // Form validation — prevent submit on invalid fields, disallow ALL location, and enforce min qty
   orderForm.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -838,6 +844,24 @@
       firstInvalid.focus?.();
       setSubmittingState(false);
       return false;
+    }
+
+    const poValue = (poNumberInput?.value || "").trim();
+    if (!poValue) {
+      showToast("PO Number is required.", "error");
+      poNumberInput?.focus?.();
+      setSubmittingState(false);
+      return false;
+    }
+
+    if (confirmMode) {
+      const invoiceValue = (document.getElementById("invoice-number")?.value || "").trim();
+      if (!invoiceValue || isTemplateOnlyInvoice(invoiceValue)) {
+        showToast("Please enter Invoice Number before submitting the form.", "error");
+        document.getElementById("invoice-number")?.focus?.();
+        setSubmittingState(false);
+        return false;
+      }
     }
 
     const itemType = itemTypeSelect.value;
@@ -1130,7 +1154,7 @@
          userChoices.disable();
          itemChoices.disable();
          quantityInput.readOnly = true;
-         poNumberInput.readOnly = true;
+         poNumberInput.readOnly = !!orderToEdit.poNumber;
          if (orderRateInput) orderRateInput.readOnly = true;
          estimatedDateInput.readOnly = true;
          remarksInput.readOnly = true;
@@ -1175,6 +1199,18 @@
         const dd = String(d.getDate()).padStart(2, '0');
         estimatedDateInput.value = `${yyyy}-${mm}-${dd}`;
       }
+
+      // Keep edit-order page fully editable.
+      itemTypeChoices?.enable();
+      clientChoices?.enable();
+      userChoices?.enable();
+      itemChoices?.enable();
+      locationChoices?.enable();
+      quantityInput.readOnly = false;
+      poNumberInput.readOnly = false;
+      if (orderRateInput) orderRateInput.readOnly = false;
+      estimatedDateInput.readOnly = false;
+      remarksInput.readOnly = false;
     }
 
 

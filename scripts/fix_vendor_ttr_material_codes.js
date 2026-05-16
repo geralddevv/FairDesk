@@ -22,7 +22,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const MONGO_URI = process.env.MONGO_URI || process.env.DB_URI || process.env.MONGODB_URI;
 if (!MONGO_URI) {
-  console.error("❌  No MongoDB URI found in .env (tried MONGO_URI, DB_URI, MONGODB_URI)");
+  console.error("No MongoDB URI found in .env (tried MONGO_URI, DB_URI, MONGODB_URI)");
   process.exit(1);
 }
 
@@ -35,19 +35,19 @@ const bindingSchema = new mongoose.Schema(
     vendorTtrMaterialCode: String,
     vendorTtrType: String,
   },
-  { strict: false }
+  { strict: false },
 );
 
 const Ttr = mongoose.model("Ttr", ttrSchema);
 const VendorTtrBinding = mongoose.model("VendorTtrBinding", bindingSchema);
 
 async function run() {
-  const uri = MONGO_URI.replace('localhost', '127.0.0.1');
+  const uri = MONGO_URI.replace("localhost", "127.0.0.1");
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 3000 });
-  console.log("✅  Connected to MongoDB");
+  console.log("Connected to MongoDB");
 
   const bindings = await VendorTtrBinding.find({}).lean();
-  console.log(`📦  Found ${bindings.length} VendorTtrBinding record(s) to process`);
+  console.log(`Found ${bindings.length} VendorTtrBinding record(s) to process`);
 
   let swapped = 0;
   let skipped = 0;
@@ -55,7 +55,7 @@ async function run() {
   for (const binding of bindings) {
     const ttr = await Ttr.findById(binding.ttrId).lean();
     if (!ttr) {
-      console.warn(`⚠️   Ttr not found for binding ${binding._id} — skipping`);
+      console.warn(`Ttr not found for binding ${binding._id} — skipping`);
       skipped++;
       continue;
     }
@@ -79,7 +79,7 @@ async function run() {
           ttrMaterialCode: oldFsMaterialCode,
           ttrType: oldFsType,
         },
-      }
+      },
     );
     await VendorTtrBinding.updateOne(
       { _id: binding._id },
@@ -88,24 +88,24 @@ async function run() {
           vendorTtrMaterialCode: oldVendorMaterialCode,
           vendorTtrType: oldVendorType,
         },
-      }
+      },
     );
 
     console.log(
-      `🔄  Binding ${binding._id}: ` +
-      `Ttr.ttrMaterialCode ${oldVendorMaterialCode} → ${oldFsMaterialCode} | ` +
-      `Ttr.ttrType ${oldVendorType} → ${oldFsType} | ` +
-      `vendorTtrMaterialCode ${oldFsMaterialCode} → ${oldVendorMaterialCode} | ` +
-      `vendorTtrType ${oldFsType} → ${oldVendorType}`
+      `Binding ${binding._id}: ` +
+        `Ttr.ttrMaterialCode ${oldVendorMaterialCode} → ${oldFsMaterialCode} | ` +
+        `Ttr.ttrType ${oldVendorType} → ${oldFsType} | ` +
+        `vendorTtrMaterialCode ${oldFsMaterialCode} → ${oldVendorMaterialCode} | ` +
+        `vendorTtrType ${oldFsType} → ${oldVendorType}`,
     );
     swapped++;
   }
 
-  console.log(`\n✅  Done — swapped: ${swapped}, skipped: ${skipped}`);
+  console.log(`\n  Done — swapped: ${swapped}, skipped: ${skipped}`);
   await mongoose.disconnect();
 }
 
 run().catch((err) => {
-  console.error("❌  Migration failed:", err);
+  console.error("Migration failed:", err);
   process.exit(1);
 });
