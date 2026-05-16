@@ -73,8 +73,97 @@
   <script>
     // Parse data from Express
     const tableData = <%- JSON.stringify(jsonData) %>;
+    const stockLocations = <%- JSON.stringify(stockLocations || []) %>;
 
     // Initialize Tabulator
+    const baseColumns = [
+      {
+        title: "",
+        formatter: function (cell) {
+          const row = cell.getRow().getData();
+          if (!row._id) return "";
+          return `
+            <button
+              onclick="window.location.href='/fairdesk/ttr/profile/${row._id}'"
+              style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          `;
+        }
+      },
+      {
+        title: "Product ID",
+        field: "ttrProductId",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
+      {
+        title: "Material Code",
+        field: "ttrMaterialCode",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
+      {
+        title: "Type",
+        field: "ttrType",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
+      {
+        title: "Color",
+        field: "ttrColor",
+        headerFilter: "select",
+        headerFilterParams: {
+          values: {
+            "": "All",
+            BLACK: "BLACK",
+            RED: "RED",
+            GREEN: "GREEN",
+            BLUE: "BLUE",
+            YELLOW: "YELLOW",
+            GOLD: "GOLD",
+            SILVER: "SILVER",
+          },
+          clearable: true,
+        },
+      },
+      { title: "Width", field: "ttrWidth" },
+      { title: "Mtrs", field: "ttrMtrs" },
+      { title: "Ink Face", field: "ttrInkFace" },
+      {
+        title: "Core ID",
+        field: "ttrCoreId",
+        headerFilter: "select",
+        headerFilterParams: {
+          values: { "": "All", 0.5: "0.5", 1: "1" },
+          clearable: true,
+        },
+      },
+      { title: "Core Len", field: "ttrCoreLength" },
+      {
+        title: "Notch",
+        field: "ttrNotch",
+        headerFilter: "select",
+        headerFilterParams: {
+          values: { "": "All", NO: "NO", YES: "YES" },
+          clearable: true,
+        },
+      },
+      { title: "Winding", field: "ttrWinding" },
+    ];
+
+    const stockColumns = stockLocations.map((loc) => ({
+      title: loc,
+      field: `stock_${String(loc).replace(/[^A-Za-z0-9]+/g, "_")}`,
+      hozAlign: "right",
+      headerHozAlign: "center",
+      width: 110,
+      formatter: (cell) => {
+        const v = Number(cell.getValue() || 0);
+        return v === 0 ? "" : String(v);
+      },
+    }));
+
     const table = new Tabulator("#master-table", {
       data: tableData,
       layout: "fitDataStretch", // Good for wide tables
@@ -83,81 +172,7 @@
       paginationSize: 30,
       movableColumns: true,
       placeholder: "No data to display",
-      columns: [
-        {
-          title: "",
-          formatter: function (cell) {
-            const row = cell.getRow().getData();
-            if (!row._id) return "";
-            return `
-              <button
-                onclick="window.location.href='/fairdesk/ttr/profile/${row._id}'"
-                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
-                <i class="fa-solid fa-eye"></i>
-              </button>
-            `;
-          }
-        },
-        {
-          title: "Product ID",
-          field: "ttrProductId",
-          headerFilter: "input",
-          headerFilterPlaceholder: "Search",
-        },
-        {
-          title: "Material Code",
-          field: "ttrMaterialCode",
-          headerFilter: "input",
-          headerFilterPlaceholder: "Search",
-        },
-        {
-          title: "Type",
-          field: "ttrType",
-          headerFilter: "input",
-          headerFilterPlaceholder: "Search",
-        },
-        {
-          title: "Color",
-          field: "ttrColor",
-          headerFilter: "select",
-          headerFilterParams: {
-            values: {
-              "": "All",
-              BLACK: "BLACK",
-              RED: "RED",
-              GREEN: "GREEN",
-              BLUE: "BLUE",
-              YELLOW: "YELLOW",
-              GOLD: "GOLD",
-              SILVER: "SILVER",
-            },
-            clearable: true,
-          },
-        },
-        { title: "Width", field: "ttrWidth" },
-        { title: "Mtrs", field: "ttrMtrs" },
-        { title: "Ink Face", field: "ttrInkFace" },
-        {
-          title: "Core ID",
-          field: "ttrCoreId",
-          headerFilter: "select",
-          headerFilterParams: {
-            values: { "": "All", 0.5: "0.5", 1: "1" },
-            clearable: true,
-          },
-        },
-        { title: "Core Len", field: "ttrCoreLength" },
-        {
-          title: "Notch",
-          field: "ttrNotch",
-          headerFilter: "select",
-          headerFilterParams: {
-            values: { "": "All", NO: "NO", YES: "YES" },
-            clearable: true,
-          },
-        },
-        { title: "Winding", field: "ttrWinding" },
-      ],
+      columns: [...baseColumns, ...stockColumns],
     });
 
     // Dropdown toggle

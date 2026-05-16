@@ -1447,8 +1447,41 @@ router.delete("/api/locations/:id", async (req, res) => {
 // ================= TAPE MASTER LIST VIEW =================
 router.get("/tape/view", async (req, res) => {
   const tapes = await Tape.find().sort({ tapeProductId: 1 }).lean();
+  const tapeIds = tapes.map((t) => t._id).filter(Boolean);
+  const stockAgg = tapeIds.length
+    ? await TapeStock.aggregate([
+        { $match: { tape: { $in: tapeIds } } },
+        {
+          $group: {
+            _id: {
+              item: "$tape",
+              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+            },
+            qty: { $sum: "$quantity" },
+          },
+        },
+      ])
+    : [];
+  const stockByItem = {};
+  const locationSet = new Set();
+  stockAgg.forEach((row) => {
+    const itemId = String(row._id?.item || "");
+    const loc = String(row._id?.location || "UNKNOWN");
+    locationSet.add(loc);
+    if (!stockByItem[itemId]) stockByItem[itemId] = {};
+    stockByItem[itemId][loc] = Number(row.qty || 0);
+  });
+  const stockLocations = Array.from(locationSet).sort();
+  tapes.forEach((t) => {
+    const byLoc = stockByItem[String(t._id)] || {};
+    stockLocations.forEach((loc) => {
+      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
+      t[fieldName] = byLoc[loc] ?? 0;
+    });
+  });
   res.render("inventory/tapeMasterDisp.ejs", {
     jsonData: tapes,
+    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "Tape View",
@@ -1459,8 +1492,41 @@ router.get("/tape/view", async (req, res) => {
 // ================= TAFETA MASTER LIST VIEW =================
 router.get("/tafeta/view", async (req, res) => {
   const tafetas = await Tafeta.find().sort({ tafetaProductId: 1 }).lean();
+  const tafetaIds = tafetas.map((t) => t._id).filter(Boolean);
+  const stockAgg = tafetaIds.length
+    ? await TafetaStock.aggregate([
+        { $match: { tafeta: { $in: tafetaIds } } },
+        {
+          $group: {
+            _id: {
+              item: "$tafeta",
+              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+            },
+            qty: { $sum: "$quantity" },
+          },
+        },
+      ])
+    : [];
+  const stockByItem = {};
+  const locationSet = new Set();
+  stockAgg.forEach((row) => {
+    const itemId = String(row._id?.item || "");
+    const loc = String(row._id?.location || "UNKNOWN");
+    locationSet.add(loc);
+    if (!stockByItem[itemId]) stockByItem[itemId] = {};
+    stockByItem[itemId][loc] = Number(row.qty || 0);
+  });
+  const stockLocations = Array.from(locationSet).sort();
+  tafetas.forEach((t) => {
+    const byLoc = stockByItem[String(t._id)] || {};
+    stockLocations.forEach((loc) => {
+      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
+      t[fieldName] = byLoc[loc] ?? 0;
+    });
+  });
   res.render("inventory/tafetaMasterDisp.ejs", {
     jsonData: tafetas,
+    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "Tafeta View",
@@ -1504,8 +1570,41 @@ function flexTafetaValue(val) {
 // ================= POS ROLL MASTER LIST VIEW =================
 router.get("/pos-roll/view", async (req, res) => {
   const posRolls = await PosRoll.find().sort({ posProductId: 1 }).lean();
+  const posRollIds = posRolls.map((p) => p._id).filter(Boolean);
+  const stockAgg = posRollIds.length
+    ? await PosRollStock.aggregate([
+        { $match: { posRoll: { $in: posRollIds } } },
+        {
+          $group: {
+            _id: {
+              item: "$posRoll",
+              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+            },
+            qty: { $sum: "$quantity" },
+          },
+        },
+      ])
+    : [];
+  const stockByItem = {};
+  const locationSet = new Set();
+  stockAgg.forEach((row) => {
+    const itemId = String(row._id?.item || "");
+    const loc = String(row._id?.location || "UNKNOWN");
+    locationSet.add(loc);
+    if (!stockByItem[itemId]) stockByItem[itemId] = {};
+    stockByItem[itemId][loc] = Number(row.qty || 0);
+  });
+  const stockLocations = Array.from(locationSet).sort();
+  posRolls.forEach((p) => {
+    const byLoc = stockByItem[String(p._id)] || {};
+    stockLocations.forEach((loc) => {
+      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
+      p[fieldName] = byLoc[loc] ?? 0;
+    });
+  });
   res.render("inventory/posRollMasterDisp.ejs", {
     jsonData: posRolls,
+    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "POS Roll View",
@@ -1516,8 +1615,49 @@ router.get("/pos-roll/view", async (req, res) => {
 // ================= TTR MASTER LIST VIEW =================
 router.get("/ttr/view", async (req, res) => {
   const ttrs = await Ttr.find().sort({ ttrProductId: 1 }).lean();
+  const ttrIds = ttrs.map((t) => t._id).filter(Boolean);
+  const stockAgg = ttrIds.length
+    ? await TtrStock.aggregate([
+        { $match: { ttr: { $in: ttrIds } } },
+        {
+          $group: {
+            _id: {
+              ttr: "$ttr",
+              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+            },
+            qty: { $sum: "$quantity" },
+          },
+        },
+      ])
+    : [];
+
+  const stockByTtr = {};
+  const locationSet = new Set();
+  stockAgg.forEach((row) => {
+    const ttrId = String(row._id?.ttr || "");
+    const loc = String(row._id?.location || "UNKNOWN");
+    locationSet.add(loc);
+    if (!stockByTtr[ttrId]) stockByTtr[ttrId] = [];
+    stockByTtr[ttrId].push({ location: loc, qty: Number(row.qty || 0) });
+  });
+
+  const stockLocations = Array.from(locationSet).sort();
+
+  ttrs.forEach((t) => {
+    const entries = stockByTtr[String(t._id)] || [];
+    const qtyByLocation = {};
+    entries.forEach((e) => {
+      qtyByLocation[e.location] = e.qty;
+    });
+    stockLocations.forEach((loc) => {
+      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
+      t[fieldName] = qtyByLocation[loc] ?? 0;
+    });
+  });
+
   res.render("inventory/ttrMasterDisp.ejs", {
     jsonData: ttrs,
+    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "TTR View",
