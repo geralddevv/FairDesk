@@ -157,22 +157,48 @@
       field: `stock_${String(loc).replace(/[^A-Za-z0-9]+/g, "_")}`,
       hozAlign: "right",
       headerHozAlign: "center",
-      width: 110,
+      minWidth: 72,
+      widthGrow: 1,
+      widthShrink: 1,
+      responsive: 9,
+      cssClass: "stock-cell",
+      headerTooltip: loc,
       formatter: (cell) => {
         const v = Number(cell.getValue() || 0);
         return v === 0 ? "" : String(v);
       },
     }));
 
+    const normalizedBaseColumns = baseColumns.map((column, index) =>
+      index === 0
+        ? {
+            ...column,
+            width: 56,
+            minWidth: 56,
+            widthGrow: 0,
+            widthShrink: 0,
+            responsive: 0,
+            hozAlign: "center",
+            headerSort: false,
+          }
+        : {
+            ...column,
+            minWidth: 96,
+            widthGrow: 1,
+            widthShrink: 1,
+            responsive: index + 1,
+          },
+    );
+
     const table = new Tabulator("#master-table", {
       data: tableData,
-      layout: "fitDataStretch", // Good for wide tables
-      responsiveLayout: false,
+      layout: "fitColumns",
+      responsiveLayout: "hide",
       pagination: "local",
       paginationSize: 30,
       movableColumns: true,
       placeholder: "No data to display",
-      columns: [...baseColumns, ...stockColumns],
+      columns: [...normalizedBaseColumns, ...stockColumns],
     });
 
     // Dropdown toggle

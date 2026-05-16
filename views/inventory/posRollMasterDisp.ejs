@@ -26,6 +26,24 @@
       .header-action-btn:hover {
         background-color: #e4e4e4;
       }
+
+      .stock-col .tabulator-col-content {
+        background: linear-gradient(180deg, #f4f9ff 0%, #e8f1fb 100%);
+      }
+
+      .stock-col .tabulator-col-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .stock-cell {
+        background: #fbfdff;
+        font-weight: 600;
+      }
     </style>
 
     <div class="indi-head">
@@ -79,11 +97,13 @@
       field: `stock_${String(loc).replace(/[^A-Za-z0-9]+/g, "_")}`,
       hozAlign: "right",
       headerHozAlign: "center",
-      width: 85,
-      minWidth: 75,
-      maxWidth: 90,
+      width: 72,
+      minWidth: 68,
+      maxWidth: 78,
       widthGrow: 0,
       widthShrink: 0,
+      cssClass: "stock-cell",
+      headerTooltip: loc,
       formatter: (cell) => {
         const v = Number(cell.getValue() || 0);
         return v === 0 ? "" : String(v);

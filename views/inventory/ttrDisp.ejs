@@ -4,6 +4,31 @@
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 <link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet">
+<style>
+  #master-table .tabulator-col,
+  #master-table .tabulator-cell {
+    box-sizing: border-box;
+    white-space: nowrap;
+  }
+
+  #master-table .tabulator-header .tabulator-col:nth-child(1),
+  #master-table .tabulator-header .tabulator-col:nth-child(2),
+  #master-table .tabulator-row .tabulator-cell:nth-child(1),
+  #master-table .tabulator-row .tabulator-cell:nth-child(2) {
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+    flex: 0 0 70px !important;
+  }
+
+  #master-table .tabulator-header .tabulator-col:nth-child(n + 3),
+  #master-table .tabulator-row .tabulator-cell:nth-child(n + 3) {
+    width: 110px !important;
+    min-width: 110px !important;
+    max-width: 110px !important;
+    flex: 0 0 110px !important;
+  }
+</style>
 </head>
 
 <body>
@@ -51,9 +76,63 @@
     console.log(tableData);
 
     // Initialize Tabulator
+    const fixedFieldColumns = [
+      { title: "Status", field: "status", hozAlign: "center", headerFilter: "input", headerFilterPlaceholder: "Filter", formatter: function (cell) {
+        const val = cell.getValue() || "ACTIVE";
+        const isActive = val === "ACTIVE";
+        const bg = isActive ? "#28a745" : "#dc3545";
+        return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${val}</span>`;
+      } },
+      { title: "Stock", field: "stock", hozAlign: "center", formatter: (cell) => {
+        const row = cell.getRow().getData();
+        const stock = row.stock ?? "-";
+        return `<span style="font-weight:600">${stock}</span>`;
+      } },
+      { title: "Order", hozAlign: "center", formatter: (cell) => {
+        const row = cell.getRow().getData();
+        const clientName = row.userId?.clientName || row.clientName || "";
+        const userId = row.userId?._id || "";
+        return `
+              <button 
+                onclick="window.location.href='/fairdesk/sales/order?type=TTR&client=${encodeURIComponent(clientName)}&user=${userId}&item=${row._id}'"
+                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                <i class="fa-solid fa-cart-plus"></i>
+              </button>
+            `;
+      } },
+      { title: "Product ID", field: "productId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Client Name", field: "clientName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "User Name", field: "userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "User Contact", field: "userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Location", field: "location", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Type", field: "ttrType", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Color", field: "ttrColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Material Code", field: "ttrMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Width", field: "ttrWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Mtrs", field: "ttrMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Mtrs Del", field: "ttrMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Ink Face", field: "ttrInkFace", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Core ID", field: "ttrCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Core Length", field: "ttrCoreLength", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Notch", field: "ttrNotch", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Winding", field: "ttrWinding", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Rate Per Roll", field: "ttrRatePerRoll" },
+      { title: "Sale Cost", field: "ttrSaleCost" },
+      { title: "Min Qty", field: "ttrMinQty" },
+      { title: "Single Odr Qty", field: "ttrSinOdrQty" },
+      { title: "Odr Freq", field: "ttrOdrFreq" },
+      { title: "Credit Term", field: "ttrCreditTerm" },
+    ].map((column) => ({
+      ...column,
+      width: 110,
+      minWidth: 110,
+      widthGrow: 0,
+      widthShrink: 0,
+    }));
+
     const table = new Tabulator("#master-table", {
       data: tableData,
-      layout: "fitDataTable", // expand to fit content + allow horizontal scroll
+      layout: "fitData",
       responsiveLayout: false, // prevent auto-hiding of columns
       pagination: "local",
       paginationSize: 30,
@@ -62,6 +141,9 @@
       columns: [
         {
           title: "",
+          width: 70,
+          widthGrow: 0,
+          widthShrink: 0,
           formatter: function (cell) {
             const row = cell.getRow().getData();
             const bindingId = row._id;
@@ -80,6 +162,9 @@
         {
           title: "",
           hozAlign: "center",
+          width: 70,
+          widthGrow: 0,
+          widthShrink: 0,
           formatter: function (cell) {
             const row = cell.getRow().getData();
             if (!row._id) return '';
@@ -93,67 +178,7 @@
             `;
           }
         },
-        {
-          title: "Status",
-          field: "status",
-          hozAlign: "center",
-          headerFilter: "input",
-          headerFilterPlaceholder: "Filter",
-          formatter: function (cell) {
-            const val = cell.getValue() || "ACTIVE";
-            const isActive = val === "ACTIVE";
-            const bg = isActive ? "#28a745" : "#dc3545";
-            return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${val}</span>`;
-          }
-        },
-        {
-          title: "Stock",
-          field: "stock",
-          hozAlign: "center",
-          formatter: (cell) => {
-            const row = cell.getRow().getData();
-            const stock = row.stock ?? "-";
-            return `<span style="font-weight:600">${stock}</span>`;
-          }
-        },        
-        {
-          title: "Order",
-          hozAlign: "center",
-          formatter: (cell) => {
-            const row = cell.getRow().getData();
-            const clientName = row.userId?.clientName || row.clientName || "";
-            const userId = row.userId?._id || "";
-            return `
-              <button 
-                onclick="window.location.href='/fairdesk/sales/order?type=TTR&client=${encodeURIComponent(clientName)}&user=${userId}&item=${row._id}'"
-                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
-                <i class="fa-solid fa-cart-plus"></i>
-              </button>
-            `;
-          }
-        },
-        { title: "Product ID", field: "productId", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Client Name", field: "clientName", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "User Name", field: "userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "User Contact", field: "userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Location", field: "location", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Type", field: "ttrType", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Color", field: "ttrColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Material Code", field: "ttrMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Width", field: "ttrWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs", field: "ttrMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs Del", field: "ttrMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Ink Face", field: "ttrInkFace", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Core ID", field: "ttrCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Core Length", field: "ttrCoreLength", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Notch", field: "ttrNotch", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Winding", field: "ttrWinding", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Rate Per Roll", field: "ttrRatePerRoll" },
-        { title: "Sale Cost", field: "ttrSaleCost" },
-        { title: "Min Qty", field: "ttrMinQty" },
-        { title: "Single Odr Qty", field: "ttrSinOdrQty" },
-        { title: "Odr Freq", field: "ttrOdrFreq" },
-        { title: "Credit Term", field: "ttrCreditTerm" },
+        ...fixedFieldColumns,
       ]
     });
 
