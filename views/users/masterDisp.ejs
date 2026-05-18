@@ -54,6 +54,14 @@
       #master-table .tabulator-tableholder {
         overflow-x: hidden !important;
       }
+      #master-table .tabulator-row.row-missing-details .tabulator-cell {
+        background-color: #d9534f !important;
+        color: #ffffff !important;
+      }
+      #master-table .tabulator-row.row-missing-details:hover .tabulator-cell {
+        background-color: #c9302c !important;
+        color: #ffffff !important;
+      }
     </style>
 
     <div class="indi-head">
@@ -152,6 +160,14 @@
     // ================= TABULATOR INIT =================
 
     let table; // MUST be global for download to work
+    const requiredFields = ["clientName", "clientType", "accountHead", "userName", "userLocation"];
+
+    function hasMissingDetails(row) {
+      return requiredFields.some((field) => {
+        const value = row?.[field];
+        return value === undefined || value === null || String(value).trim() === "";
+      });
+    }
 
     function initTable() {
       table = new Tabulator("#master-table", {
@@ -163,6 +179,14 @@
         initialSort: [{ column: "clientName", dir: "asc" }],
         movableColumns: true,
         placeholder: "No data to display",
+        rowFormatter: (row) => {
+          const rowEl = row.getElement();
+          if (hasMissingDetails(row.getData())) {
+            rowEl.classList.add("row-missing-details");
+          } else {
+            rowEl.classList.remove("row-missing-details");
+          }
+        },
         columns: [
           {
             title: "Name",

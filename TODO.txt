@@ -1,9 +1,9 @@
 HR:
-total value in loan and advance and comma in lakhs,
-total expense in current month in pettycash
-filtering in every column in everything
-if one field is incomplete show red line employee
-pettycash total in heading
+total value in loan and advance and comma in lakhs ✔️
+total expense in current month in pettycash ✔️
+filtering in every column in everything ✔️
+if one field is incomplete show red line employee ✔️
+pettycash total in heading ✔️
 request form - given (pending)
 
 Am Main:

@@ -13,6 +13,13 @@
       flex: 1 1 auto;
       min-height: 0;
     }
+    #master-table .tabulator-row.row-missing-employee-details .tabulator-cell {
+      color: #dc2626 !important;
+    }
+    #master-table .tabulator-row.row-missing-employee-details .tabulator-cell * {
+      color: #dc2626 !important;
+      text-decoration-color: #dc2626 !important;
+    }
   </style>
   <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
     <div class="indi-head">
@@ -100,6 +107,35 @@
       // ================= TABULATOR =================
 
       let table;
+      const requiredEmployeeFields = [
+        "empId",
+        "empName",
+        "empDateOfJoining",
+        "empType",
+        "empLoc",
+        "empDept",
+        "empReportingManager",
+        "empProfile",
+        "empOfficeMob",
+        "empOfficeEmailId",
+        "empDob",
+        "empGender",
+        "empMobile1",
+        "empEmail",
+        "empMartialStatus",
+        "empPresentAddress",
+        "empPermanentAddress",
+        "empAadhaar",
+        "empPan",
+        "empBankName",
+        "empAccountHolderName",
+        "empAccNo",
+        "empIfscCode",
+      ];
+
+      function hasMissingEmployeeDetails(row) {
+        return requiredEmployeeFields.some((field) => isMissingValue(row?.[field]));
+      }
 
       function initTable() {
       table = new Tabulator("#master-table", {
@@ -112,6 +148,14 @@
         initialSort: [
           { column: "empName", dir: "asc" }
         ],
+        rowFormatter: function (row) {
+          const rowEl = row.getElement();
+          if (hasMissingEmployeeDetails(row.getData())) {
+            rowEl.classList.add("row-missing-employee-details");
+          } else {
+            rowEl.classList.remove("row-missing-employee-details");
+          }
+        },
 
         columns: [
           {

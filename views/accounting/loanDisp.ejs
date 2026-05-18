@@ -54,7 +54,7 @@
       >
         <i class="fa-solid fa-arrow-left" style="color: #ffffff"></i>
       </button>
-      <h1>Loans</h1>
+      <h1 id="loanHeading">Loans</h1>
     </span>
 
     <div class="download-selector" id="downloadSelector">
@@ -152,6 +152,25 @@
     const tableData = <%- JSON.stringify(jsonData) %>;
     const snapshotData = [...tableData];
     let currentEmployeeId = null;
+    const loanHeadingEl = document.getElementById("loanHeading");
+
+    function formatINRCurrency(value) {
+      return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(Number(value) || 0);
+    }
+
+    function getTotalLoanOutstanding() {
+      return (snapshotData || []).reduce((sum, row) => sum + (Number(row.currentBalance) || 0), 0);
+    }
+
+    function setLoanSnapshotHeading() {
+      const total = getTotalLoanOutstanding();
+      loanHeadingEl.innerHTML = `Loans <span class="loan-highlight active" style="margin-left: 8px;">Total: ${formatINRCurrency(total)}</span>`;
+    }
 
     const baseColumns = [
       {
@@ -181,8 +200,8 @@
         }
       },
       { title: "Employee ID", field: "empId" },
-      { title: "Outstanding", field: "currentBalance" },
-      { title: "EMI", field: "emi" },
+      { title: "Outstanding", field: "currentBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
+      { title: "EMI", field: "emi", formatter: (c) => formatINRCurrency(c.getValue()) },
       { title: "Status", field: "status" },
       { title: "Last Updated", field: "updatedAt" },
     ];
@@ -190,7 +209,7 @@
     const logColumns = [
       { title: "Employee Name", field: "employeeName" },
       { title: "Employee ID", field: "empId" },
-      { title: "Opening Balance", field: "openingBalance" },
+      { title: "Opening Balance", field: "openingBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
 
       {
         title: "Action",
@@ -221,14 +240,14 @@
           const row = cell.getRow().getData();
 
           if (row.type === "DEBIT") {
-            return `- ₹${cell.getValue()}`;
+            return `- ${formatINRCurrency(cell.getValue())}`;
           }
 
-          return `+ ₹${cell.getValue()}`;
+          return `+ ${formatINRCurrency(cell.getValue())}`;
         },
       },
 
-      { title: "Closing Balance", field: "closingBalance" },
+      { title: "Closing Balance", field: "closingBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
       { title: "Type", field: "type" },
       { title: "Source", field: "source" },
       { title: "Date", field: "date" },
@@ -287,10 +306,10 @@
 
     const statusClass = summary.status.toLowerCase();
 
-  document.querySelector(".indi-head h1").innerHTML =
+  loanHeadingEl.innerHTML =
     `Loans — Outstanding:
      <span class="loan-highlight ${statusClass}">
-       ₹${summary.currentBalance} (${summary.status})
+       ${formatINRCurrency(summary.currentBalance)} (${summary.status})
      </span>`;
 
 
@@ -303,7 +322,7 @@
       table.setColumns(baseColumns);
       table.replaceData(snapshotData);
 
-      document.querySelector(".indi-head h1").innerText = "Loans";
+      setLoanSnapshotHeading();
       document.getElementById("backToSnapshot").style.display = "none";
       currentEmployeeId = null;
     });
@@ -363,10 +382,10 @@
 
       const summary = data.summary || { currentBalance: 0, status: "CLOSED" };
       const statusClass = summary.status.toLowerCase();
-      document.querySelector(".indi-head h1").innerHTML =
+      loanHeadingEl.innerHTML =
         `Loans - Outstanding:
          <span class="loan-highlight ${statusClass}">
-           Rs.${summary.currentBalance} (${summary.status})
+           ${formatINRCurrency(summary.currentBalance)} (${summary.status})
          </span>`;
     }
 
@@ -421,6 +440,11 @@
         console.error(err);
         alert("Failed to delete loan entry.");
       }
-    }
+    }    setLoanSnapshotHeading();
 </script>
+
+
+
+
+
 

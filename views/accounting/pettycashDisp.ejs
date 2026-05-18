@@ -3,7 +3,26 @@
 <!-- ================= TABULATOR CSS ================= -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
-<style></style>
+<style>
+  .loan-highlight {
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .loan-highlight.active {
+    background-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .loan-highlight.expense {
+    background-color: rgba(220, 53, 69, 0.22);
+    border-color: rgba(255, 255, 255, 0.65);
+  }
+</style>
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <div class="indi-head">
@@ -21,7 +40,12 @@
       >
         <i class="fa-solid fa-arrow-left" style="color: #fff"></i>
       </button>
-      <h1>Petty Cash</h1>
+      <h1 id="pettyCashHeading">
+        Petty Cash
+        <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">
+          Total: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(totalPettyCash || 0)) %>
+        </span>
+      </h1>
     </span>
 
     <div class="download-selector" id="downloadSelector">
@@ -126,8 +150,57 @@
 
 <script>
   const tableData = <%- JSON.stringify(jsonData) %>;
-    const snapshotData = [...tableData];
+  const snapshotData = [...tableData];
+  const totalPettyCash = <%- JSON.stringify(Number(totalPettyCash || 0)) %>;
   let currentLocation = null;
+  const pettyCashHeadingEl = document.getElementById("pettyCashHeading");
+
+  function formatINRCurrency(value) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0);
+  }
+
+  function setSnapshotHeading() {
+    pettyCashHeadingEl.innerHTML = `Petty Cash <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">Total: ${formatINRCurrency(totalPettyCash)}</span>`;
+  }
+
+  function getLogDate(log) {
+    const raw = String(log?.entryDate || log?.createdAt || "").trim();
+    if (!raw) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const [y, m, d] = raw.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function getCurrentMonthExpense(history) {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    return (history || []).reduce((sum, log) => {
+      const d = getLogDate(log);
+      if (!d) return sum;
+      if (d.getMonth() !== month || d.getFullYear() !== year) return sum;
+      if (String(log.type || "").toUpperCase() !== "OUTWARD") return sum;
+      return sum + (Number(log.amount) || 0);
+    }, 0);
+  }
+
+  function getCurrentMonthLabel() {
+    return new Intl.DateTimeFormat("en-IN", { month: "short" }).format(new Date());
+  }
+
+  function setTransactionHeading(location, history) {
+    const expense = getCurrentMonthExpense(history);
+    const month = getCurrentMonthLabel();
+    pettyCashHeadingEl.innerHTML = `Petty Cash - ${location} <span class="loan-highlight expense" style="margin-left: 8px;">${month} - ${formatINRCurrency(expense)}</span>`;
+  }
 
   function formatDateTime(value) {
       if (!value) return "-";
@@ -175,7 +248,7 @@
     {
       title: "Current Balance",
       field: "balance",
-      formatter: c => `₹ ${c.getValue()}`
+      formatter: (c) => formatINRCurrency(c.getValue())
     },
     { title: "Status", field: "status" },
     {
@@ -199,8 +272,7 @@
         table.setColumns(logColumns);
         table.replaceData(history);
 
-        document.querySelector(".indi-head h1").innerText =
-          `Petty Cash — ${location}`;
+        setTransactionHeading(location, history);
         document.getElementById("backToSnapshot").style.display = "inline-flex";
       }
     },
@@ -210,18 +282,17 @@
   const logColumns = [
     { title: "From", field: "from", widthGrow: 1, widthShrink: 1 },
     { title: "To", field: "to", widthGrow: 1, widthShrink: 1 },
-    { title: "Opening Balance", field: "openingBalance", widthGrow: 1, widthShrink: 1, responsive: 4 },
+    { title: "Opening Balance", field: "openingBalance", widthGrow: 1, widthShrink: 1, responsive: 4, formatter: (c) => formatINRCurrency(c.getValue()) },
     {
       title: "Amount",
       field: "amount",
       formatter: c => {
         const r = c.getRow().getData();
         return r.type === "OUTWARD"
-          ? `- ₹${c.getValue()}`
-          : `+ ₹${c.getValue()}`;
+          ? `- ${formatINRCurrency(c.getValue())}` : `+ ${formatINRCurrency(c.getValue())}`;
       },
     },
-    { title: "Closing Balance", field: "closingBalance", widthGrow: 1, widthShrink: 1, responsive: 5 },
+    { title: "Closing Balance", field: "closingBalance", widthGrow: 1, widthShrink: 1, responsive: 5, formatter: (c) => formatINRCurrency(c.getValue()) },
     { title: "Type", field: "type", widthGrow: 1, widthShrink: 1, responsive: 3 },
     { title: "Reason", field: "reason", widthGrow: 2, widthShrink: 1, responsive: 6 },
     {
@@ -266,7 +337,7 @@
   document.getElementById("backToSnapshot").addEventListener("click", () => {
     table.setColumns(baseColumns);
     table.replaceData(snapshotData);
-    document.querySelector(".indi-head h1").innerText = "Petty Cash";
+    setSnapshotHeading();
     document.getElementById("backToSnapshot").style.display = "none";
     currentLocation = null;
   });
@@ -342,6 +413,7 @@
     const res = await fetch(`/fairdesk/pettycash/logs/${currentLocation}`);
     const { history } = await res.json();
     table.replaceData(history);
+    setTransactionHeading(currentLocation, history);
   }
 
   async function submitEditLog() {
@@ -452,6 +524,8 @@
   txnType.addEventListener("change", syncFields);
   syncFields(); // run once on load
 </script>
+
+
 
 
 

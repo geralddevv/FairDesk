@@ -57,7 +57,7 @@
       >
         <i class="fa-solid fa-arrow-left" style="color: #fff"></i>
       </button>
-      <h1>Advance</h1>
+      <h1 id="advanceHeading">Advance</h1>
     </span>
 
     <div class="download-selector" id="downloadSelector">
@@ -154,6 +154,24 @@
   const tableData = <%- JSON.stringify(jsonData) %>;
   const snapshotData = [...tableData];
   let currentEmployeeId = null;
+  const advanceHeadingEl = document.getElementById("advanceHeading");
+  function formatINRCurrency(value) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0);
+  }
+
+  function getTotalAdvanceOutstanding() {
+    return (snapshotData || []).reduce((sum, row) => sum + (Number(row.currentBalance) || 0), 0);
+  }
+
+  function setAdvanceSnapshotHeading() {
+    const total = getTotalAdvanceOutstanding();
+    advanceHeadingEl.innerHTML = `Advance <span class="loan-highlight active" style="margin-left: 8px;">Total: ${formatINRCurrency(total)}</span>`;
+  }
 
   const baseColumns = [
     {
@@ -183,20 +201,20 @@
       }
     },
     { title: "Employee ID", field: "empId" },
-    { title: "Current Balance", field: "currentBalance" },
+    { title: "Current Balance", field: "currentBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
     { title: "Status", field: "status" },
     { title: "Last Updated", field: "updatedAt" },
   ];
 
   const logColumns = [
-    { title: "Employee Name", field: "employeeName" },
-    { title: "Employee ID", field: "empId" },
-    { title: "Opening Balance", field: "openingBalance" },
-    { title: "Amount", field: "amount" },
-    { title: "Closing Balance", field: "closingBalance" },
-    { title: "Type", field: "type" },
-    { title: "Source", field: "source" },
-    { title: "Date", field: "date" },
+    { title: "Employee Name", field: "employeeName", headerFilter: "input", headerFilterPlaceholder: "Search name" },
+    { title: "Employee ID", field: "empId", headerFilter: "input", headerFilterPlaceholder: "Search ID" },
+    { title: "Opening Balance", field: "openingBalance", formatter: (c) => formatINRCurrency(c.getValue()), headerFilter: "input", headerFilterPlaceholder: "Search opening" },
+    { title: "Amount", field: "amount", formatter: (c) => formatINRCurrency(c.getValue()), headerFilter: "input", headerFilterPlaceholder: "Search amount" },
+    { title: "Closing Balance", field: "closingBalance", formatter: (c) => formatINRCurrency(c.getValue()), headerFilter: "input", headerFilterPlaceholder: "Search closing" },
+    { title: "Type", field: "type", headerFilter: "input", headerFilterPlaceholder: "Search type" },
+    { title: "Source", field: "source", headerFilter: "input", headerFilterPlaceholder: "Search source" },
+    { title: "Date", field: "date", headerFilter: "input", headerFilterPlaceholder: "Search date" },
     {
       title: "Actions",
       width: 90,
@@ -250,10 +268,10 @@
 
     const statusClass = summary.status.toLowerCase();
 
-    document.querySelector(".indi-head h1").innerHTML =
+    advanceHeadingEl.innerHTML =
       `Advance — Outstanding:
        <span class="loan-highlight ${statusClass}">
-         ₹${summary.currentBalance} (${summary.status})
+         ${formatINRCurrency(summary.currentBalance)} (${summary.status})
        </span>`;
 
     document.getElementById("backToSnapshot").style.display = "inline-flex";
@@ -266,7 +284,7 @@
       table.replaceData(snapshotData);
       document.body.classList.remove("no-underline");
 
-      document.querySelector(".indi-head h1").innerText = "Advance";
+      setAdvanceSnapshotHeading();
       document.getElementById("backToSnapshot").style.display = "none";
       currentEmployeeId = null;
   });
@@ -326,10 +344,10 @@
 
     const summary = data.summary || { currentBalance: 0, status: "CLOSED" };
     const statusClass = summary.status.toLowerCase();
-    document.querySelector(".indi-head h1").innerHTML =
+    advanceHeadingEl.innerHTML =
       `Advance - Outstanding:
        <span class="loan-highlight ${statusClass}">
-         Rs.${summary.currentBalance} (${summary.status})
+         ${formatINRCurrency(summary.currentBalance)} (${summary.status})
        </span>`;
   }
 
@@ -385,5 +403,10 @@
       alert("Failed to delete advance entry.");
     }
   }
+
+  setAdvanceSnapshotHeading();
 </script>
+
+
+
 
