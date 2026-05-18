@@ -4267,6 +4267,32 @@ router.get("/client/details/:userId", async (req, res) => {
   }
 });
 
+router.post("/client/details/:userId/delete", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await Username.findById(userId).lean();
+    if (!user) {
+      req.flash("notification", "User not found");
+      return res.redirect("/fairdesk/master/view");
+    }
+
+    await Client.updateOne(
+      { clientId: user.clientId },
+      { $pull: { users: user._id } },
+    );
+
+    await Username.deleteOne({ _id: user._id });
+
+    req.flash("notification", `User ${user.userName} deleted successfully`);
+    return res.redirect("/fairdesk/master/view");
+  } catch (err) {
+    console.error("USER DELETE ERROR:", err);
+    req.flash("notification", "Failed to delete user");
+    return res.redirect(`/fairdesk/client/details/${req.params.userId}`);
+  }
+});
+
 // ----------------------------------Master display---------------------------------->
 // route for details page.
 router.get("/master/view", async (req, res) => {

@@ -504,4 +504,44 @@
   <div title="Edit User" class="fab-item" onclick="window.location.href='/fairdesk/form/edit/user/<%= userData._id %>'" style="cursor: pointer;">
     <i class="fa-solid fa-pen"></i>
   </div>
+  <div class="fab-divider"></div>
+  <div title="Delete User" class="fab-item" style="cursor:pointer;" onclick="confirmDeleteUser()">
+    <i class="fa-solid fa-trash"></i>
+  </div>
 </div>
+
+<form id="deleteUserForm" method="POST" action="/fairdesk/client/details/<%= userData._id %>/delete" style="display:none;"></form>
+<div class="logout-modal" id="deleteUserModal" aria-hidden="true">
+  <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteUserTitle">
+    <h2 class="logout-title" id="deleteUserTitle">Delete user?</h2>
+    <p class="logout-text">This will permanently delete this user and remove it from the client.</p>
+    <div class="logout-actions">
+      <button class="logout-btn" type="button" id="deleteUserCancel">Cancel</button>
+      <button class="logout-btn primary" type="button" id="deleteUserConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+<script>
+  const deleteUserModal = document.getElementById("deleteUserModal");
+  const deleteUserCancel = document.getElementById("deleteUserCancel");
+  const deleteUserConfirm = document.getElementById("deleteUserConfirm");
+
+  function confirmDeleteUser() {
+    deleteUserModal.classList.add("show");
+    deleteUserModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeDeleteUserModal() {
+    deleteUserModal.classList.remove("show");
+    deleteUserModal.setAttribute("aria-hidden", "true");
+  }
+
+  deleteUserCancel.addEventListener("click", closeDeleteUserModal);
+  deleteUserModal.addEventListener("click", (e) => {
+    if (e.target === deleteUserModal) closeDeleteUserModal();
+  });
+  deleteUserConfirm.addEventListener("click", () => {
+    closeDeleteUserModal();
+    document.getElementById("deleteUserForm").submit();
+  });
+</script>
