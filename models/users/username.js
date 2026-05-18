@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 const { Schema } = mongoose;
 
+const locationDetailSchema = new mongoose.Schema(
+  {
+    userLocation: { type: String, required: true },
+    dispatchAddress: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema({
   clientId: { type: String, required: true },
   clientName: { type: String, required: true },
@@ -13,6 +21,8 @@ const userSchema = new mongoose.Schema({
   userContact: { type: String, required: true },
   userEmail: { type: String, required: true },
   dispatchAddress: { type: String, required: true },
+  locationsCount: { type: Number, default: 1 },
+  locationDetails: [locationDetailSchema],
   transportName: { type: String },
   transportContact: { type: String },
   dropLocation: { type: String },

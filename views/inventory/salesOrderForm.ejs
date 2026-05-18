@@ -712,26 +712,14 @@
         });
 
         // ================= PRE-SELECT LOCATION =================
-        // 1) Edit mode: prefer existing source location
-        if (orderToEdit && orderToEdit.sourceLocation) {
-          const editLocation = normalizeLocationName(orderToEdit.sourceLocation);
-          const locRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${editLocation}"]`);
-          if (locRadio) {
-            locRadio.checked = true;
-            locRadio.dispatchEvent(new Event('change'));
-          }
-        } else {
-          // 2) Create mode: preselect user's location if available
-          const userLocationValue = normalizeLocationName(locationSelect?.value || "");
-          if (userLocationValue) {
-            const userLocRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${userLocationValue}"]`);
-            if (userLocRadio) {
-              userLocRadio.checked = true;
-              userLocRadio.dispatchEvent(new Event('change'));
-            } else {
-              // Fallback if stock widget doesn't contain this location
-              syncSourceLocation(userLocationValue);
-            }
+        const selectedLocationValue = normalizeLocationName(locationSelect?.value || currentSourceLocation || sourceLocationInput.value || "");
+        if (selectedLocationValue) {
+          const selectedLocRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${selectedLocationValue}"]`);
+          if (selectedLocRadio) {
+            selectedLocRadio.checked = true;
+            selectedLocRadio.dispatchEvent(new Event("change"));
+          } else {
+            syncSourceLocation(selectedLocationValue);
           }
         }
 
@@ -750,21 +738,21 @@
 
   function checkStockWarning() {
     const qty = parseInt(quantityInput.value) || 0;
-    const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
-    
-    if (!selectedRadio || qty <= 0) {
+    const selectedLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || locationSelect.value || "");
+
+    if (!selectedLocation || qty <= 0) {
       hideStockWarning();
       return;
     }
-    
-    const availableQty = parseInt(selectedRadio.dataset.qty) || 0;
+
+    const availableQty = getAvailableStockForLocation(selectedLocation);
     const warningDiv = document.getElementById("stock-warning");
     const warningText = document.getElementById("stock-warning-text");
 
     const isConfirmPage = window.location.pathname.includes('/sales/order/confirm');
 
     if (qty > availableQty && !isConfirmPage) {
-      warningText.innerHTML = `Ordered quantity <b>${qty}</b> exceeds available stock <b>${availableQty}</b> at ${selectedRadio.value}. Order can still be created.`;
+      warningText.innerHTML = `Ordered quantity <b>${qty}</b> exceeds available stock <b>${availableQty}</b> at ${selectedLocation}. Order can still be created.`;
       warningDiv.style.display = "block";
     } else {
       hideStockWarning();
@@ -817,6 +805,8 @@
 
   locationSelect.addEventListener("change", () => {
     syncSourceLocation(locationSelect.value);
+    selectStockLocation(locationSelect.value);
+    checkStockWarning();
   });
 
   // 3. User → auto-fill location, reset + load items
@@ -858,12 +848,10 @@
   function getSelectedStockLocation() {
     const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
     const selectedChipLocation = normalizeLocationName(document.querySelector(".location-option.selected")?.dataset?.location || "");
-    const radioLocation = normalizeLocationName(selectedRadio?.value || "");
     const fallbackLocation = normalizeLocationName(currentSourceLocation || sourceLocationInput.value || locationSelect.value || selectedChipLocation || "");
     return {
       selectedRadio,
-      radioLocation,
-      selectedLocation: radioLocation && radioLocation !== "ALL" ? radioLocation : fallbackLocation,
+      selectedLocation: fallbackLocation,
     };
   }
 
@@ -955,11 +943,11 @@
     const itemType = itemTypeSelect.value;
     const qty = parseInt(quantityInput.value) || 0;
     const selectedOption = itemChoices.getValue();
-    const { selectedRadio, radioLocation, selectedLocation } = getSelectedStockLocation();
+    const { selectedLocation } = getSelectedStockLocation();
     
-    // Check Source Location - ALL is not allowed for stock-based items
+    // Check Source Location - dropdown selection is the source of truth
     if (itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA" || itemType === "TTR") {
-      if (radioLocation === "ALL") {
+      if (selectedLocation === "ALL") {
         showToast("Location cannot be ALL. Please select a specific location.", "error");
         setSubmittingState(false);
         return false;
@@ -974,7 +962,7 @@
 
     const dispatchQty = confirmMode ? (parseInt(confirmQuantityInput?.value) || 0) : qty;
     if (confirmMode) {
-      const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || selectedLocation || selectedRadio?.value || "");
+      const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || locationSelect.value || "");
       const availableQty = getAvailableStockForLocation(confirmLocation);
       if (dispatchQty > availableQty) {
         showToast("Cannot dispatch, Not enought stocks", "error");

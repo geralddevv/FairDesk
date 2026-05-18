@@ -14,6 +14,10 @@
     ownerMobNo: document.querySelector("#owner-mob-no"),
     clientNameSelect: document.getElementById("userform-client-name"),
     userContactNo: document.querySelector("#user-contact-no"),
+    locationCountInput: document.getElementById("locations-count"),
+    locationContainer: document.getElementById("locations-details"),
+    locationMinusBtn: document.getElementById("locations-minus"),
+    locationPlusBtn: document.getElementById("locations-plus"),
   };
 
   // Initialize Choices only once
@@ -67,6 +71,9 @@
     }
     if (dom.clientAccountHeadSelect) {
       initAccountHeadChoices();
+    }
+    if (dom.locationCountInput && dom.locationContainer) {
+      initLocationRepeater();
     }
 
     // Set up MutationObserver to watch for display changes
@@ -178,6 +185,66 @@
     } catch (e) {
       console.error("Account head Choices initialization failed:", e);
     }
+  }
+
+  function normalizeLocationCount(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return 1;
+    return Math.min(parsed, 20);
+  }
+
+  function setLocationCount(value) {
+    if (!dom.locationCountInput || !dom.locationContainer) return;
+    const safeCount = normalizeLocationCount(value);
+    dom.locationCountInput.value = String(safeCount);
+    renderLocationRows(safeCount);
+  }
+
+  function renderLocationRows(count) {
+    if (!dom.locationContainer) return;
+
+    const safeCount = normalizeLocationCount(count);
+    dom.locationContainer.innerHTML = "";
+
+    for (let i = 0; i < safeCount; i += 1) {
+      dom.locationContainer.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="location-row">
+            <input
+              type="text"
+              class="form-control input-tag"
+              name="locationDetails[${i}][userLocation]"
+              placeholder="Enter Location"
+              aria-label="Location ${i + 1}"
+              required
+            />
+            <input
+              type="text"
+              class="form-control input-tag"
+              name="locationDetails[${i}][dispatchAddress]"
+              placeholder="Enter Address"
+              aria-label="Address ${i + 1}"
+              required
+            />
+          </div>
+        `,
+      );
+    }
+  }
+
+  function initLocationRepeater() {
+    setLocationCount(dom.locationCountInput.value || 1);
+
+    dom.locationMinusBtn?.addEventListener("click", () => {
+      const current = normalizeLocationCount(dom.locationCountInput.value || 1);
+      setLocationCount(Math.max(1, current - 1));
+    });
+
+    dom.locationPlusBtn?.addEventListener("click", () => {
+      const current = normalizeLocationCount(dom.locationCountInput.value || 1);
+      setLocationCount(Math.min(20, current + 1));
+    });
   }
 
   function handleClientChange(clientName) {

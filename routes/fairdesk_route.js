@@ -204,6 +204,35 @@ function normalizeUserContact(value) {
   return normalizeUserPart(value).replace(/\D/g, "");
 }
 
+function normalizeLocationDetails(rawLocationDetails, fallbackLocation, fallbackAddress) {
+  const source = Array.isArray(rawLocationDetails)
+    ? rawLocationDetails
+    : rawLocationDetails && typeof rawLocationDetails === "object"
+      ? Object.values(rawLocationDetails)
+      : [];
+
+  const locations = source
+    .map((entry) => {
+      const userLocation = String(entry?.userLocation ?? entry?.location ?? "").trim();
+      const dispatchAddress = String(entry?.dispatchAddress ?? entry?.address ?? "").trim();
+
+      if (!userLocation && !dispatchAddress) return null;
+
+      return { userLocation, dispatchAddress };
+    })
+    .filter(Boolean);
+
+  if (!locations.length) {
+    const userLocation = String(fallbackLocation || "").trim();
+    const dispatchAddress = String(fallbackAddress || "").trim();
+    if (userLocation || dispatchAddress) {
+      locations.push({ userLocation, dispatchAddress });
+    }
+  }
+
+  return locations;
+}
+
 function buildUserSignature(source, clientId) {
   return [
     normalizeClientPart(clientId),
@@ -342,6 +371,20 @@ router.post("/form/user", async (req, res) => {
     const userEmail = String(req.body.userEmail || "")
       .trim()
       .toLowerCase();
+    const locationDetails = normalizeLocationDetails(
+      req.body.locationDetails,
+      req.body.userLocation,
+      req.body.dispatchAddress,
+    );
+
+    if (!locationDetails.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Please add at least one location and address",
+      });
+    }
+
+    const primaryLocation = locationDetails[0];
     const userSignature = hashSignature(buildUserSignature(req.body, clientId));
 
     // Prevent duplicates only on full identity tuple within the same client.
@@ -373,6 +416,10 @@ router.post("/form/user", async (req, res) => {
       clientType: client.clientType,
       hoLocation: client.hoLocation,
       accountHead: client.accountHead,
+      userLocation: primaryLocation.userLocation,
+      dispatchAddress: primaryLocation.dispatchAddress,
+      locationsCount: locationDetails.length,
+      locationDetails,
       userName,
       userContact,
       userEmail,
