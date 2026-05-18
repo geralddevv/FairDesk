@@ -414,4 +414,26 @@ router.post("/pos-roll-binding/edit/:id", async (req, res) => {
   }
 });
 
+router.post("/pos-roll-binding/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const binding = await PosRollBinding.findById(id).select("userId").lean();
+
+    if (!binding) {
+      req.flash("notification", "POS Roll binding not found");
+      return res.redirect("back");
+    }
+
+    await PosRollBinding.deleteOne({ _id: id });
+    await Username.updateOne({ _id: binding.userId }, { $pull: { posRoll: id } });
+
+    req.flash("notification", "POS Roll binding removed successfully!");
+    return res.redirect(`/fairdesk/pos-roll/view/${binding.userId}`);
+  } catch (err) {
+    console.error("POS ROLL BINDING DELETE ERROR:", err);
+    req.flash("notification", "Failed to remove POS Roll binding");
+    return res.redirect("back");
+  }
+});
+
 export default router;

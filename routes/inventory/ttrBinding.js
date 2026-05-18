@@ -1091,4 +1091,26 @@ router.post("/ttr-binding/edit/:id", async (req, res) => {
   }
 });
 
+router.post("/ttr-binding/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const binding = await TtrBinding.findById(id).select("userId").lean();
+
+    if (!binding) {
+      req.flash("notification", "TTR binding not found");
+      return res.redirect("back");
+    }
+
+    await TtrBinding.deleteOne({ _id: id });
+    await Username.updateOne({ _id: binding.userId }, { $pull: { ttr: id } });
+
+    req.flash("notification", "TTR binding removed successfully!");
+    return res.redirect(`/fairdesk/ttr/view/${binding.userId}`);
+  } catch (err) {
+    console.error("TTR BINDING DELETE ERROR:", err);
+    req.flash("notification", "Failed to remove TTR binding");
+    return res.redirect("back");
+  }
+});
+
 export default router;

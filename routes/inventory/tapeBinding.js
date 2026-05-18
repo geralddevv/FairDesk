@@ -400,4 +400,26 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
   }
 });
 
+router.post("/tape-binding/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const binding = await TapeBinding.findById(id).select("userId").lean();
+
+    if (!binding) {
+      req.flash("notification", "Tape binding not found");
+      return res.redirect("back");
+    }
+
+    await TapeBinding.deleteOne({ _id: id });
+    await Username.updateOne({ _id: binding.userId }, { $pull: { tape: id } });
+
+    req.flash("notification", "Tape binding removed successfully!");
+    return res.redirect(`/fairdesk/tape/view/${binding.userId}`);
+  } catch (err) {
+    console.error("TAPE BINDING DELETE ERROR:", err);
+    req.flash("notification", "Failed to remove Tape binding");
+    return res.redirect("back");
+  }
+});
+
 export default router;

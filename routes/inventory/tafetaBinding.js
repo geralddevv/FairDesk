@@ -443,4 +443,26 @@ router.post("/tafeta-binding/edit/:id", async (req, res) => {
   }
 });
 
+router.post("/tafeta-binding/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const binding = await TafetaBinding.findById(id).select("userId").lean();
+
+    if (!binding) {
+      req.flash("notification", "Tafeta binding not found");
+      return res.redirect("back");
+    }
+
+    await TafetaBinding.deleteOne({ _id: id });
+    await Username.updateOne({ _id: binding.userId }, { $pull: { tafeta: id } });
+
+    req.flash("notification", "Tafeta binding removed successfully!");
+    return res.redirect(`/fairdesk/tafeta/view/${binding.userId}`);
+  } catch (err) {
+    console.error("TAFETA BINDING DELETE ERROR:", err);
+    req.flash("notification", "Failed to remove Tafeta binding");
+    return res.redirect("back");
+  }
+});
+
 export default router;
