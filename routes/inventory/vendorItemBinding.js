@@ -13,8 +13,8 @@ const router = express.Router();
 const ITEM_CONFIGS = {
   tape: {
     key: "tape",
-    title: "FS Tape",
-    heading: "FS Tape",
+    title: "Vendor Tape",
+    heading: "Vendor Tape",
     template: "inventory/tapeVendorBinding.ejs",
     redirectTo: "/fairdesk/vendor/coordinator/view",
     bindingModel: VendorTapeBinding,
@@ -51,8 +51,8 @@ const ITEM_CONFIGS = {
   },
   pos: {
     key: "pos",
-    title: "FS POS Roll",
-    heading: "FS POS Roll",
+    title: "Vendor POS Roll",
+    heading: "Vendor POS Roll",
     template: "inventory/posRollVendorBinding.ejs",
     redirectTo: "/fairdesk/vendor/coordinator/view",
     bindingModel: VendorPosRollBinding,
@@ -89,8 +89,8 @@ const ITEM_CONFIGS = {
   },
   tafeta: {
     key: "tafeta",
-    title: "FS Tafeta",
-    heading: "FS Tafeta",
+    title: "Vendor Tafeta",
+    heading: "Vendor Tafeta",
     template: "inventory/tafetaVendorBinding.ejs",
     redirectTo: "/fairdesk/vendor/coordinator/view",
     bindingModel: VendorTafetaBinding,

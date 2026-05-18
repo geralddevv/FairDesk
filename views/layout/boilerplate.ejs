@@ -88,10 +88,18 @@
         border: 1px solid rgba(255, 255, 255, 0.12);
       }
 
+      .nav-opt-wrap > .nav-items:first-child {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
       .side-nav:not(.nav-panel-toggle) .nav-opt-wrap {
         width: 40px;
         background-color: transparent;
         border: none;
+      }
+      
+      .side-nav:not(.nav-panel-toggle) .nav-opt-wrap > .nav-items:first-child {
+        border-bottom: none;
       }
 
       .nav-items {
@@ -320,26 +328,10 @@
         <div class="nav-opt-wrap">
           <div title="View" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">View</p>
+            <p class="nav-items-para">Items View</p>
           </div>
 
           <div class="nav-labels-opt">
-            <div title="Client View" class="<%= title === 'Client View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/client/view'" style="border-top: 2px solid #ffffff9d;" >
-              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
-              <p class="nav-items-para">Client List</p>
-            </div>            
-            <div title="Client Details" class="<%= title === 'Client Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/master/view'" >
-              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
-              <p class="nav-items-para">Client Details</p>
-            </div>
-            <div title="Vendor List" class="<%= title === 'Vendor Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/vendor/view'" >
-              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
-              <p class="nav-items-para">Vendor List</p>
-            </div>
-            <div title="Vendor Details" class="<%= title === 'Vendor Coordinator View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/vendor/coordinator/view'" >
-              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
-              <p class="nav-items-para">Vendor Details</p>
-            </div>
             <div title="Tape View" class="<%= title === 'Tape View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tape/view'" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
@@ -361,6 +353,112 @@
 
         <% } %>
 
+        <% if (canView) { %>
+        <div class="nav-opt-wrap">
+          <div title="Client" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Client</p>
+          </div>
+          
+          <div class="nav-labels-opt">
+            <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
+              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">View</p>
+            </div>          
+            <div title="Client View" class="<%= title === 'Client View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/client/view'">
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Client List</p>
+            </div>            
+            <div title="Client Details" class="<%= title === 'Client Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/master/view'">
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Client Details</p>
+            </div>
+
+            <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
+              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">Entry</p>
+            </div>   
+          
+            <div title="Client Data" class="<%= title === 'Client Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/client'">
+              <i class="fa-solid fa-user" style="color: #ffffff"></i>
+              <p class="nav-items-para">Client Data</p>
+            </div>
+
+            <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
+              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">Binding</p>
+            </div>
+          
+            <div title="Client TTR" class="<%= title === 'Client TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr-binding'">
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>            
+            <div title="Client Tape" class="<%= title === 'Client Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-binding'" >
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div>
+            <div title="Client POS Roll" class="<%= title === 'Client POS Roll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/pos-roll-binding'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>
+            <div title="Client Tafeta" class="<%= title === 'Client Tafeta' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tafeta-binding'" style="border-bottom: 2px solid #ffffff9d; margin-bottom: 2px;">
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+        <% if (canView) { %>
+        <div class="nav-opt-wrap">
+          <div title="Vendor" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Vendor</p>
+          </div>
+          
+          <div class="nav-labels-opt">
+            <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
+              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">View</p>
+            </div>          
+            <div title="Vendor List" class="<%= title === 'Vendor Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/vendor/view'">
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Vendor List</p>
+            </div>
+            <div title="Vendor Details" class="<%= title === 'Vendor Coordinator View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/vendor/coordinator/view'">
+              <i class="fa-solid fa-eye" style="color: #ffffff"></i>
+              <p class="nav-items-para">Vendor Details</p>
+            </div>
+
+            <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
+              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">Entry</p>
+            </div>   
+          
+            <div title="Vendor Data" class="<%= title === 'Vendor Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor'">
+              <i class="fa-solid fa-shop" style="color: #ffffff"></i>
+              <p class="nav-items-para">Vendor Data</p>
+            </div>
+
+            <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
+              <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">Binding</p>
+            </div>
+          
+            <div title="Vendor TTR" class="<%= title === 'Vendor TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr-vendor-binding'">
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>
+            <div title="Vendor Tape" class="<%= title === 'Vendor Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/tape'" >
+              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tape</p>
+            </div>
+            <div title="Vendor POS Roll" class="<%= title === 'Vendor POS Roll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/pos'" >
+              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
+              <p class="nav-items-para">POS Roll</p>
+            </div>
+            <div title="Vendor Tafeta" class="<%= title === 'Vendor Tafeta' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/tafeta'" style="border-bottom: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
+              <p class="nav-items-para">Tafeta</p>
+            </div>
+          </div>
+        </div>
+        <% } %>    
+
         <% if (canAdmin) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
@@ -373,16 +471,6 @@
               <i class="fa-solid fa-address-card" style="color: #ffffff"></i>
               <p class="nav-items-para">Labels</p>
             </div> -->
-           
-            <div title="Client Data" class="<%= title === 'Client Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/client'" style="border-top: 2px solid #ffffff9d;" >
-              <i class="fa-solid fa-user" style="color: #ffffff"></i>
-              <p class="nav-items-para">Client Data</p>
-            </div>
-
-            <div title="Vendor Data" class="<%= title === 'Vendor Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor'" >
-              <i class="fa-solid fa-shop" style="color: #ffffff"></i>
-              <p class="nav-items-para">Vendor Data</p>
-            </div>
 
             <!-- <div title="Tape Master" class="<%= title === 'Tape Master' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-master'" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
@@ -425,58 +513,6 @@
           </div>
         </div>
         
-        <div class="nav-opt-wrap">
-          <div title="Item Binding" class="view-toggle nav-items">
-            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Vendor Binding</p>
-          </div>
-
-          <div class="nav-labels-opt">
-            <div title="FS TTR" class="<%= title === 'FS TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr-vendor-binding'" style="border-top: 2px solid #ffffff9d;">
-              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
-              <p class="nav-items-para">TTR</p>
-            </div>
-            <div title="FS Tape" class="<%= title === 'FS Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/tape'" >
-              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
-              <p class="nav-items-para">Tape</p>
-            </div>
-            <div title="FS POS Roll" class="<%= title === 'FS POS Roll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/pos'" >
-              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
-              <p class="nav-items-para">POS Roll</p>
-            </div>
-            <div title="FS Tafeta" class="<%= title === 'FS Tafeta' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor-item-binding/tafeta'" style="border-bottom: 2px solid #ffffff9d;">
-              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
-              <p class="nav-items-para">Tafeta</p>
-            </div>
-          </div>
-        </div>        
-
-        <div class="nav-opt-wrap">
-          <div title="Item Binding" class="view-toggle nav-items">
-            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Item Binding</p>
-          </div>
-
-          <div class="nav-labels-opt">
-            <div title="Client TTR" class="<%= title === 'Client TTR' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/ttr-binding'" style="border-top: 2px solid #ffffff9d;">
-              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
-              <p class="nav-items-para">TTR</p>
-            </div>            
-            <div title="Client Tape" class="<%= title === 'Client Tape' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tape-binding'" >
-              <i class="fa-solid fa-tape" style="color: #ffffff"></i>
-              <p class="nav-items-para">Tape</p>
-            </div>
-            <div title="Client POS Roll" class="<%= title === 'Client POS Roll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/pos-roll-binding'" >
-              <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
-              <p class="nav-items-para">POS Roll</p>
-            </div>
-            <div title="Client Tafeta" class="<%= title === 'Client Tafeta' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/tafeta-binding'" style="border-bottom: 2px solid #ffffff9d;">
-              <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
-              <p class="nav-items-para">Tafeta</p>
-            </div>
-          </div>
-        </div>
-
         <!-- <div class="nav-opt-wrap">
           <div title="Care" class="care-toggle nav-items">
             <i class="fa-solid fa-circle-chevron-down" style="color: #ffffff"></i>
@@ -523,8 +559,8 @@
               <p class="nav-items-para">Sales Calculator</p>
             </div>
           </div> -->
-
         <% } %>
+
         <% if (isAdmin || isHr) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">

@@ -175,7 +175,7 @@ router.get("/form/ttr-vendor-binding", async (req, res) => {
     ]);
 
     res.render("inventory/ttrVendorBinding.ejs", {
-      title: "FS TTR",
+      title: "Vendor TTR",
       vendors,
       previewSampleId,
       previewTtrProductId: previewSampleId,
