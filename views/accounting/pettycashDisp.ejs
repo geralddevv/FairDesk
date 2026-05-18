@@ -3,11 +3,7 @@
 <!-- ================= TABULATOR CSS ================= -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
-<style>
-  #recent-transactions-table .tabulator .tabulator-tableholder {
-    overflow-x: hidden !important;
-  }
-</style>
+<style></style>
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <div class="indi-head">
@@ -45,12 +41,6 @@
   <div id="master-table"></div>
 </div>
 
-<div class="main-content" style="padding-top: 0;">
-  <div class="span-full form-subheading" style="margin: 8px 0 10px;">
-    <h1 style="margin: 0;">Recent Transactions</h1>
-  </div>
-  <div id="recent-transactions-table"></div>
-</div>
 
 <!-- ===== EDIT LOG DIALOG ===== -->
 <div
@@ -136,8 +126,7 @@
 
 <script>
   const tableData = <%- JSON.stringify(jsonData) %>;
-  const allLogsData = <%- JSON.stringify(allLogs || []) %>;
-  const snapshotData = [...tableData];
+    const snapshotData = [...tableData];
   let currentLocation = null;
 
   function formatDateTime(value) {
@@ -219,9 +208,9 @@
 
   /* ===== LOG COLUMNS ===== */
   const logColumns = [
-    { title: "From", field: "from" },
-    { title: "To", field: "to" },
-    { title: "Opening Balance", field: "openingBalance", minWidth: 110, responsive: 4 },
+    { title: "From", field: "from", widthGrow: 1, widthShrink: 1 },
+    { title: "To", field: "to", widthGrow: 1, widthShrink: 1 },
+    { title: "Opening Balance", field: "openingBalance", widthGrow: 1, widthShrink: 1, responsive: 4 },
     {
       title: "Amount",
       field: "amount",
@@ -232,9 +221,9 @@
           : `+ ₹${c.getValue()}`;
       },
     },
-    { title: "Closing Balance", field: "closingBalance", minWidth: 110, responsive: 5 },
-    { title: "Type", field: "type", minWidth: 80, responsive: 3 },
-    { title: "Reason", field: "reason", minWidth: 130, responsive: 6 },
+    { title: "Closing Balance", field: "closingBalance", widthGrow: 1, widthShrink: 1, responsive: 5 },
+    { title: "Type", field: "type", widthGrow: 1, widthShrink: 1, responsive: 3 },
+    { title: "Reason", field: "reason", widthGrow: 2, widthShrink: 1, responsive: 6 },
     {
       title: "Date",
       field: "entryDate",
@@ -267,47 +256,10 @@
   const table = new Tabulator("#master-table", {
     data: tableData,
     layout: "fitColumns",
+    columnMinWidth: 0,
     pagination: "local",
     paginationSize: 30,
     columns: baseColumns,
-  });
-
-  const recentColumns = [
-    { title: "Location", field: "location", headerSort: false, width: 70, widthGrow: 1, widthShrink: 1 },
-    { title: "From", field: "from", width: 60, widthGrow: 1, widthShrink: 1 },
-    { title: "To", field: "to", width: 60, widthGrow: 1, widthShrink: 1 },
-    { title: "Opening Balance", field: "openingBalance", width: 80, widthGrow: 1, widthShrink: 1 },
-    {
-      title: "Amount",
-      field: "amount",
-      width: 60,
-      widthGrow: 1,
-      widthShrink: 1,
-      formatter: (c) => {
-        const r = c.getRow().getData();
-        return r.type === "OUTWARD" ? `- â‚¹${c.getValue()}` : `+ â‚¹${c.getValue()}`;
-      },
-    },
-    { title: "Closing Balance", field: "closingBalance", width: 80, widthGrow: 1, widthShrink: 1 },
-    { title: "Type", field: "type", width: 60, widthGrow: 1, widthShrink: 1 },
-    { title: "Reason", field: "reason", width: 90, widthGrow: 2, widthShrink: 1 },
-    {
-      title: "Date",
-      field: "entryDate",
-      width: 80,
-      widthGrow: 1,
-      widthShrink: 1,
-      formatter: (cell) => formatDateOnly(cell.getValue() || cell.getRow().getData().createdAt),
-    },
-  ];
-
-  const recentTable = new Tabulator("#recent-transactions-table", {
-    data: allLogsData,
-    layout: "fitColumns",
-    columnMinWidth: 0,
-    pagination: "local",
-    paginationSize: 10,
-    columns: recentColumns,
   });
 
   /* ===== BACK ===== */
@@ -500,4 +452,6 @@
   txnType.addEventListener("change", syncFields);
   syncFields(); // run once on load
 </script>
+
+
 

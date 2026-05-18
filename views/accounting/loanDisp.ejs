@@ -30,6 +30,11 @@
     background-color: rgba(220, 53, 69, 0.25);
     border-color: rgba(220, 53, 69, 0.8);
   }
+  #master-table {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 </style>
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
@@ -256,14 +261,12 @@
 
     const table = new Tabulator("#master-table", {
       data: tableData,
+      height: "100%",
 
       layout: "fitColumns",
       columnMinWidth: 120,
       resizableColumns: true,
       movableColumns: true,
-
-      pagination: "local",
-      paginationSize: 30,
 
       columns: baseColumns,
     });

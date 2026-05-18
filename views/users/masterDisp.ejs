@@ -45,6 +45,11 @@
         text-align: center;
         vertical-align: middle;
       }
+      #master-table {
+        width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
     </style>
 
     <div class="indi-head">
@@ -147,11 +152,10 @@
     function initTable() {
       table = new Tabulator("#master-table", {
         data: tableData,
+        height: "100%",
         layout: "fitColumns",
         virtualDom: true,
         responsiveLayout: false,
-        pagination: "local",
-        paginationSize: 30,
         initialSort: [{ column: "clientName", dir: "asc" }],
         movableColumns: true,
         placeholder: "No data to display",

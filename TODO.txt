@@ -14,8 +14,8 @@ add a edit button in the pending page to edit the items (ttr/tape) ✔️
 show the whole details of the item in the sales order page ✔️
 add a view page for the stocks available in the items ✔️
 seperate vendor and client in navbar ✔️
+add option to delete the things in the platform (added in the user and client bindings) ✔️
 add option to add additional address in the vendor coordinator/client username
-add option to delete the things in the platform
 add that 3 columns active inactive and stocks in details page
 rate and current rate in the sales order
 add seamless scroll in the list

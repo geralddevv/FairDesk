@@ -28,6 +28,11 @@
         .header-action-btn:hover {
           background-color: #e4e4e4;
         }
+        #master-table {
+          width: 100%;
+          flex: 1 1 auto;
+          min-height: 0;
+        }
       </style>
       <div class="indi-head">
         <h1>
@@ -81,10 +86,9 @@
 
     const table = new Tabulator("#master-table", {
       data: tableData,
-      layout: "fitDataTable",
+      height: "100%",
+      layout: "fitColumns",
       responsiveLayout: false,
-      pagination: "local",
-      paginationSize: 30,
       movableColumns: true,
       placeholder: "No data to display",
       columns: [

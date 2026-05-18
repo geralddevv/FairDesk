@@ -44,6 +44,11 @@
         background: #fbfdff;
         font-weight: 600;
       }
+      #master-table {
+        width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
     </style>
 
     <div class="indi-head">
@@ -169,10 +174,9 @@
     // Initialize Tabulator
     const table = new Tabulator("#master-table", {
       data: tableData,
+      height: "100%",
       layout: "fitColumns",
       responsiveLayout: false,
-      pagination: "local",
-      paginationSize: 30,
       movableColumns: true,
       placeholder: "No data to display",
       columns: [...baseColumns, ...stockColumns],
