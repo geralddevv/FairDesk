@@ -3352,7 +3352,7 @@ router.get("/sales/pending", async (req, res) => {
       .populate({
         path: "tapeId",
         select:
-          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
+          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs labelWidth labelHeight",
       })
       .populate({
         path: "tapeBinding",
@@ -3389,7 +3389,7 @@ router.get("/sales/order/confirm", async (req, res) => {
       .populate({
         path: "tapeId",
         select:
-          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
+          "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs labelWidth labelHeight",
       })
       .populate({
         path: "tapeBinding",

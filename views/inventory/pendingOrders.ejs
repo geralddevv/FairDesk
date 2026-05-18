@@ -218,11 +218,27 @@
   function getItemName(row) {
     const tape = row.tapeId;
     if (!tape) return "N/A";
-    if (tape.tapePaperCode) return `${tape.tapePaperCode} ${tape.tapeGsm}gsm`;
-    if (tape.posPaperCode) return `${tape.posPaperCode} ${tape.posGsm}gsm`;
-    if (tape.tafetaMaterialCode) return `${tape.tafetaMaterialCode} ${tape.tafetaGsm}gsm`;
-    if (tape.ttrColor) return `${tape.ttrColor} ${tape.ttrWidth}mm x ${tape.ttrMtrs}m`;
-    if (tape.labelWidth) return `${tape.labelWidth}x${tape.labelHeight}`;
+    if (row.onModel === "Tape") {
+      if (tape.tapePaperCode) return `${tape.tapePaperCode} ${tape.tapeGsm ?? ""}gsm`.trim();
+      if (tape.tapeProductId) return String(tape.tapeProductId);
+    }
+    if (row.onModel === "PosRoll") {
+      if (tape.posPaperCode) return `${tape.posPaperCode} ${tape.posGsm ?? ""}gsm`.trim();
+      if (tape.posProductId) return String(tape.posProductId);
+    }
+    if (row.onModel === "Tafeta") {
+      if (tape.tafetaMaterialCode) return `${tape.tafetaMaterialCode} ${tape.tafetaGsm ?? ""}gsm`.trim();
+      if (tape.tafetaProductId) return String(tape.tafetaProductId);
+    }
+    if (row.onModel === "Ttr") {
+      if (tape.ttrType || tape.ttrWidth || tape.ttrMtrs) {
+        return `${tape.ttrType || ""} ${tape.ttrWidth || ""}mm x ${tape.ttrMtrs || ""}m`.replace(/\s+/g, " ").trim();
+      }
+      if (tape.ttrProductId) return String(tape.ttrProductId);
+    }
+    if (row.onModel === "Label") {
+      if (tape.labelWidth || tape.labelHeight) return `${tape.labelWidth || ""}x${tape.labelHeight || ""}`;
+    }
     return "Unknown Item";
   }
 
@@ -448,15 +464,8 @@
         field: "tapeId",
         width: 200,
         formatter: (cell) => {
-          const tape = cell.getValue();
-          if (!tape) return "N/A";
-
-          let name = "Unknown Item";
-          if (tape.tapePaperCode) name = `${tape.tapePaperCode} ${tape.tapeGsm}gsm`;
-          else if (tape.posPaperCode) name = `${tape.posPaperCode} ${tape.posGsm}gsm`;
-          else if (tape.tafetaMaterialCode) name = `${tape.tafetaMaterialCode} ${tape.tafetaGsm}gsm`;
-          else if (tape.ttrColor) name = `${tape.ttrColor} ${tape.ttrWidth}mm x ${tape.ttrMtrs}m`;
-          else if (tape.labelWidth) name = `${tape.labelWidth}x${tape.labelHeight}`;
+          const row = cell.getRow().getData();
+          const name = getItemName(row);
 
           return `<span style="color:#044A78; font-weight:600; display:block;">
                     ${name}

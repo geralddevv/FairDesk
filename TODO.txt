@@ -4,7 +4,7 @@ total expense in current month in pettycash
 filtering in every column in everything
 if one field is incomplete show red line employee
 pettycash total in heading
-request form - not given
+request form - given (pending)
 
 Am Main:
 solve problem in the ttr stock entry ✔️
@@ -15,8 +15,8 @@ show the whole details of the item in the sales order page ✔️
 add a view page for the stocks available in the items ✔️
 seperate vendor and client in navbar ✔️
 add option to delete the things in the platform (added in the user and client bindings) ✔️
+add seamless scroll in the list ✔️
 add option to add additional address in the vendor coordinator/client username
-add that 3 columns active inactive and stocks in details page
 rate and current rate in the sales order
-add seamless scroll in the list
+add that 3 columns active inactive and stocks in details page
 consider item combo options in the sales order page
