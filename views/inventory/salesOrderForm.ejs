@@ -11,9 +11,53 @@
       <h1><%= typeof confirmMode !== 'undefined' && confirmMode ? 'Dispatch Order' : (typeof orderToEdit !== 'undefined' && orderToEdit ? 'Edit Sales Order' : 'Sales Order') %></h1>
     </div>
 
+    <%
+      const initialLocations = Array.isArray(locations) ? locations : [];
+      const initialStock = typeof stockInfo !== 'undefined' && stockInfo ? stockInfo : null;
+      const initialTotal = initialStock ? (initialStock.totalStock ?? '-') : '-';
+      const initialBooked = initialStock ? (initialStock.booked ?? '-') : '-';
+      const initialBalance = initialStock ? (initialStock.balance ?? '-') : '-';
+      const initialLocationRows = initialLocations.map((locName) => {
+        const normalizedLoc = String(locName || "").trim();
+        const locKey = normalizedLoc.toUpperCase();
+        const locStock = initialStock && Array.isArray(initialStock.locations)
+          ? initialStock.locations.find((entry) => String(entry?.location || "").trim().toUpperCase() === locKey)
+          : null;
+        const locQty = locStock ? (locStock.qty ?? 0) : '-';
+        const locBooked = locStock ? (locStock.booked ?? 0) : '-';
+        const locBalance = locStock ? (locStock.balance ?? 0) : '-';
+        return `
+          <label class="location-option${normalizedLoc === 'ALL' ? ' selected' : ''}" data-location="${normalizedLoc}" data-qty="${locQty}" data-booked="${locBooked}" data-balance="${locBalance}">
+            <input type="radio" name="locationRadio" class="location-radio" value="${normalizedLoc}" data-qty="${locQty}" data-booked="${locBooked}" data-balance="${locBalance}"${normalizedLoc === 'ALL' ? ' checked' : ''} />
+            <span class="location-label">${normalizedLoc}:</span>
+            <span class="location-qty">${locQty}</span>
+          </label>`;
+      }).join("");
+    %>
+
     <!-- Stock Status Bar with Location Selection -->
-    <div id="stock-display" class="span-full" style="display: none; padding: 10px 15px; background: #fff; border: 1px solid #044A78; border-radius: 0.5rem; transition: all 0.3s ease;">
-      <!-- Content populated by JS -->
+    <div id="stock-display" class="span-full" style="display: flex; padding: 10px 15px; background: #fff; border: 1px solid #044A78; border-radius: 0.5rem; transition: all 0.3s ease; overflow-x: auto; overflow-y: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: nowrap; width: max-content; min-width: 100%;">
+        <div style="display: flex; flex-wrap: nowrap; align-items: center; white-space: nowrap;">
+          <label class="location-option selected" data-location="ALL" data-qty="<%= initialTotal %>" data-booked="<%= initialBooked %>" data-balance="<%= initialBalance %>">
+            <input type="radio" name="locationRadio" class="location-radio" value="ALL" data-qty="<%= initialTotal %>" data-booked="<%= initialBooked %>" data-balance="<%= initialBalance %>" checked />
+            <span class="location-label">ALL:</span>
+            <span class="location-qty"><%= initialTotal %></span>
+          </label>
+          <%- initialLocationRows %>
+        </div>
+        <div id="stock-stats" style="display: flex; gap: 14px; align-items: center; flex-wrap: nowrap; white-space: nowrap;">
+          <div style="font-weight: 700; color: #044A78; font-size: 16px;">
+            <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total"><%= initialTotal %></span>
+          </div>
+          <div style="font-weight: 700; color: #d97706; font-size: 16px;" title="Pending Orders">
+            <i class="fa-regular fa-clock"></i> Booked: <span id="stat-booked"><%= initialBooked %></span>
+          </div>
+          <div style="font-weight: 700; color: #059669; font-size: 16px;" title="Available for new orders">
+            <i class="fa-solid fa-scale-balanced"></i> Balance: <span id="stat-balance"><%= initialBalance %></span>
+          </div>
+        </div>
+      </div>
     </div>
     <input type="hidden" name="sourceLocation" id="source-location" />
 
@@ -301,6 +345,7 @@
     width: 16px;
     height: 16px;
     cursor: pointer;
+    border-radius: 999px;
   }
 
   .location-label {
@@ -347,6 +392,42 @@
   const orderForm = document.querySelector("form");
   const submitButton = orderForm?.querySelector('button[type="submit"]');
 
+  if (confirmMode) {
+    const style = document.createElement("style");
+    style.textContent = `
+      .dispatch-location-locked {
+        opacity: 1;
+      }
+      .dispatch-location-locked .location-option {
+        opacity: 0.82;
+        filter: saturate(0.85);
+      }
+      .dispatch-location-locked .location-option.selected {
+        opacity: 1;
+        filter: none;
+      }
+      .dispatch-location-locked .location-option input {
+        cursor: not-allowed;
+      }
+      .dispatch-location-locked .location-option.is-disabled {
+        opacity: 0.7;
+        filter: saturate(0.8);
+      }
+      .dispatch-location-locked .choices__inner,
+      .dispatch-location-locked .choices__input,
+      .dispatch-location-locked .choices__list--single {
+        background: #f3f4f6 !important;
+        color: #6b7280 !important;
+        cursor: not-allowed !important;
+      }
+      .dispatch-location-locked .choices__placeholder {
+        color: #6b7280 !important;
+        opacity: 1 !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function normalizeLocationName(value) {
     return String(value || "")
       .trim()
@@ -359,6 +440,32 @@
     return String(value || "")
       .trim()
       .replace(/\s+/g, " ");
+  }
+
+  function getUserLocationEntries(user) {
+    const details = Array.isArray(user?.locationDetails) ? user.locationDetails : [];
+    const entries = details
+      .map((entry) => {
+        const userLocation = normalizeLocationName(entry?.userLocation || entry?.location || "");
+        if (!userLocation) return null;
+        return {
+          value: userLocation,
+          label: userLocation,
+        };
+      })
+      .filter(Boolean);
+
+    if (entries.length > 0) return entries;
+
+    const fallbackLocation = normalizeLocationName(user?.userLocation || "");
+    if (!fallbackLocation) return [];
+
+    return [
+      {
+        value: fallbackLocation,
+        label: fallbackLocation,
+      },
+    ];
   }
 
   function resolveSelectValue(selectEl, rawValue) {
@@ -386,9 +493,59 @@
   }
 
   let currentSourceLocation = "";
+  let lockedDispatchLocation = "";
+  let dispatchLocationLocked = false;
+
+  function showDispatchLocationLockedToast() {
+    showToast(
+      "Location cannot be changed during dispatch because stock deduction and the dispatch log must stay tied to the original source location.",
+      "error",
+    );
+  }
+
   function syncSourceLocation(value) {
     currentSourceLocation = normalizeLocationName(value);
     sourceLocationInput.value = currentSourceLocation;
+  }
+
+  function lockDispatchLocation(locationName) {
+    lockedDispatchLocation = normalizeLocationName(locationName);
+    dispatchLocationLocked = !!lockedDispatchLocation;
+    syncSourceLocation(lockedDispatchLocation);
+  }
+
+  function enforceLockedDispatchLocation() {
+    if (!dispatchLocationLocked || !lockedDispatchLocation) return;
+
+    if (locationSelect) {
+      locationSelect.value = lockedDispatchLocation;
+      locationSelect.disabled = true;
+      if (locationChoices?.setChoiceByValue) {
+        locationChoices.setChoiceByValue(lockedDispatchLocation);
+      }
+      if (locationChoices?.disable) {
+        locationChoices.disable();
+      }
+    }
+
+    const stockDisplay = document.getElementById("stock-display");
+    if (!stockDisplay) return;
+    stockDisplay.classList.add("dispatch-location-locked");
+
+    stockDisplay.querySelectorAll('input[name="locationRadio"]').forEach((radio) => {
+      const isLocked = normalizeLocationName(radio.value) === lockedDispatchLocation;
+      radio.checked = isLocked;
+      radio.disabled = !isLocked;
+      const row = radio.closest(".location-option");
+      if (row) {
+        row.classList.toggle("is-locked", isLocked);
+        row.classList.toggle("is-disabled", !isLocked);
+      }
+      if (radio.value === "ALL") {
+        radio.disabled = true;
+        if (row) row.classList.add("is-disabled");
+      }
+    });
   }
 
   let clientChoices, userChoices, locationChoices, itemTypeChoices, itemChoices;
@@ -417,7 +574,7 @@
   function resetItems() {
     itemChoices.clearStore();
     itemChoices.setChoices([{ value: "", label: "Select Item", disabled: true, selected: true }], "value", "label", true);
-    document.getElementById("stock-display").style.display = "none";
+    updateStockDisplay();
     syncSourceLocation("");
     if (rateDisplayInput) rateDisplayInput.value = "";
     if (orderRateInput) {
@@ -466,7 +623,11 @@
         value: user._id,
         label: user.userName,
         selected: user._id === targetUserId || (users.length === 1 && !targetUserId),
-        customProperties: { name: user.userName, location: user.userLocation || "" }
+        customProperties: {
+          name: user.userName,
+          location: user.userLocation || "",
+          locationDetails: Array.isArray(user.locationDetails) ? user.locationDetails : [],
+        }
       }));
 
       userChoices.clearStore();
@@ -669,14 +830,14 @@
           return `<label class="location-option" data-location="${locName}" data-qty="${qty}" data-booked="${booked}" data-balance="${balance}">
               <input type="radio" name="locationRadio" class="location-radio" value="${locName}" data-qty="${qty}" data-booked="${booked}" data-balance="${balance}" />
               <span class="location-label">${locName}:</span>
-              <span class="location-qty">${qty}</span>
+              <span class="location-qty">${balance}</span>
             </label>`;
         }).join("");
 
         stockDisplay.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
-            <div style="display: flex; flex-wrap: wrap; align-items: center;">${locationHtml}</div>
-            <div id="stock-stats" style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: nowrap; width: max-content; min-width: 100%;">
+            <div style="display: flex; flex-wrap: nowrap; align-items: center;">${locationHtml}</div>
+            <div id="stock-stats" style="display: flex; gap: 14px; align-items: center; flex-wrap: nowrap;">
               <div style="font-weight: 700; color: #044A78; font-size: 16px;">
                 <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">${stock.totalStock}</span>
               </div>
@@ -694,6 +855,12 @@
         // Attach radio button listeners
         stockDisplay.querySelectorAll('input[name="locationRadio"]').forEach(radio => {
           radio.addEventListener("change", function () {
+            if (dispatchLocationLocked && normalizeLocationName(this.value) !== lockedDispatchLocation) {
+              showDispatchLocationLockedToast();
+              enforceLockedDispatchLocation();
+              return;
+            }
+
             // Set source location (empty for ALL so validation catches it)
             syncSourceLocation(this.value === "ALL" ? "" : this.value);
 
@@ -711,24 +878,90 @@
           });
         });
 
+        if (dispatchLocationLocked) {
+          enforceLockedDispatchLocation();
+        }
+
         // ================= PRE-SELECT LOCATION =================
-        const selectedLocationValue = normalizeLocationName(locationSelect?.value || currentSourceLocation || sourceLocationInput.value || "");
-        if (selectedLocationValue) {
-          const selectedLocRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${selectedLocationValue}"]`);
-          if (selectedLocRadio) {
-            selectedLocRadio.checked = true;
-            selectedLocRadio.dispatchEvent(new Event("change"));
-          } else {
-            syncSourceLocation(selectedLocationValue);
+        // 1) Edit mode: prefer existing source location
+        if (orderToEdit && orderToEdit.sourceLocation) {
+          const editLocation = normalizeLocationName(orderToEdit.sourceLocation);
+          const locRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${editLocation}"]`);
+          if (locRadio) {
+            locRadio.checked = true;
+            locRadio.dispatchEvent(new Event('change'));
+            lockDispatchLocation(editLocation);
+          }
+        } else {
+          // 2) Create mode: preselect user's location if available
+          const userLocationValue = normalizeLocationName(locationSelect?.value || "");
+          if (userLocationValue) {
+            const userLocRadio = stockDisplay.querySelector(`input[name="locationRadio"][value="${userLocationValue}"]`);
+            if (userLocRadio) {
+              userLocRadio.checked = true;
+              userLocRadio.dispatchEvent(new Event('change'));
+              if (confirmMode) lockDispatchLocation(userLocationValue);
+            } else {
+              // Fallback if stock widget doesn't contain this location
+              syncSourceLocation(userLocationValue);
+              if (confirmMode) lockDispatchLocation(userLocationValue);
+            }
           }
         }
 
       } catch (e) {
         console.error("Error parsing stock data", e);
-        stockDisplay.style.display = "none";
+        stockDisplay.style.display = "block";
       }
     } else {
-      stockDisplay.style.display = "none";
+      try {
+        const locRes = await fetch("/fairdesk/api/locations");
+        const allLocations = await locRes.json();
+
+        const locationHtml = (Array.isArray(allLocations) ? allLocations : []).map((locName) => {
+          return `<label class="location-option" data-location="${locName}" data-qty="-" data-booked="-" data-balance="-">
+              <input type="radio" name="locationRadio" class="location-radio" value="${locName}" data-qty="-" data-booked="-" data-balance="-" />
+              <span class="location-label">${locName}:</span>
+              <span class="location-qty">-</span>
+            </label>`;
+        }).join("");
+
+        stockDisplay.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: nowrap; width: max-content; min-width: 100%;">
+            <div style="display: inline-flex; flex-wrap: nowrap; align-items: center; white-space: nowrap;">
+              ${locationHtml}
+            </div>
+            <div id="stock-stats" style="display: inline-flex; gap: 14px; align-items: center; flex-wrap: nowrap; white-space: nowrap;">
+              <div style="font-weight: 700; color: #044A78; font-size: 16px;">
+                <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">-</span>
+              </div>
+              <div style="font-weight: 700; color: #d97706; font-size: 16px;" title="Pending Orders">
+                <i class="fa-regular fa-clock"></i> Booked: <span id="stat-booked">-</span>
+              </div>
+              <div style="font-weight: 700; color: #059669; font-size: 16px;" title="Available for new orders">
+                <i class="fa-solid fa-scale-balanced"></i> Balance: <span id="stat-balance">-</span>
+              </div>
+            </div>
+          </div>
+        `;
+        stockDisplay.style.display = "block";
+
+        stockDisplay.querySelectorAll('input[name="locationRadio"]').forEach((radio) => {
+          radio.addEventListener("change", function () {
+            if (dispatchLocationLocked && normalizeLocationName(this.value) !== lockedDispatchLocation) {
+              showDispatchLocationLockedToast();
+              enforceLockedDispatchLocation();
+              return;
+            }
+
+            syncSourceLocation(this.value === "ALL" ? "" : this.value);
+            stockDisplay.querySelectorAll('.location-option').forEach(el => el.classList.remove('selected'));
+            this.closest('.location-option').classList.add('selected');
+          });
+        });
+      } catch (e) {
+        console.error("Failed to build placeholder stock display", e);
+      }
       if (detailsBox) {
         detailsBox.style.display = "none";
         detailsBox.innerHTML = "";
@@ -738,21 +971,21 @@
 
   function checkStockWarning() {
     const qty = parseInt(quantityInput.value) || 0;
-    const selectedLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || locationSelect.value || "");
+    const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
 
-    if (!selectedLocation || qty <= 0) {
+    if (!selectedRadio || qty <= 0) {
       hideStockWarning();
       return;
     }
 
-    const availableQty = getAvailableStockForLocation(selectedLocation);
+    const availableQty = parseInt(selectedRadio.dataset.qty) || 0;
     const warningDiv = document.getElementById("stock-warning");
     const warningText = document.getElementById("stock-warning-text");
 
     const isConfirmPage = window.location.pathname.includes('/sales/order/confirm');
 
     if (qty > availableQty && !isConfirmPage) {
-      warningText.innerHTML = `Ordered quantity <b>${qty}</b> exceeds available stock <b>${availableQty}</b> at ${selectedLocation}. Order can still be created.`;
+      warningText.innerHTML = `Ordered quantity <b>${qty}</b> exceeds available stock <b>${availableQty}</b> at ${selectedRadio.value}. Order can still be created.`;
       warningDiv.style.display = "block";
     } else {
       hideStockWarning();
@@ -764,16 +997,32 @@
   }
 
   // Helper: set the Location choices field from a user object
-  function setLocationFromUser(user) {
+  function setLocationFromUser(user, preferredLocation = "") {
     if (!locationChoices) return;
-    const loc = normalizeLocationName(user?.userLocation || "");
+    const entries = getUserLocationEntries(user);
+    const preferred = normalizeLocationName(preferredLocation || user?.userLocation || "");
+    const selectedEntry = entries.find((entry) => normalizeLocationName(entry.value) === preferred) || entries[0];
+    const loc = normalizeLocationName(selectedEntry?.value || "");
+
     locationChoices.clearStore();
     locationChoices.setChoices(
-      loc ? [{ value: loc, label: loc, selected: true }] : [{ value: "", label: "N/A", disabled: true, selected: true }],
+      entries.length > 0
+        ? entries.map((entry) => ({
+            value: entry.value,
+            label: entry.label,
+            selected: normalizeLocationName(entry.value) === loc,
+          }))
+        : [{ value: "", label: "N/A", disabled: true, selected: true }],
       "value", "label", true
     );
-    locationSelect.value = loc;
-    syncSourceLocation(loc);
+    if (loc) {
+      locationSelect.value = loc;
+      syncSourceLocation(loc);
+      locationChoices.setChoiceByValue?.(loc);
+    } else {
+      locationSelect.value = "";
+      syncSourceLocation("");
+    }
   }
 
   function setLocationField(value) {
@@ -804,16 +1053,32 @@
   });
 
   locationSelect.addEventListener("change", () => {
+    if (confirmMode && dispatchLocationLocked) {
+      showDispatchLocationLockedToast();
+      enforceLockedDispatchLocation();
+      return;
+    }
+
     syncSourceLocation(locationSelect.value);
-    selectStockLocation(locationSelect.value);
-    checkStockWarning();
+    const stockDisplay = document.getElementById("stock-display");
+    if (stockDisplay && locationSelect.value) {
+      const normalizedLocation = normalizeLocationName(locationSelect.value);
+      const radio = stockDisplay.querySelector(`input[name="locationRadio"][value="${normalizedLocation}"]`);
+      if (radio) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
   });
 
   // 3. User → auto-fill location, reset + load items
   userSelect.addEventListener("change", () => {
     const selected = userChoices.getValue();
     userNameHidden.value = selected?.customProperties?.name || selected?.label || "";
-    setLocationFromUser({ userLocation: selected?.customProperties?.location || "" });
+    setLocationFromUser({
+      userLocation: selected?.customProperties?.location || "",
+      locationDetails: selected?.customProperties?.locationDetails || [],
+    });
     resetItems();
     loadItems();
   });
@@ -826,6 +1091,8 @@
       orderRateInput.dataset.userEdited = "true";
     });
   }
+
+  updateStockDisplay();
 
   function getFieldLabel(field) {
     if (!field?.id) return "This field";
@@ -848,10 +1115,12 @@
   function getSelectedStockLocation() {
     const selectedRadio = document.querySelector('input[name="locationRadio"]:checked');
     const selectedChipLocation = normalizeLocationName(document.querySelector(".location-option.selected")?.dataset?.location || "");
+    const radioLocation = normalizeLocationName(selectedRadio?.value || "");
     const fallbackLocation = normalizeLocationName(currentSourceLocation || sourceLocationInput.value || locationSelect.value || selectedChipLocation || "");
     return {
       selectedRadio,
-      selectedLocation: fallbackLocation,
+      radioLocation,
+      selectedLocation: radioLocation && radioLocation !== "ALL" ? radioLocation : fallbackLocation,
     };
   }
 
@@ -943,11 +1212,11 @@
     const itemType = itemTypeSelect.value;
     const qty = parseInt(quantityInput.value) || 0;
     const selectedOption = itemChoices.getValue();
-    const { selectedLocation } = getSelectedStockLocation();
+    const { selectedRadio, radioLocation, selectedLocation } = getSelectedStockLocation();
     
-    // Check Source Location - dropdown selection is the source of truth
+    // Check Source Location - ALL is not allowed for stock-based items
     if (itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA" || itemType === "TTR") {
-      if (selectedLocation === "ALL") {
+      if (radioLocation === "ALL") {
         showToast("Location cannot be ALL. Please select a specific location.", "error");
         setSubmittingState(false);
         return false;
@@ -962,7 +1231,7 @@
 
     const dispatchQty = confirmMode ? (parseInt(confirmQuantityInput?.value) || 0) : qty;
     if (confirmMode) {
-      const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || locationSelect.value || "");
+      const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || selectedLocation || selectedRadio?.value || "");
       const availableQty = getAvailableStockForLocation(confirmLocation);
       if (dispatchQty > availableQty) {
         showToast("Cannot dispatch, Not enought stocks", "error");
@@ -1174,10 +1443,13 @@
 
           // 4. Update Stock Display
           await updateStockDisplay();
-          if (orderToEdit.sourceLocation) {
-            selectStockLocation(orderToEdit.sourceLocation);
-          } else if (orderToEdit.userId?.userLocation) {
-            selectStockLocation(orderToEdit.userId.userLocation);
+          const initialDispatchLocation = normalizeLocationName(
+            orderToEdit.sourceLocation || orderToEdit.userId?.userLocation || locationSelect?.value || "",
+          );
+          if (initialDispatchLocation) {
+            lockDispatchLocation(initialDispatchLocation);
+            selectStockLocation(initialDispatchLocation);
+            enforceLockedDispatchLocation();
           }
 
          // 5. Pre-fill confirm fields
@@ -1264,7 +1536,9 @@
         orderRateInput.value = String(orderToEdit.orderRate);
         orderRateInput.dataset.fromOrder = "true";
       }
-      if (orderToEdit.userId?.userLocation) setLocationFromUser(orderToEdit.userId);
+         if (orderToEdit.userId?.userLocation || orderToEdit.sourceLocation) {
+           setLocationFromUser(orderToEdit.userId, orderToEdit.sourceLocation || orderToEdit.userId?.userLocation || "");
+         }
       if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
       if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
       if (orderToEdit.estimatedDate) {

@@ -26,6 +26,10 @@
       .header-action-btn:hover {
         background-color: #e4e4e4;
       }
+      .stock-cell {
+        background: #fbfdff;
+        font-weight: 600;
+      }
       #master-table {
         width: 100%;
         flex: 1 1 auto;
@@ -78,7 +82,6 @@
   <script>
     // Parse data from Express
     const tableData = <%- JSON.stringify(jsonData) %>;
-    const stockLocations = <%- JSON.stringify(stockLocations || []) %>;
 
     // Initialize Tabulator
     const baseColumns = [
@@ -101,6 +104,26 @@
         field: "ttrProductId",
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
+        width: 150,
+        minWidth: 140,
+      },
+      {
+        title: "Stock",
+        field: "stock",
+        hozAlign: "left",
+        headerHozAlign: "center",
+        width: 90,
+        minWidth: 80,
+        maxWidth: 100,
+        widthGrow: 0,
+        widthShrink: 0,
+        cssClass: "stock-cell",
+        formatter: (cell) => {
+          const value = Number(cell.getValue() || 0);
+          if (value === 0) return "";
+          const row = cell.getRow().getData();
+          return `<a href="/fairdesk/ttr/profile/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
+        },
       },
       {
         title: "Material Code",
@@ -157,23 +180,6 @@
       { title: "Winding", field: "ttrWinding" },
     ];
 
-    const stockColumns = stockLocations.map((loc) => ({
-      title: loc,
-      field: `stock_${String(loc).replace(/[^A-Za-z0-9]+/g, "_")}`,
-      hozAlign: "right",
-      headerHozAlign: "center",
-      minWidth: 72,
-      widthGrow: 1,
-      widthShrink: 1,
-      responsive: 9,
-      cssClass: "stock-cell",
-      headerTooltip: loc,
-      formatter: (cell) => {
-        const v = Number(cell.getValue() || 0);
-        return v === 0 ? "" : String(v);
-      },
-    }));
-
     const normalizedBaseColumns = baseColumns.map((column, index) =>
       index === 0
         ? {
@@ -202,7 +208,7 @@
       responsiveLayout: "hide",
       movableColumns: true,
       placeholder: "No data to display",
-      columns: [...normalizedBaseColumns, ...stockColumns],
+      columns: normalizedBaseColumns,
     });
 
     // Dropdown toggle

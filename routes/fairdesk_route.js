@@ -1500,35 +1500,22 @@ router.get("/tape/view", async (req, res) => {
         { $match: { tape: { $in: tapeIds } } },
         {
           $group: {
-            _id: {
-              item: "$tape",
-              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-            },
+            _id: "$tape",
             qty: { $sum: "$quantity" },
           },
         },
       ])
     : [];
   const stockByItem = {};
-  const locationSet = new Set();
   stockAgg.forEach((row) => {
-    const itemId = String(row._id?.item || "");
-    const loc = String(row._id?.location || "UNKNOWN");
-    locationSet.add(loc);
-    if (!stockByItem[itemId]) stockByItem[itemId] = {};
-    stockByItem[itemId][loc] = Number(row.qty || 0);
+    const itemId = String(row._id || "");
+    stockByItem[itemId] = Number(row.qty || 0);
   });
-  const stockLocations = Array.from(locationSet).sort();
   tapes.forEach((t) => {
-    const byLoc = stockByItem[String(t._id)] || {};
-    stockLocations.forEach((loc) => {
-      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
-      t[fieldName] = byLoc[loc] ?? 0;
-    });
+    t.stock = stockByItem[String(t._id)] ?? 0;
   });
   res.render("inventory/tapeMasterDisp.ejs", {
     jsonData: tapes,
-    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "Tape View",
@@ -1545,35 +1532,22 @@ router.get("/tafeta/view", async (req, res) => {
         { $match: { tafeta: { $in: tafetaIds } } },
         {
           $group: {
-            _id: {
-              item: "$tafeta",
-              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-            },
+            _id: "$tafeta",
             qty: { $sum: "$quantity" },
           },
         },
       ])
     : [];
   const stockByItem = {};
-  const locationSet = new Set();
   stockAgg.forEach((row) => {
-    const itemId = String(row._id?.item || "");
-    const loc = String(row._id?.location || "UNKNOWN");
-    locationSet.add(loc);
-    if (!stockByItem[itemId]) stockByItem[itemId] = {};
-    stockByItem[itemId][loc] = Number(row.qty || 0);
+    const itemId = String(row._id || "");
+    stockByItem[itemId] = Number(row.qty || 0);
   });
-  const stockLocations = Array.from(locationSet).sort();
   tafetas.forEach((t) => {
-    const byLoc = stockByItem[String(t._id)] || {};
-    stockLocations.forEach((loc) => {
-      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
-      t[fieldName] = byLoc[loc] ?? 0;
-    });
+    t.stock = stockByItem[String(t._id)] ?? 0;
   });
   res.render("inventory/tafetaMasterDisp.ejs", {
     jsonData: tafetas,
-    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "Tafeta View",
@@ -1623,35 +1597,22 @@ router.get("/pos-roll/view", async (req, res) => {
         { $match: { posRoll: { $in: posRollIds } } },
         {
           $group: {
-            _id: {
-              item: "$posRoll",
-              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-            },
+            _id: "$posRoll",
             qty: { $sum: "$quantity" },
           },
         },
       ])
     : [];
   const stockByItem = {};
-  const locationSet = new Set();
   stockAgg.forEach((row) => {
-    const itemId = String(row._id?.item || "");
-    const loc = String(row._id?.location || "UNKNOWN");
-    locationSet.add(loc);
-    if (!stockByItem[itemId]) stockByItem[itemId] = {};
-    stockByItem[itemId][loc] = Number(row.qty || 0);
+    const itemId = String(row._id || "");
+    stockByItem[itemId] = Number(row.qty || 0);
   });
-  const stockLocations = Array.from(locationSet).sort();
   posRolls.forEach((p) => {
-    const byLoc = stockByItem[String(p._id)] || {};
-    stockLocations.forEach((loc) => {
-      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
-      p[fieldName] = byLoc[loc] ?? 0;
-    });
+    p.stock = stockByItem[String(p._id)] ?? 0;
   });
   res.render("inventory/posRollMasterDisp.ejs", {
     jsonData: posRolls,
-    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "POS Roll View",
@@ -1668,10 +1629,7 @@ router.get("/ttr/view", async (req, res) => {
         { $match: { ttr: { $in: ttrIds } } },
         {
           $group: {
-            _id: {
-              ttr: "$ttr",
-              location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-            },
+            _id: "$ttr",
             qty: { $sum: "$quantity" },
           },
         },
@@ -1679,32 +1637,17 @@ router.get("/ttr/view", async (req, res) => {
     : [];
 
   const stockByTtr = {};
-  const locationSet = new Set();
   stockAgg.forEach((row) => {
-    const ttrId = String(row._id?.ttr || "");
-    const loc = String(row._id?.location || "UNKNOWN");
-    locationSet.add(loc);
-    if (!stockByTtr[ttrId]) stockByTtr[ttrId] = [];
-    stockByTtr[ttrId].push({ location: loc, qty: Number(row.qty || 0) });
+    const ttrId = String(row._id || "");
+    stockByTtr[ttrId] = Number(row.qty || 0);
   });
 
-  const stockLocations = Array.from(locationSet).sort();
-
   ttrs.forEach((t) => {
-    const entries = stockByTtr[String(t._id)] || [];
-    const qtyByLocation = {};
-    entries.forEach((e) => {
-      qtyByLocation[e.location] = e.qty;
-    });
-    stockLocations.forEach((loc) => {
-      const fieldName = `stock_${loc.replace(/[^A-Za-z0-9]+/g, "_")}`;
-      t[fieldName] = qtyByLocation[loc] ?? 0;
-    });
+    t.stock = stockByTtr[String(t._id)] ?? 0;
   });
 
   res.render("inventory/ttrMasterDisp.ejs", {
     jsonData: ttrs,
-    stockLocations,
     CSS: "tableDisp.css",
     JS: false,
     title: "TTR View",
@@ -1731,6 +1674,25 @@ router.get("/tape/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/tape/view";
 
+  const stockAggregation = await TapeStock.aggregate([
+    { $match: { tape: tape._id } },
+    {
+      $group: {
+        _id: {
+          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+        },
+        qty: { $sum: "$quantity" },
+      },
+    },
+    { $sort: { "_id.location": 1 } },
+  ]);
+
+  const stockInfoLocations = stockAggregation.map((row) => ({
+    location: String(row._id?.location || "UNKNOWN"),
+    qty: Number(row.qty || 0),
+  }));
+  const totalStock = stockInfoLocations.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+
   const rows = [
     { label: "Paper Code", value: tape.tapePaperCode || "N/A" },
     { label: "GSM", value: tape.tapeGsm ?? "N/A" },
@@ -1753,6 +1715,10 @@ router.get("/tape/profile/:id", async (req, res) => {
     tapeBindings,
     primaryBinding,
     backUrl,
+    stockInfo: {
+      totalStock,
+      locations: stockInfoLocations,
+    },
     title: "Tape Details",
     CSS: false,
     JS: false,
@@ -1921,6 +1887,25 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/pos-roll/view";
 
+  const stockAggregation = await PosRollStock.aggregate([
+    { $match: { posRoll: posRoll._id } },
+    {
+      $group: {
+        _id: {
+          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+        },
+        qty: { $sum: "$quantity" },
+      },
+    },
+    { $sort: { "_id.location": 1 } },
+  ]);
+
+  const stockInfoLocations = stockAggregation.map((row) => ({
+    location: String(row._id?.location || "UNKNOWN"),
+    qty: Number(row.qty || 0),
+  }));
+  const totalStock = stockInfoLocations.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+
   const rows = [
     { label: "Paper Code", value: posRoll.posPaperCode || "N/A" },
     { label: "GSM", value: posRoll.posGsm ?? "N/A" },
@@ -1942,6 +1927,10 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     posRollBindings,
     primaryBinding,
     backUrl,
+    stockInfo: {
+      totalStock,
+      locations: stockInfoLocations,
+    },
     title: "POS Roll Details",
     CSS: false,
     JS: false,
@@ -2045,6 +2034,63 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/tafeta/view";
 
+  const stockAggregation = await TafetaStock.aggregate([
+    { $match: { tafeta: tafeta._id } },
+    {
+      $group: {
+        _id: {
+          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+        },
+        qty: { $sum: "$quantity" },
+      },
+    },
+    { $sort: { "_id.location": 1 } },
+  ]);
+
+  const locations = stockAggregation.map((row) => ({
+    location: String(row._id?.location || "UNKNOWN"),
+    qty: Number(row.qty || 0),
+  }));
+  const bookedAggregation = await TapeSalesOrder.aggregate([
+    {
+      $match: {
+        tapeId: tafeta._id,
+        onModel: "Tafeta",
+        status: "PENDING",
+      },
+    },
+    {
+      $group: {
+        _id: "$sourceLocation",
+        bookedQty: {
+          $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+        },
+      },
+    },
+  ]);
+
+  const bookedMap = {};
+  let totalBooked = 0;
+  bookedAggregation.forEach((row) => {
+    const loc = String(row._id || "UNKNOWN");
+    const qty = Number(row.bookedQty || 0);
+    bookedMap[loc] = qty;
+    totalBooked += qty;
+  });
+
+  let totalStock = 0;
+  const stockInfoLocations = locations.map((entry) => {
+    const booked = bookedMap[entry.location] || 0;
+    totalStock += Number(entry.qty || 0);
+    return {
+      location: entry.location,
+      qty: Number(entry.qty || 0),
+      booked,
+      balance: Number(entry.qty || 0) - booked,
+    };
+  });
+  const totalBalance = totalStock - totalBooked;
+
   const rows = [
     { label: "Material Code", value: tafeta.tafetaMaterialCode || "N/A" },
     { label: "GSM", value: tafeta.tafetaGsm ?? "N/A" },
@@ -2068,6 +2114,12 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     tafetaBindings,
     primaryBinding,
     backUrl,
+    stockInfo: {
+      totalStock,
+      locations: stockInfoLocations,
+      booked: totalBooked,
+      balance: totalBalance,
+    },
     title: "Tafeta Details",
     CSS: false,
     JS: false,
@@ -2175,6 +2227,66 @@ router.get("/ttr/profile/:id", async (req, res) => {
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/ttr/view";
 
+  const stockAggregation = await TtrStock.aggregate([
+    { $match: { ttr: ttr._id } },
+    {
+      $group: {
+        _id: {
+          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+        },
+        qty: { $sum: "$quantity" },
+      },
+    },
+    { $sort: { "_id.location": 1 } },
+  ]);
+
+  const locations = stockAggregation.map((row) => ({
+    location: String(row._id?.location || "UNKNOWN"),
+    qty: Number(row.qty || 0),
+  }));
+  const bookedAggregation = await TapeSalesOrder.aggregate([
+    {
+      $match: {
+        tapeId: ttr._id,
+        onModel: "Ttr",
+        status: "PENDING",
+      },
+    },
+    {
+      $group: {
+        _id: "$sourceLocation",
+        bookedQty: {
+          $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+        },
+      },
+    },
+  ]);
+
+  const bookedMap = {};
+  let totalBooked = 0;
+  bookedAggregation.forEach((row) => {
+    const loc = String(row._id || "UNKNOWN");
+    const qty = Number(row.bookedQty || 0);
+    bookedMap[loc] = qty;
+    totalBooked += qty;
+  });
+
+  let totalStock = 0;
+  const stockInfoLocations = locations.map((entry) => {
+    const booked = bookedMap[entry.location] || 0;
+    totalStock += Number(entry.qty || 0);
+    return {
+      location: entry.location,
+      qty: Number(entry.qty || 0),
+      booked,
+      balance: Number(entry.qty || 0) - booked,
+    };
+  });
+  const totalBalance = totalStock - totalBooked;
+  const ttrHeading = `${ttr.ttrType || "TTR"} ${ttr.ttrCoreLength ?? ""} x ${ttr.ttrMtrs ?? ""} m`
+    .replace(/\s+/g, " ")
+    .trim();
+
   const rows = [
     { label: "Material Code", value: ttr.ttrMaterialCode || "N/A" },
     { label: "Type", value: ttr.ttrType || "N/A" },
@@ -2189,17 +2301,23 @@ router.get("/ttr/profile/:id", async (req, res) => {
   ];
 
   res.render("inventory/itemView.ejs", {
-    pageTitle: "TTR Details",
+    pageTitle: ttrHeading || "TTR Details",
     sectionTitle: "TTR Details",
-    valueHeader: "Fairtech",
     editUrl: `/fairdesk/ttr/edit/${ttr._id}`,
     editLabel: "Edit TTR",
     rows,
+    valueHeader: "Fairtech",
     ttr,
     ttrBindings,
     primaryBinding,
     backUrl,
-    title: "TTR Details",
+    stockInfo: {
+      totalStock,
+      locations: stockInfoLocations,
+      booked: totalBooked,
+      balance: totalBalance,
+    },
+    title: ttrHeading || "TTR Details",
     CSS: false,
     JS: false,
     notification: req.flash("notification"),
@@ -2565,6 +2683,7 @@ router.post("/ttr/edit/:id", async (req, res) => {
 router.get("/sales/order", async (req, res) => {
   const { orderId } = req.query;
   const clientsPromise = Client.distinct("clientName");
+  const locationsPromise = Location.distinct("locationName");
   const submissionToken = crypto.randomUUID();
 
   const orderPromise = orderId
@@ -2577,10 +2696,16 @@ router.get("/sales/order", async (req, res) => {
     ? SalesOrderLog.find({ orderId, action: "DELIVERED" }).sort({ performedAt: -1 }).lean()
     : Promise.resolve([]);
 
-  const [clients, orderToEdit, logs] = await Promise.all([clientsPromise, orderPromise, logsPromise]);
+  const [clients, locations, orderToEdit, logs] = await Promise.all([
+    clientsPromise,
+    locationsPromise,
+    orderPromise,
+    logsPromise,
+  ]);
 
   res.render("inventory/salesOrderForm.ejs", {
     clients,
+    locations: (locations || []).filter(Boolean).sort(),
     orderToEdit,
     logs,
     submissionToken,
@@ -3451,6 +3576,7 @@ router.get("/sales/order/confirm", async (req, res) => {
     }
 
     const logs = await SalesOrderLog.find({ orderId, action: "DELIVERED" }).sort({ performedAt: -1 }).lean();
+    const locations = await Location.distinct("locationName");
 
     // ========== STOCK PRE-CALCULATION FOR CONFIRM PAGE ==========
     let stockInfo = { totalStock: 0, locations: [], booked: 0, balance: 0 };
@@ -3534,6 +3660,7 @@ router.get("/sales/order/confirm", async (req, res) => {
 
     res.render("inventory/salesOrderForm.ejs", {
       clients,
+      locations: (locations || []).filter(Boolean).sort(),
       orderToEdit: order,
       stockInfo, // Pass pre-calculated stock
       logs,
@@ -4265,6 +4392,7 @@ router.get("/client/details/:userId", async (req, res) => {
       userContact: user.userContact,
       userEmail: user.userEmail,
       userLocation: user.userLocation,
+      locationDetails: Array.isArray(user.locationDetails) ? user.locationDetails : [],
       userDepartment: user.userDepartment,
       SelfDispatch: user.SelfDispatch,
       dispatchAddress: user.dispatchAddress,

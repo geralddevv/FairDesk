@@ -134,6 +134,14 @@ router.get("/edit/:id", async (req, res) => {
 router.post("/edit/:id", async (req, res) => {
   try {
     const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const currentClient = await Client.findById(req.params.id).select("clientId").lean();
+
+    if (!currentClient) {
+      return res.status(404).json({
+        success: false,
+        message: "Client not found",
+      });
+    }
 
     const clientName = String(req.body.clientName || "").trim();
     const clientType = String(req.body.clientType || "").trim();
@@ -201,6 +209,11 @@ router.post("/edit/:id", async (req, res) => {
       {
       runValidators: true,
       },
+    );
+
+    await Username.updateMany(
+      { clientId: currentClient.clientId },
+      { $set: { hoLocation } },
     );
 
     req.flash("notification", "Client updated successfully!");

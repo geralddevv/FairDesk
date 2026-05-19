@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import TtrStock from "../../models/inventory/TtrStock.js";
 import TtrStockLog from "../../models/inventory/TtrStockLog.js";
+import TapeSalesOrder from "../../models/inventory/TapeSalesOrder.js";
 import Location from "../../models/system/location.js";
 import Ttr from "../../models/inventory/ttr.js";
 
@@ -60,6 +61,77 @@ async function loadFsTtrRows() {
         row.ttrNotch &&
         row.ttrWinding,
     );
+}
+
+async function loadLocationStockMap(ttrId) {
+  const stockAggregation = await TtrStock.aggregate([
+    { $match: { ttr: new mongoose.Types.ObjectId(ttrId) } },
+    {
+      $group: {
+        _id: { location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } } },
+        qty: { $sum: "$quantity" },
+      },
+    },
+    { $sort: { "_id.location": 1 } },
+  ]);
+
+  const rawMap = Object.fromEntries(
+    stockAggregation.map((row) => [String(row._id?.location || "UNKNOWN"), Number(row.qty || 0)]),
+  );
+
+  const bookedAggregation = await TapeSalesOrder.aggregate([
+    {
+      $match: {
+        onModel: "Ttr",
+        tapeId: new mongoose.Types.ObjectId(ttrId),
+        status: { $nin: ["CANCELLED"] },
+      },
+    },
+    {
+      $group: {
+        _id: { location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } } },
+        bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
+      },
+    },
+  ]);
+
+  const bookedMap = Object.fromEntries(
+    bookedAggregation.map((row) => [String(row._id?.location || "UNKNOWN"), Number(row.bookedQty || 0)]),
+  );
+
+  const locations = await Location.distinct("locationName");
+  const normalizedLocations = locations
+    .map((location) => trimOr(location).toUpperCase())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  const stockLocations = Array.from(new Set([...Object.keys(rawMap), ...Object.keys(bookedMap), ...normalizedLocations]))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+
+  let totalStock = 0;
+  let totalBooked = 0;
+
+  const stockInfoLocations = stockLocations.map((location) => {
+    const qty = Number(rawMap[location] || 0);
+    const booked = Number(bookedMap[location] || 0);
+    const balance = qty - booked;
+    totalStock += qty;
+    totalBooked += booked;
+    return {
+      location,
+      qty,
+      booked,
+      balance,
+    };
+  });
+
+  return {
+    totalStock,
+    booked: totalBooked,
+    balance: totalStock - totalBooked,
+    locations: stockInfoLocations,
+  };
 }
 
 function distinctValues(rows, key) {
@@ -230,6 +302,17 @@ router.get("/balance/:ttrId/:location", async (req, res) => {
   } catch (err) {
     console.error("Balance error", err);
     res.json({ stock: 0 });
+  }
+});
+
+router.get("/stock-info/:ttrId", async (req, res) => {
+  try {
+    const { ttrId } = req.params;
+    const stockInfo = await loadLocationStockMap(ttrId);
+    res.json(stockInfo);
+  } catch (err) {
+    console.error("Stock info error", err);
+    res.json({ totalStock: 0, locations: [] });
   }
 });
 

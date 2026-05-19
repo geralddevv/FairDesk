@@ -16,7 +16,13 @@ add a view page for the stocks available in the items ✔️
 seperate vendor and client in navbar ✔️
 add option to delete the things in the platform (added in the user and client bindings) ✔️
 add seamless scroll in the list ✔️
+show client code and type in the sales order page
 add option to add additional address in the vendor coordinator/client username
 rate and current rate in the sales order
 add that 3 columns active inactive and stocks in details page
 consider item combo options in the sales order page
+
+main stock count and then detailed view ✔️
+same style stock indicator in stock entry (sales order) ✔️
+view location change after editing (error in editing) in user
+drop down in the client page for the item edit

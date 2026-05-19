@@ -340,27 +340,29 @@
         </header>
         
         <div class="info-grid">
-            <div class="info-card">
+            <div class="info-card full-width-card">
                 <h3>Contact Information</h3>
-                <div class="info-item">
-                    <span class="info-label">Account Head:</span>
-                    <span class="info-value"><%= userData.accountHead %></span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Username:</span>
-                    <span class="info-value"><%= userData.userName %></span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Contact:</span>
-                    <span class="info-value"><%= userData.userContact %></span>
-                </div>
-                <div class="info-item" style="border: none;">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value"><%= userData.userEmail %></span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;">
+                    <div class="info-item">
+                        <span class="info-label">Account Head:</span>
+                        <span class="info-value"><%= userData.accountHead %></span>
+                    </div>
+                    <div class="info-item" style="border-right: none;">
+                        <span class="info-label">Username:</span>
+                        <span class="info-value"><%= userData.userName %></span>
+                    </div>
+                    <div class="info-item" style="border-bottom: none;">
+                        <span class="info-label">Contact:</span>
+                        <span class="info-value"><%= userData.userContact %></span>
+                    </div>
+                    <div class="info-item" style="border-right: none; border-bottom: none;">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value"><%= userData.userEmail %></span>
+                    </div>
                 </div>
             </div>
             
-            <div class="info-card">
+            <div class="info-card full-width-card">
                 <h3>Location Details</h3>
                 <div class="info-item">
                     <span class="info-label">HO Location:</span>
@@ -370,6 +372,21 @@
                     <span class="info-label">Location:</span>
                     <span class="info-value"><%= userData.userLocation %></span>
                 </div>
+                <% if (Array.isArray(userData.locationDetails) && userData.locationDetails.length > 0) { %>
+                  <div class="info-item" style="padding-top: 2px; border-bottom: none; flex-direction: column; align-items: flex-start; gap: 4px;">
+                    <span class="info-label">Location Info:</span>
+                    <div style="width: 100%; font-size: 12px; color: #6b7280; line-height: 1.5;">
+                      <% userData.locationDetails.forEach((loc, index) => { %>
+                        <div style="padding: 2px 0;">
+                          <strong style="color: #044A78;"><%= index + 1 %>.</strong>
+                          <span><%= loc.userLocation || loc.location || 'N/A' %></span>
+                          <span style="color: #9ca3af;"> - </span>
+                          <span><%= loc.dispatchAddress || 'N/A' %></span>
+                        </div>
+                      <% }) %>
+                    </div>
+                  </div>
+                <% } %>
                 <div class="info-item">
                     <span class="info-label">Department:</span>
                     <span class="info-value"><%= userData.userDepartment %></span>

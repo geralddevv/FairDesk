@@ -176,6 +176,8 @@
       {
         title: "Employee Name",
         field: "employeeName",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         formatter: function (cell) {
           const data = cell.getRow().getData();
 
@@ -199,11 +201,23 @@
           `;
         }
       },
-      { title: "Employee ID", field: "empId" },
-      { title: "Outstanding", field: "currentBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
-      { title: "EMI", field: "emi", formatter: (c) => formatINRCurrency(c.getValue()) },
-      { title: "Status", field: "status" },
-      { title: "Last Updated", field: "updatedAt" },
+      { title: "Employee ID", field: "empId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      {
+        title: "Outstanding",
+        field: "currentBalance",
+        formatter: (c) => formatINRCurrency(c.getValue()),
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
+      {
+        title: "EMI",
+        field: "emi",
+        formatter: (c) => formatINRCurrency(c.getValue()),
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
+      { title: "Status", field: "status", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Last Updated", field: "updatedAt", headerFilter: "input", headerFilterPlaceholder: "Search" },
     ];
 
     const logColumns = [

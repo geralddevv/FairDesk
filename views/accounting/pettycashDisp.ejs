@@ -280,9 +280,18 @@
 
   /* ===== LOG COLUMNS ===== */
   const logColumns = [
-    { title: "From", field: "from", widthGrow: 1, widthShrink: 1 },
-    { title: "To", field: "to", widthGrow: 1, widthShrink: 1 },
-    { title: "Opening Balance", field: "openingBalance", widthGrow: 1, widthShrink: 1, responsive: 4, formatter: (c) => formatINRCurrency(c.getValue()) },
+    { title: "From", field: "from", widthGrow: 1, widthShrink: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "To", field: "to", widthGrow: 1, widthShrink: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    {
+      title: "Opening Balance",
+      field: "openingBalance",
+      widthGrow: 1,
+      widthShrink: 1,
+      responsive: 4,
+      formatter: (c) => formatINRCurrency(c.getValue()),
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+    },
     {
       title: "Amount",
       field: "amount",
@@ -291,14 +300,27 @@
         return r.type === "OUTWARD"
           ? `- ${formatINRCurrency(c.getValue())}` : `+ ${formatINRCurrency(c.getValue())}`;
       },
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
     },
-    { title: "Closing Balance", field: "closingBalance", widthGrow: 1, widthShrink: 1, responsive: 5, formatter: (c) => formatINRCurrency(c.getValue()) },
-    { title: "Type", field: "type", widthGrow: 1, widthShrink: 1, responsive: 3 },
-    { title: "Reason", field: "reason", widthGrow: 2, widthShrink: 1, responsive: 6 },
+    {
+      title: "Closing Balance",
+      field: "closingBalance",
+      widthGrow: 1,
+      widthShrink: 1,
+      responsive: 5,
+      formatter: (c) => formatINRCurrency(c.getValue()),
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+    },
+    { title: "Type", field: "type", widthGrow: 1, widthShrink: 1, responsive: 3, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Reason", field: "reason", widthGrow: 2, widthShrink: 1, responsive: 6, headerFilter: "input", headerFilterPlaceholder: "Search" },
     {
       title: "Date",
       field: "entryDate",
       formatter: cell => formatDateOnly(cell.getValue() || cell.getRow().getData().createdAt),
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
     },
     {
       title: "Actions",

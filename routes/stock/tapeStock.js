@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Tape from "../../models/inventory/tape.js";
 import TapeStock from "../../models/inventory/TapeStock.js";
 import TapeStockLog from "../../models/inventory/TapeStockLog.js";
+import TapeSalesOrder from "../../models/inventory/TapeSalesOrder.js";
 import Location from "../../models/system/location.js";
 
 const router = express.Router();
@@ -122,6 +123,77 @@ router.get("/balance/:tapeId/:location", async (req, res) => {
   ]);
 
   res.json({ stock: bal[0]?.qty || 0 });
+});
+
+router.get("/stock-info/:tapeId", async (req, res) => {
+  try {
+    const { tapeId } = req.params;
+    const tapeObjectId = new mongoose.Types.ObjectId(tapeId);
+
+    const stockAggregation = await TapeStock.aggregate([
+      { $match: { tape: tapeObjectId } },
+      {
+        $group: {
+          _id: { location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } } },
+          qty: { $sum: "$quantity" },
+        },
+      },
+      { $sort: { "_id.location": 1 } },
+    ]);
+
+    const bookedAggregation = await TapeSalesOrder.aggregate([
+      {
+        $match: {
+          onModel: "Tape",
+          tapeId: tapeObjectId,
+          status: { $nin: ["CANCELLED"] },
+        },
+      },
+      {
+        $group: {
+          _id: { location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } } },
+          bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
+        },
+      },
+    ]);
+
+    const stockMap = Object.fromEntries(
+      stockAggregation.map((row) => [String(row._id?.location || "UNKNOWN"), Number(row.qty || 0)]),
+    );
+    const bookedMap = Object.fromEntries(
+      bookedAggregation.map((row) => [String(row._id?.location || "UNKNOWN"), Number(row.bookedQty || 0)]),
+    );
+
+    const locations = await Location.distinct("locationName");
+    const allLocations = Array.from(
+      new Set([
+        ...locations.map((location) => String(location || "").trim().toUpperCase()).filter(Boolean),
+        ...Object.keys(stockMap),
+        ...Object.keys(bookedMap),
+      ]),
+    ).sort((a, b) => a.localeCompare(b));
+
+    let totalStock = 0;
+    let totalBooked = 0;
+    const stockInfoLocations = allLocations.map((location) => {
+      const qty = Number(stockMap[location] || 0);
+      const booked = Number(bookedMap[location] || 0);
+      const balance = qty - booked;
+      totalStock += qty;
+      totalBooked += booked;
+      return { location, qty, booked, balance };
+    });
+
+    return res.json({
+      totalStock,
+      booked: totalBooked,
+      balance: totalStock - totalBooked,
+      locations: stockInfoLocations,
+    });
+  } catch (err) {
+    console.error("Stock info error", err);
+    return res.json({ totalStock: 0, booked: 0, balance: 0, locations: [] });
+  }
 });
 
 /* CREATE (INWARD ONLY) */

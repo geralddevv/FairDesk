@@ -5,27 +5,12 @@
 
     <!-- ================= HEADER ================= -->
     <div class="span-full form-heading" style="display:flex; justify-content:space-between; flex-direction:row;">
-
-      <!-- ================= LOCATION ================= -->
-      <div class="span-five" style="display:flex; gap:6px; justify-content:start; flex-direction:row; width:auto;">
-        <label class="stock-header-label" style="width:auto;">Location</label>
-        <select name="location" id="locationSelect" class="form-control select-tag" style="width:130px" required >
-          <option value="" disabled selected hidden>Select Location</option>
-          <% locations?.forEach(loc => { %>
-            <option value="<%= loc %>"><%= loc %></option>
-          <% }) %>
-        </select>
-      </div>
-
       <!-- ================= TITLE ================= -->
       <h1>TTR Stock Entry</h1>
-
-      <!-- ================= CURRENT STOCK ================= -->
-      <div class="span-five" id="stockWrap" style="display:flex; gap:6px; justify-content:end; flex-direction:row; width:auto;">
-        <label class="stock-header-label" style="width:auto;">Current Stock</label>
-        <input type="number" id="currentStock" class="form-control input-tag" style="width:100px" value="0" readonly />
-      </div>
     </div>
+
+    <input type="hidden" name="location" id="locationInput" />
+    <div id="stock-display" class="span-full" style="display:flex; padding: 10px 15px; background: #fff; border: 1px solid #044A78; border-radius: 0.5rem; transition: all 0.3s ease; align-items: center; gap: 16px; overflow-x: auto; white-space: nowrap;"></div>
 
     <!-- ================= TTR SPECS ================= -->
     <div class="span-full form-subheading" style="display:flex; justify-content:space-between; align-items:center;">
@@ -153,8 +138,9 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const locationSelect = document.getElementById("locationSelect");
-  const stockInput = document.getElementById("currentStock");
+  const locationInput = document.getElementById("locationInput");
+  const stockDisplay = document.getElementById("stock-display");
+  const allLocations = <%- JSON.stringify(locations || []) %>;
 
   const resolvedTtr = document.getElementById("resolvedTtr");
   const resolvedTtrId = document.getElementById("resolvedTtrId");
@@ -318,7 +304,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!data.found) {
       resolvedTtr.value = "No matching TTR found";
       resolvedTtrId.value = "";
-      stockInput.value = 0;
+      locationInput.value = "";
+      renderStockDisplay({}, normalizeLocationName(locationInput.value || ""));
       submitBtn.disabled = true;
       return;
     }
@@ -327,15 +314,105 @@ document.addEventListener("DOMContentLoaded", () => {
     resolvedTtrId.value = data.ttrId;
     submitBtn.disabled = false;
 
-    if (locationSelect.value) fetchStock();
+    await updateStockDisplay();
   }
 
-  /* ================= STOCK FETCH ================= */
-  async function fetchStock() {
-    if (!resolvedTtrId.value || !locationSelect.value) return;
-    const res = await fetch(`/fairdesk/ttrstock/balance/${resolvedTtrId.value}/${locationSelect.value}`);
-    const data = await res.json();
-    stockInput.value = data.stock ?? 0;
+  function normalizeLocationName(value) {
+    return String(value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, " ")
+      .replace(/^[.,]+|[.,]+$/g, "");
+  }
+
+  function selectStockLocation(locationName) {
+    const normalizedLocation = normalizeLocationName(locationName);
+    const radio = stockDisplay?.querySelector(`input[name="locationRadio"][value="${normalizedLocation}"]`);
+
+    stockDisplay?.querySelectorAll(".location-option").forEach((option) => {
+      option.classList.remove("selected");
+    });
+
+    if (!normalizedLocation) {
+      locationInput.value = "";
+      return false;
+    }
+
+    if (!radio) {
+      locationInput.value = "";
+      return false;
+    }
+
+    radio.checked = true;
+    const row = radio.closest(".location-option");
+    if (row) row.classList.add("selected");
+    locationInput.value = normalizedLocation;
+    return true;
+  }
+
+  function renderStockDisplay({ totalStock = "-", booked = "-", balance = "-", locations = [] } = {}, selectedLocation = "") {
+    const locationRows = (locations.length ? locations : allLocations.map((loc) => ({ location: loc }))).map((loc) => {
+      const locationName = normalizeLocationName(loc.location);
+      const qty = loc.qty ?? loc.balance ?? "-";
+      const isSelected = selectedLocation && locationName === selectedLocation;
+
+      return `<label class="location-option${isSelected ? " selected" : ""}" data-location="${locationName}" data-qty="${qty}" data-booked="${loc.booked ?? "-"}" data-balance="${loc.balance ?? qty}">
+        <input type="radio" name="locationRadio" class="location-radio" value="${locationName}" data-qty="${qty}" data-booked="${loc.booked ?? "-"}" data-balance="${loc.balance ?? qty}" ${isSelected ? "checked" : ""} />
+        <span class="location-label">${locationName}:</span>
+        <span class="location-qty">${loc.balance ?? qty}</span>
+      </label>`;
+    }).join("");
+
+    stockDisplay.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: nowrap; white-space: nowrap; width: 100%;">
+        <div style="display: inline-flex; flex-wrap: nowrap; align-items: center; white-space: nowrap;">
+          ${locationRows}
+        </div>
+        <div id="stock-stats" style="display: inline-flex; gap: 14px; align-items: center; flex-wrap: nowrap; white-space: nowrap;">
+          <div style="font-weight: 700; color: #044A78; font-size: 16px;">
+            <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">${totalStock}</span>
+          </div>
+          <div style="font-weight: 700; color: #d97706; font-size: 16px;" title="Booked stock">
+            <i class="fa-regular fa-clock"></i> Booked: <span id="stat-booked">${booked}</span>
+          </div>
+          <div style="font-weight: 700; color: #059669; font-size: 16px;" title="Available balance">
+            <i class="fa-solid fa-scale-balanced"></i> Balance: <span id="stat-balance">${balance}</span>
+          </div>
+        </div>
+      </div>
+    `;
+    stockDisplay.style.display = "flex";
+
+    stockDisplay.querySelectorAll('input[name="locationRadio"]').forEach((radio) => {
+      radio.addEventListener("change", () => {
+        selectStockLocation(radio.value);
+      });
+    });
+  }
+
+  async function updateStockDisplay() {
+    if (!resolvedTtrId.value) {
+      renderStockDisplay({}, normalizeLocationName(locationInput.value || ""));
+      return;
+    }
+
+    try {
+      const res = await fetch(`/fairdesk/ttrstock/stock-info/${resolvedTtrId.value}`);
+      const data = await res.json();
+      const locations = Array.isArray(data?.locations) ? data.locations : [];
+      const preferredLocation = normalizeLocationName(locationInput.value || "");
+      const hasPreferred = preferredLocation && locations.some((loc) => normalizeLocationName(loc.location) === preferredLocation);
+      const selectedLocation = hasPreferred ? preferredLocation : normalizeLocationName(locations[0]?.location || "");
+      renderStockDisplay(data, selectedLocation);
+      if (selectedLocation) {
+        selectStockLocation(selectedLocation);
+      } else {
+        locationInput.value = "";
+      }
+    } catch (err) {
+      console.error("Failed to load stock display", err);
+      renderStockDisplay({}, normalizeLocationName(locationInput.value || ""));
+    }
   }
 
   /* ================= HANDLERS ================= */
@@ -359,10 +436,10 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       });
 
-      locationSelect.value = "";
       resolvedTtr.value = "";
       resolvedTtrId.value = "";
-      stockInput.value = 0;
+      locationInput.value = "";
+      renderStockDisplay({}, "");
       submitBtn.disabled = true;
     });
   }
@@ -374,6 +451,64 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  locationSelect.addEventListener("change", fetchStock);
+  stockDisplay.addEventListener("change", (event) => {
+    const radio = event.target.closest?.('input[name="locationRadio"]');
+    if (!radio) return;
+    selectStockLocation(radio.value);
+  });
+
+  document.querySelector("form")?.addEventListener("submit", (event) => {
+    if (!locationInput.value) {
+      event.preventDefault();
+      alert("Please select a location.");
+    }
+  });
+
+  renderStockDisplay({}, "");
 });
 </script>
+
+<style>
+  .location-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 5px;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 0.4rem;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .location-option:hover {
+    background: #f0f0ff;
+  }
+
+  .location-option.selected {
+    border-color: #044A78;
+    background: #eef0ff;
+  }
+
+  .location-radio {
+    accent-color: #044A78;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    border-radius: 999px;
+  }
+
+  .location-label {
+    color: #044A78;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .location-qty {
+    font-weight: 700;
+    color: #044A78;
+    font-size: 15px;
+  }
+</style>
