@@ -218,7 +218,14 @@ router.post("/edit/:id", async (req, res) => {
 
     await Username.updateMany(
       { clientId: currentClient.clientId },
-      { $set: { hoLocation } },
+      {
+        $set: {
+          clientName,
+          clientType,
+          hoLocation,
+          accountHead,
+        },
+      },
     );
 
     req.flash("notification", "Client updated successfully!");

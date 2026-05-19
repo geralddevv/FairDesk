@@ -12,14 +12,15 @@ in adavance keep date from 11 to 10 on 10 deduct from the salary
 
 Loan:
 add loan log
+loan approval when entry (hold with reason)
+filtering option like (active, request, hold, closed) 
+on top of the loan view show request total and active total
 
 Petty Cash:
 need a year/month selector, person and a from/to slector in the view transaction
 add a current button near view transaction which will show the current month
 month wise export (like a statement)
-total expense also outside the internal view
-
-
+total expense also outside the internal view ✔️
 
 
 Am Main:
