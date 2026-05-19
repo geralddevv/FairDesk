@@ -152,6 +152,7 @@
   const tableData = <%- JSON.stringify(jsonData) %>;
   const snapshotData = [...tableData];
   const totalPettyCash = <%- JSON.stringify(Number(totalPettyCash || 0)) %>;
+  const allLogs = <%- JSON.stringify(allLogs || []) %>;
   let currentLocation = null;
   const pettyCashHeadingEl = document.getElementById("pettyCashHeading");
 
@@ -190,6 +191,26 @@
       if (String(log.type || "").toUpperCase() !== "OUTWARD") return sum;
       return sum + (Number(log.amount) || 0);
     }, 0);
+  }
+
+  function getCurrentMonthExpenseByLocation(logs) {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const expenseByLocation = new Map();
+
+    (logs || []).forEach((log) => {
+      const d = getLogDate(log);
+      if (!d || d.getMonth() !== month || d.getFullYear() !== year) return;
+      if (String(log.type || "").toUpperCase() !== "OUTWARD") return;
+
+      const location = String(log.location || "").trim();
+      if (!location) return;
+
+      expenseByLocation.set(location, (expenseByLocation.get(location) || 0) + (Number(log.amount) || 0));
+    });
+
+    return expenseByLocation;
   }
 
   function getCurrentMonthLabel() {
@@ -241,6 +262,8 @@
     });
   }
 
+  const currentMonthExpenseMap = getCurrentMonthExpenseByLocation(allLogs);
+
 
   /* ===== SNAPSHOT COLUMNS (LIKE LOAN) ===== */
   const baseColumns = [
@@ -248,6 +271,11 @@
     {
       title: "Current Balance",
       field: "balance",
+      formatter: (c) => formatINRCurrency(c.getValue())
+    },
+    {
+      title: "Current Month Expense",
+      field: "monthExpense",
       formatter: (c) => formatINRCurrency(c.getValue())
     },
     { title: "Status", field: "status" },
@@ -347,7 +375,10 @@
   ];
 
   const table = new Tabulator("#master-table", {
-    data: tableData,
+    data: snapshotData.map((row) => ({
+      ...row,
+      monthExpense: currentMonthExpenseMap.get(String(row.location || "").trim()) || 0,
+    })),
     layout: "fitColumns",
     columnMinWidth: 0,
     pagination: "local",
@@ -358,7 +389,12 @@
   /* ===== BACK ===== */
   document.getElementById("backToSnapshot").addEventListener("click", () => {
     table.setColumns(baseColumns);
-    table.replaceData(snapshotData);
+    table.replaceData(
+      snapshotData.map((row) => ({
+        ...row,
+        monthExpense: currentMonthExpenseMap.get(String(row.location || "").trim()) || 0,
+      })),
+    );
     setSnapshotHeading();
     document.getElementById("backToSnapshot").style.display = "none";
     currentLocation = null;

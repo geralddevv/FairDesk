@@ -13,6 +13,15 @@ in adavance keep date from 11 to 10 on 10 deduct from the salary
 Loan:
 add loan log
 
+Petty Cash:
+need a year/month selector, person and a from/to slector in the view transaction
+add a current button near view transaction which will show the current month
+month wise export (like a statement)
+total expense also outside the internal view
+
+
+
+
 Am Main:
 solve problem in the ttr stock entry ✔️
 if user dont put the po number dont allow to submit ✔️
@@ -25,7 +34,7 @@ add option to delete the things in the platform (added in the user and client bi
 add seamless scroll in the list ✔️
 rate and current rate in the sales order
 add that 3 columns active inactive and stocks in details page
-consider item combo options in the sales order page
+consider item combo options in the sales order page (hold)
 
 main stock count and then detailed view ✔️
 same style stock indicator in stock entry (sales order) ✔️
