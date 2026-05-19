@@ -43,7 +43,10 @@
       <h1 id="pettyCashHeading">
         Petty Cash
         <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">
-          Total: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(totalPettyCash || 0)) %>
+          Current Balance: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(totalPettyCash || 0)) %>
+        </span>
+        <span id="pettyCashExpense" class="loan-highlight expense" style="margin-left: 8px;">
+          Curr Mon Expense: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(currentMonthExpense || 0)) %>
         </span>
       </h1>
     </span>
@@ -153,6 +156,7 @@
   const snapshotData = [...tableData];
   const totalPettyCash = <%- JSON.stringify(Number(totalPettyCash || 0)) %>;
   const allLogs = <%- JSON.stringify(allLogs || []) %>;
+  const currentMonthExpense = <%- JSON.stringify(Number(currentMonthExpense || 0)) %>;
   let currentLocation = null;
   const pettyCashHeadingEl = document.getElementById("pettyCashHeading");
 
@@ -166,7 +170,7 @@
   }
 
   function setSnapshotHeading() {
-    pettyCashHeadingEl.innerHTML = `Petty Cash <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">Total: ${formatINRCurrency(totalPettyCash)}</span>`;
+    pettyCashHeadingEl.innerHTML = `Petty Cash <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">Current Balance: ${formatINRCurrency(totalPettyCash)}</span><span id="pettyCashExpense" class="loan-highlight expense" style="margin-left: 8px;">Curr Mon Expense: ${formatINRCurrency(currentMonthExpense)}</span>`;
   }
 
   function getLogDate(log) {
@@ -385,6 +389,7 @@
     paginationSize: 30,
     columns: baseColumns,
   });
+  setSnapshotHeading();
 
   /* ===== BACK ===== */
   document.getElementById("backToSnapshot").addEventListener("click", () => {

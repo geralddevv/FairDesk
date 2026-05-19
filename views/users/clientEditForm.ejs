@@ -1,5 +1,11 @@
 <% layout('/layout/boilerplate') -%>
 
+<%
+  const currentAccountHead = String(client.accountHead || "").trim();
+  const normalizedCurrentAccountHead = currentAccountHead.toLowerCase();
+  const accountHeadMatch = (employees || []).find((employee) => String(employee.empName || "").trim().toLowerCase() === normalizedCurrentAccountHead);
+%>
+
 <div class="main-content">
   <div class="span-full form-subheading gap">
     <div class="client-switch active">
@@ -46,10 +52,13 @@
 
     <div class="span-six">
       <label>Account Head</label>
-      <select name="accountHead" class="form-control select-tag" required>
-        <option value="" disabled hidden>Select</option>
+      <select name="accountHead" id="account-head" class="form-control select-tag" required>
+        <option value="" disabled hidden <%= !currentAccountHead ? 'selected' : '' %>>Select</option>
+        <% if (currentAccountHead && !accountHeadMatch) { %>
+          <option value="<%= currentAccountHead %>" selected><%= currentAccountHead %></option>
+        <% } %>
         <% (employees || []).forEach((employee) => { %>
-          <option value="<%= employee.empName %>" <%= client.accountHead === employee.empName ? 'selected' : '' %>><%= employee.empName %></option>
+          <option value="<%= employee.empName %>" <%= normalizedCurrentAccountHead === String(employee.empName || "").trim().toLowerCase() ? 'selected' : '' %>><%= employee.empName %></option>
         <% }) %>
       </select>
     </div>
@@ -90,4 +99,43 @@
   document.getElementById("cancelBtn").addEventListener("click", () => {
     window.location.href = "/fairdesk/client/view";
   });
+
+  function resolveSelectValue(selectEl, rawValue) {
+    const target = String(rawValue || "").trim();
+    if (!target || !selectEl?.options) return target;
+
+    const targetLower = target.toLowerCase();
+    for (const option of Array.from(selectEl.options)) {
+      const optionValue = String(option.value || "").trim();
+      const optionLabel = String(option.textContent || "").trim();
+
+      if (optionValue.toLowerCase() === targetLower || optionLabel.toLowerCase() === targetLower) {
+        return option.value;
+      }
+    }
+
+    return target;
+  }
+
+  function initAccountHeadChoices() {
+    const accountHeadSelect = document.getElementById("account-head");
+    if (!accountHeadSelect || !window.Choices) return;
+
+    const accountHeadChoices = new Choices(accountHeadSelect, {
+      searchEnabled: true,
+      itemSelectText: "",
+      shouldSort: false,
+    });
+
+    const selectedAccountHead = resolveSelectValue(accountHeadSelect, accountHeadSelect.value);
+    if (selectedAccountHead) {
+      accountHeadChoices.setChoiceByValue(selectedAccountHead);
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAccountHeadChoices);
+  } else {
+    initAccountHeadChoices();
+  }
 </script>

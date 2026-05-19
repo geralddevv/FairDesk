@@ -43,6 +43,33 @@ function entryDateSortValue(log) {
   return log.entryDate || (log.createdAt ? new Date(log.createdAt).toISOString().split("T")[0] : "1970-01-01");
 }
 
+function getLogDateForMonthTotals(log) {
+  const raw = String(log?.entryDate || log?.createdAt || "").trim();
+  if (!raw) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [y, m, d] = raw.split("-").map(Number);
+    const parsed = new Date(Date.UTC(y, m - 1, d));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getCurrentMonthExpense(logs) {
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+
+  return (logs || []).reduce((sum, log) => {
+    const d = getLogDateForMonthTotals(log);
+    if (!d || d.getMonth() !== month || d.getFullYear() !== year) return sum;
+    if (String(log?.type || "").toUpperCase() !== "OUTWARD") return sum;
+    return sum + (Number(log?.amount) || 0);
+  }, 0);
+}
+
 function sortPettyCashLogs(logs) {
   return [...logs].sort((a, b) => {
     const aDate = entryDateSortValue(a);
@@ -189,6 +216,7 @@ router.get("/view", async (req, res) => {
     const pettyList = await PettyCash.find().lean();
     const allLogs = sortPettyCashLogs(await PettyCashLog.find({}).lean()).reverse();
     const totalPettyCash = pettyList.reduce((sum, p) => sum + (Number(p.currentBalance) || 0), 0);
+    const currentMonthExpense = getCurrentMonthExpense(allLogs);
 
     const snapshot = pettyList.map((p) => ({
       location: p.location,
@@ -201,6 +229,7 @@ router.get("/view", async (req, res) => {
       jsonData: snapshot,
       allLogs,
       totalPettyCash,
+      currentMonthExpense,
       title: "Petty Cash View",
       navigator: "pettycash",
       CSS: "tableDisp.css",
