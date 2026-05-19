@@ -2943,6 +2943,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           booked: locBooked[loc.location] || 0,
           balance: loc.qty - (locBooked[loc.location] || 0),
         }));
+
         return {
           _id: binding._id,
           displayName: `${binding.posRollId?.posProductId || "N/A"} - ${binding.posRollId?.posPaperCode || ""} ${binding.posRollId?.posGsm || ""}gsm`,
@@ -3041,6 +3042,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           booked: locBooked[loc.location] || 0,
           balance: loc.qty - (locBooked[loc.location] || 0),
         }));
+
         return {
           _id: binding._id,
           displayName: `${binding.tafetaId?.tafetaProductId || "N/A"} - ${binding.tafetaId?.tafetaMaterialCode || ""} ${binding.tafetaId?.tafetaGsm || ""}gsm`,
@@ -3173,6 +3175,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           booked: locBooked[loc.location] || 0,
           balance: loc.qty - (locBooked[loc.location] || 0),
         }));
+
         return {
           _id: binding._id,
           displayName: `${binding.ttrId?.ttrType || ""} ${binding.ttrId?.ttrWidth || ""}mm x ${binding.ttrId?.ttrMtrs || ""}m`,

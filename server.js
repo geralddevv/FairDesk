@@ -13,6 +13,7 @@ import tapeStockRoutes from "./routes/stock/tapeStock.js";
 import posRollStockRoutes from "./routes/stock/posRollStock.js";
 import tafetaStockRoutes from "./routes/stock/tafetaStock.js";
 import ttrStockRoutes from "./routes/stock/ttrStock.js";
+import stockViewRoutes from "./routes/stock/stockView.js";
 import clientFormRoute from "./routes/users/clients.js";
 import posRollBindingRoutes from "./routes/inventory/posRollBinding.js";
 import tafetaBindingRoutes from "./routes/inventory/tafetaBinding.js";
@@ -203,6 +204,7 @@ app.use("/fairdesk/tapestock", requireAuth, requireRole(["admin", "hod", "sales"
 app.use("/fairdesk/posrollstock", requireAuth, requireRole(["admin", "hod", "sales"]), posRollStockRoutes);
 app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaStockRoutes);
 app.use("/fairdesk/ttrstock", requireAuth, requireRole(["admin", "hod", "sales"]), ttrStockRoutes);
+app.use("/fairdesk/stocks", requireAuth, requireRole(["admin", "hod", "sales"]), stockViewRoutes);
 app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales"]), clientFormRoute);
 
 /* 404 */

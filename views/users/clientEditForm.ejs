@@ -46,7 +46,12 @@
 
     <div class="span-six">
       <label>Account Head</label>
-      <input type="text" class="form-control input-tag" name="accountHead" value="<%= client.accountHead %>" required/>
+      <select name="accountHead" class="form-control select-tag" required>
+        <option value="" disabled hidden>Select</option>
+        <% (employees || []).forEach((employee) => { %>
+          <option value="<%= employee.empName %>" <%= client.accountHead === employee.empName ? 'selected' : '' %>><%= employee.empName %></option>
+        <% }) %>
+      </select>
     </div>
 
     <div class="span-dual">

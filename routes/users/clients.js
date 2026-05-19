@@ -1,6 +1,7 @@
 import express from "express";
 import crypto from "crypto";
 import Client from "../../models/users/client.js";
+import Employee from "../../models/hr/employee_model.js";
 import Username from "../../models/users/username.js";
 
 const router = express.Router();
@@ -109,7 +110,10 @@ router.get("/api/:id", async (req, res) => {
 /* ================= EDIT CLIENT FORM ================= */
 router.get("/edit/:id", async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id);
+    const [client, employees] = await Promise.all([
+      Client.findById(req.params.id),
+      Employee.find({}, { empName: 1 }).sort({ empName: 1 }).lean(),
+    ]);
 
     if (!client) {
       req.flash("notification", "Client not found");
@@ -119,6 +123,7 @@ router.get("/edit/:id", async (req, res) => {
     res.render("users/clientEditForm.ejs", {
       title: "Edit Client",
       client,
+      employees,
       JS: false,
       CSS: "tabOpt.css",
       notification: req.flash("notification"),

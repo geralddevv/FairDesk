@@ -729,6 +729,8 @@
     };
 
     if (type === "TTR") {
+      pushIf("Client Material Code", d.clientMaterialCode);
+      pushIf("Client Type", d.clientType);
       pushIf("Material Code", d.materialCode);
       pushIf("Type", d.ttrType);
       pushIf("Color", d.color);
@@ -740,6 +742,8 @@
       pushIf("Notch", d.notch);
       pushIf("Winding", d.winding);
     } else if (type === "TAPE") {
+      pushIf("Client Material Code", d.clientMaterialCode);
+      pushIf("Client GSM", d.clientGsm);
       pushIf("Paper Code", d.paperCode);
       pushIf("GSM", d.gsm);
       pushIf("Paper Type", d.paperType);
@@ -749,6 +753,8 @@
       pushIf("Core ID", d.coreId);
       pushIf("Finish", d.finish);
     } else if (type === "POS_ROLL") {
+      pushIf("Client Material Code", d.clientMaterialCode);
+      pushIf("Client GSM", d.clientGsm);
       pushIf("Paper Code", d.paperCode);
       pushIf("GSM", d.gsm);
       pushIf("Paper Type", d.paperType);
@@ -757,9 +763,11 @@
       pushIf("Meters", d.mtrs);
       pushIf("Core ID", d.coreId);
     } else if (type === "TAFETA") {
+      pushIf("Client Material Code", d.clientMaterialCode);
+      pushIf("Client GSM", d.clientGsm);
       pushIf("Material Code", d.materialCode);
-      pushIf("GSM", d.gsm);
       pushIf("Material Type", d.materialType);
+      pushIf("GSM", d.gsm);
       pushIf("Color", d.color);
       pushIf("Width", d.width);
       pushIf("Meters", d.mtrs);
