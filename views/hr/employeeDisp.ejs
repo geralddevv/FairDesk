@@ -116,12 +116,10 @@
         "empDept",
         "empReportingManager",
         "empProfile",
-        "empOfficeMob",
-        "empOfficeEmailId",
         "empDob",
         "empGender",
         "empMobile1",
-        "empEmail",
+        "empEmergencyNo1",
         "empMartialStatus",
         "empPresentAddress",
         "empPermanentAddress",
@@ -162,6 +160,7 @@
             title: "Name",
             field: "empName",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               const value = cell.getValue();
               const missing = isMissingValue(value);
@@ -184,6 +183,7 @@
             title: "Employee Id",
             field: "empId",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             width: 150,
             formatter: function (cell) {
               return `
@@ -221,6 +221,7 @@
             title: "Reporting Manager",
             field: "empReportingManager",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               return formatEmployeeField(cell.getValue(), "#111827");
             }
@@ -229,6 +230,7 @@
             title: "Office Mobile",
             field: "empOfficeMob",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               return formatEmployeeField(cell.getValue(), "#111827");
             }
@@ -237,6 +239,7 @@
             title: "Office Email",
             field: "empOfficeEmailId",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               return formatEmployeeField(cell.getValue(), "#111827");
             }
@@ -245,6 +248,7 @@
             title: "Employee Type",
             field: "empType",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               return formatEmployeeField(cell.getValue(), "#111827");
             }
@@ -253,6 +257,7 @@
             title: "Department",
             field: "empDept",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               return formatEmployeeField(cell.getValue(), "#111827");
             }
@@ -261,6 +266,7 @@
             title: "Location",
             field: "empLoc",
             headerFilter: "input",
+            headerFilterPlaceholder: "Search",
             formatter: function (cell) {
               return formatEmployeeField(cell.getValue(), "#111827");
             }

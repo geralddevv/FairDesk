@@ -22,6 +22,19 @@
     background-color: rgba(220, 53, 69, 0.22);
     border-color: rgba(255, 255, 255, 0.65);
   }
+
+  .view-txn-btn, .view-current-btn {
+    transition: all 0.2s ease-in-out;
+  }
+
+  .view-txn-btn:hover {
+    background-color: #033658 !important;
+    border-color: #033658 !important;
+  }
+
+  .view-current-btn:hover {
+    background-color: #f1f5f9 !important;
+  }
 </style>
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
@@ -158,6 +171,7 @@
   const allLogs = <%- JSON.stringify(allLogs || []) %>;
   const currentMonthExpense = <%- JSON.stringify(Number(currentMonthExpense || 0)) %>;
   let currentLocation = null;
+  let currentViewMode = "ALL";
   const pettyCashHeadingEl = document.getElementById("pettyCashHeading");
 
   function formatINRCurrency(value) {
@@ -224,7 +238,8 @@
   function setTransactionHeading(location, history) {
     const expense = getCurrentMonthExpense(history);
     const month = getCurrentMonthLabel();
-    pettyCashHeadingEl.innerHTML = `Petty Cash - ${location} <span class="loan-highlight expense" style="margin-left: 8px;">${month} - ${formatINRCurrency(expense)}</span>`;
+    const modeLabel = currentViewMode === "CURRENT" ? "(Current Month)" : "(All Transactions)";
+    pettyCashHeadingEl.innerHTML = `Petty Cash - ${location} <span style="font-size: 1.1rem; color: #64748b; font-weight: 600; margin-left: 6px;">${modeLabel}</span> <span class="loan-highlight expense" style="margin-left: 8px;">${month} - ${formatINRCurrency(expense)}</span>`;
   }
 
   function formatDateTime(value) {
@@ -290,16 +305,34 @@
     },
     {
       title: "Action",
+      headerSort: false,
+      hozAlign: "center",
       formatter: () =>
-        `<span style="text-decoration:underline;font-weight:600;cursor:pointer">
-          View Transactions
-         </span>`,
+        `<div style="display:flex; gap:6px; justify-content:center; align-items:center; height:100%;">
+          <button class="view-txn-btn" title="View All" style="height:22px; padding:0 10px; border:1px solid #044A78; background:#044A78; color:#fff; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">View Transaction</button>
+          <button class="view-current-btn" title="Current Month" style="height:22px; padding:0 10px; border:1px solid #044A78; background:#fff; color:#044A78; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; line-height:1;">Current</button>
+        </div>`,
       cellClick: async (e, cell) => {
+        const btnAll = e.target.closest(".view-txn-btn");
+        const btnCurr = e.target.closest(".view-current-btn");
+        if (!btnAll && !btnCurr) return;
+
         const { location } = cell.getRow().getData();
         currentLocation = location;
+        currentViewMode = btnCurr ? "CURRENT" : "ALL";
 
         const res = await fetch(`/fairdesk/pettycash/logs/${location}`);
-        const { history } = await res.json();
+        let { history } = await res.json();
+
+        if (currentViewMode === "CURRENT") {
+          const now = new Date();
+          const month = now.getMonth();
+          const year = now.getFullYear();
+          history = (history || []).filter(log => {
+            const d = getLogDate(log);
+            return d && d.getMonth() === month && d.getFullYear() === year;
+          });
+        }
 
         table.setColumns(logColumns);
         table.replaceData(history);
@@ -403,6 +436,7 @@
     setSnapshotHeading();
     document.getElementById("backToSnapshot").style.display = "none";
     currentLocation = null;
+    currentViewMode = "ALL";
   });
 
   /* ===== DOWNLOAD ===== */
@@ -474,7 +508,18 @@
   async function refreshLogs() {
     if (!currentLocation) return;
     const res = await fetch(`/fairdesk/pettycash/logs/${currentLocation}`);
-    const { history } = await res.json();
+    let { history } = await res.json();
+
+    if (currentViewMode === "CURRENT") {
+      const now = new Date();
+      const month = now.getMonth();
+      const year = now.getFullYear();
+      history = (history || []).filter(log => {
+        const d = getLogDate(log);
+        return d && d.getMonth() === month && d.getFullYear() === year;
+      });
+    }
+
     table.replaceData(history);
     setTransactionHeading(currentLocation, history);
   }

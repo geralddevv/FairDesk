@@ -296,7 +296,7 @@
       data-normal-span="span-seven"
     >
       <label for="emp-email">Email</label>
-      <input type="text" id="emp-email" class="form-control input-tag" name="empEmail" value="<%= employee?.empEmail || '' %>" placeholder="Enter Email or NA" autocomplete="off" required />
+      <input type="text" id="emp-email" class="form-control input-tag" name="empEmail" value="<%= employee?.empEmail || '' %>" placeholder="Enter Email or NA" autocomplete="off" />
     </div>
 
     <div
@@ -517,9 +517,36 @@
         </div>
     </div>
 
-    <div class="span-full btn-grp">
-      <button class="submit-btn" type="submit">Save Employee</button>
+    <div class="span-full btn-grp" style="flex-direction: row !important; gap: 1.2rem;">
+      <a href="/fairdesk/employee/view" class="cancel-btn" style="
+        width: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: white;
+        background-color: var(--primary-color);
+        font-size: 1.25rem;
+        font-weight: 500;
+        padding: 0.5rem 1.5rem;
+        border: 2px solid var(--primary-color);
+        border-radius: 0.5rem;
+        transition: all 0.3s ease-in-out;
+      ">Cancel Edit</a>
+      <button class="submit-btn" type="submit" style="width: 50%;">Save Employee</button>
     </div>
+
+<style>
+  .cancel-btn:hover {
+    transform: scale(0.99);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.75);
+    color: white;
+  }
+  @media screen and (max-width: 768px) {
+    .btn-grp { flex-direction: column !important; }
+    .submit-btn, .cancel-btn { width: 100% !important; }
+  }
+</style>
   </form>
 </div>
 
