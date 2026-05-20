@@ -22,6 +22,8 @@ add a current button near view transaction which will show the current month
 month wise export (like a statement)
 total expense also outside the internal view ✔️
 
+employee:
+add logs for commercial changes
 
 Am Main:
 solve problem in the ttr stock entry ✔️

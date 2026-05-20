@@ -847,7 +847,7 @@
             <div style="display: flex; flex-wrap: nowrap; align-items: center;">${locationHtml}</div>
             <div id="stock-stats" style="display: flex; gap: 14px; align-items: center; flex-wrap: nowrap;">
               <div style="font-weight: 700; color: #044A78; font-size: 16px;">
-                <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">${stock.totalStock}</span>
+                <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">${stock.totalStock || 0}</span>
               </div>
               <div style="font-weight: 700; color: #d97706; font-size: 16px;" title="Pending Orders">
                 <i class="fa-regular fa-clock"></i> Booked: <span id="stat-booked">${stock.booked || 0}</span>
@@ -1424,14 +1424,47 @@
               tapeName = `${parts[0] || t.ttrProductId || "Item"} ${parts.slice(1).join(" ")}`.trim();
             }
          }
-         
-         itemChoices.clearStore();
+          // Construct details object for profile display
+          const detailsObj = { type: type || "" };
+          if (orderToEdit.tapeId) {
+             const t = orderToEdit.tapeId;
+             // Map common fields from Tape, PosRoll, Tafeta, Ttr, Label
+             detailsObj.productId = t.tapeProductId || t.posProductId || t.tafetaProductId || t.ttrProductId || "";
+             detailsObj.paperCode = t.tapePaperCode || t.posPaperCode || "";
+             detailsObj.materialCode = t.tafetaMaterialCode || t.ttrMaterialCode || "";
+             detailsObj.gsm = t.tapeGsm || t.posGsm || t.tafetaGsm || "";
+             detailsObj.finish = t.tapeFinish || "";
+             detailsObj.paperType = t.tapePaperType || t.posPaperType || "";
+             detailsObj.materialType = t.tafetaMaterialType || "";
+             detailsObj.color = t.posColor || t.tafetaColor || t.ttrColor || "";
+             detailsObj.width = t.tapeWidth || t.posWidth || t.tafetaWidth || t.ttrWidth || t.labelWidth || ""; 
+             detailsObj.height = t.labelHeight || "";
+             detailsObj.mtrs = t.tapeMtrs || t.posMtrs || t.tafetaMtrs || t.ttrMtrs || "";
+             detailsObj.ttrType = t.ttrType || "";
+             detailsObj.coreId = t.tapeCoreId || t.posCoreId || t.tafetaCoreId || t.ttrCoreId || "";
+             detailsObj.coreLength = t.tafetaCoreLen || t.ttrCoreLength || "";
+             detailsObj.notch = t.tafetaNotch || t.ttrNotch || "";
+             detailsObj.winding = t.ttrWinding || "";
+             detailsObj.inkFace = t.ttrInkFace || "";
+             detailsObj.adhesiveGsm = t.tapeAdhesiveGsm || "";
+             
+             // Client specific fields (from populated binding)
+             if (orderToEdit.tapeBinding) {
+                const b = orderToEdit.tapeBinding;
+                detailsObj.clientMaterialCode = b.tapeClientMaterialCode || b.posClientMaterialCode || b.tafetaClientMaterialCode || b.ttrClientMaterialCode || "";
+                detailsObj.clientGsm = b.clientTapeGsm || b.clientPosGsm || b.clientTafetaGsm || "";
+                detailsObj.clientType = b.clientTtrType || "";
+             }
+          }
+
+          itemChoices.clearStore();
           itemChoices.setChoices([{
              value: itemId,
              label: tapeName,
              selected: true,
              customProperties: {
                 stock: stockInfo ? JSON.stringify(stockInfo) : JSON.stringify({ totalStock: 0, locations: [] }),
+                details: JSON.stringify(detailsObj),
                 minQty: orderToEdit.tapeBinding
                   ? (orderToEdit.tapeBinding.tapeMinQty ??
                     orderToEdit.tapeBinding.posMinQty ??

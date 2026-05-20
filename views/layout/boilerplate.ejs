@@ -577,26 +577,26 @@
             <div title="Petty Cash View" class="<%= title === 'Petty Cash View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pettycash/view'" style="border-top: 2px solid #ffffff9d; margin-bottom: 5px">
               <i class="fa-solid fa-money-bill-1" style="color: #ffffff"></i>
               <p class="nav-items-para">Petty Cash</p>
-            </div>            
-
-            <div title="Employee View" class="<%= title === 'Employee View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/view'" >
-              <i class="fa-solid fa-users" style="color: #ffffff"></i>
-              <p class="nav-items-para">Employee</p>
-            </div>
-
-            <div title="Loan View" class="<%= title === 'Loan View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/loan/view'" >
-              <i class="fa-solid fa-handshake" style="color: #ffffff"></i>
-              <p class="nav-items-para">Loan</p>
             </div>
 
             <div title="Advance View" class="<%= title === 'Advance View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/advance/view'" >
               <i class="fa-solid fa-arrow-up-1-9" style="color: #ffffff"></i>
               <p class="nav-items-para">Advance</p>
             </div>
+            
+            <div title="Loan View" class="<%= title === 'Loan View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/loan/view'" >
+              <i class="fa-solid fa-handshake" style="color: #ffffff"></i>
+              <p class="nav-items-para">Loan</p>
+            </div>
 
-            <div title="Payroll View" class="<%= title === 'Payroll View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/payroll/view'" style="border-bottom: 2px solid #ffffff9d" >
+            <div title="Payroll View" class="<%= title === 'Payroll View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/payroll/view'" >
               <i class="fa-solid fa-address-book" style="color: #ffffff"></i>
               <p class="nav-items-para">Payroll</p>
+            </div>
+
+            <div title="Employee View" class="<%= title === 'Employee View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/view'" style="border-bottom: 2px solid #ffffff9d" >
+              <i class="fa-solid fa-users" style="color: #ffffff"></i>
+              <p class="nav-items-para">Employee</p>
             </div>
 
             <!-- ===== DATA ENTRY HEADING ===== -->
@@ -607,26 +607,27 @@
             <div title="Petty Cash" class="<%= title === 'Petty Cash' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pettycash/create'" style="border-top: 2px solid #ffffff9d" >
               <i class="fa-regular fa-money-bill-1" style="color: #ffffff"></i>
               <p class="nav-items-para">Petty Cash</p>
-            </div>            
-
-            <div title="Employee Details" class="<%= title === 'Employee Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/create'" >
-              <i class="fa-solid fa-users" style="color: #ffffff"></i>
-              <p class="nav-items-para">Emp Details</p>
+            </div>
+            
+            <div title="Advance" class="<%= title === 'Advance' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/advance/create'" >
+              <i class="fa-solid fa-arrow-up-1-9" style="color: #ffffff"></i>
+              <p class="nav-items-para">Advance</p>
             </div>
 
             <div title="Loan" class="<%= title === 'Loan' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/loan/create'" >
               <i class="fa-solid fa-handshake" style="color: #ffffff"></i>
               <p class="nav-items-para">Loan</p>
             </div>
-
-            <div title="Advance" class="<%= title === 'Advance' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/advance/create'" >
-              <i class="fa-solid fa-arrow-up-1-9" style="color: #ffffff"></i>
-              <p class="nav-items-para">Advance</p>
-            </div>
-
+            
             <div title="Payroll" class="<%= title === 'Payroll' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/payroll/create'" >
               <i class="fa-solid fa-address-book" style="color: #ffffff"></i>
               <p class="nav-items-para">Payroll</p>
+            </div>            
+
+            <div title="Employee Details" class="<%= title === 'Employee Details' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/create'" style="border-bottom: 2px solid #ffffff9d"
+               >
+              <i class="fa-solid fa-users" style="color: #ffffff"></i>
+              <p class="nav-items-para">Emp Details</p>
             </div>
           </div>
         </div>

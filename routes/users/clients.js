@@ -26,7 +26,10 @@ function buildClientSignature(source) {
 }
 
 function hashSignature(rawSignature) {
-  return `sha256:${crypto.createHash("sha256").update(String(rawSignature ?? "")).digest("hex")}`;
+  return `sha256:${crypto
+    .createHash("sha256")
+    .update(String(rawSignature ?? ""))
+    .digest("hex")}`;
 }
 
 router.use((req, res, next) => {
@@ -73,9 +76,7 @@ router.get("/view", async (req, res) => {
       Username.aggregate([{ $group: { _id: "$clientId", count: { $sum: 1 } } }]),
     ]);
 
-    const userCountByClientId = new Map(
-      userCounts.map((entry) => [String(entry._id || ""), Number(entry.count || 0)]),
-    );
+    const userCountByClientId = new Map(userCounts.map((entry) => [String(entry._id || ""), Number(entry.count || 0)]));
 
     clients.forEach((client) => {
       client.userCount = userCountByClientId.get(String(client.clientId || "")) || 0;
@@ -212,7 +213,7 @@ router.post("/edit/:id", async (req, res) => {
         clientSignature,
       },
       {
-      runValidators: true,
+        runValidators: true,
       },
     );
 

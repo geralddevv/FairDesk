@@ -52,7 +52,7 @@
 
     <div class="span-six">
       <label>Account Head</label>
-      <select name="accountHead" id="account-head" class="form-control select-tag" required>
+      <select name="accountHead" id="account-head" class="form-control select-tag" data-current-account-head="<%= currentAccountHead %>" required>
         <option value="" disabled hidden <%= !currentAccountHead ? 'selected' : '' %>>Select</option>
         <% if (currentAccountHead && !accountHeadMatch) { %>
           <option value="<%= currentAccountHead %>" selected><%= currentAccountHead %></option>
@@ -95,6 +95,7 @@
   </form>
 </div>
 
+<script src="/js/choices.min.js"></script>
 <script>
   document.getElementById("cancelBtn").addEventListener("click", () => {
     window.location.href = "/fairdesk/client/view";
@@ -121,15 +122,23 @@
     const accountHeadSelect = document.getElementById("account-head");
     if (!accountHeadSelect || !window.Choices) return;
 
+    const currentAccountHead = String(accountHeadSelect.dataset.currentAccountHead || "").trim();
+    const resolvedAccountHead = resolveSelectValue(accountHeadSelect, currentAccountHead);
+
     const accountHeadChoices = new Choices(accountHeadSelect, {
       searchEnabled: true,
       itemSelectText: "",
       shouldSort: false,
+      callbackOnInit() {
+        if (resolvedAccountHead) {
+          this.setChoiceByValue(resolvedAccountHead);
+        }
+      },
     });
 
-    const selectedAccountHead = resolveSelectValue(accountHeadSelect, accountHeadSelect.value);
-    if (selectedAccountHead) {
-      accountHeadChoices.setChoiceByValue(selectedAccountHead);
+    if (resolvedAccountHead) {
+      accountHeadSelect.value = resolvedAccountHead;
+      accountHeadChoices.setChoiceByValue(resolvedAccountHead);
     }
   }
 

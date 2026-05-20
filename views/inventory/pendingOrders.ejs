@@ -30,7 +30,7 @@
     <h1>
       Pending Orders
       <span id="total-value-display" class="order-highlight active">Total: ₹0.00</span>
-      <span id="filtered-value-display" class="order-highlight filtered" style="display:none;">Filtered: ₹0.00</span>
+      <span id="filtered-value-display" class="order-highlight filtered" style="display: none">Filtered: ₹0.00</span>
     </h1>
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
       <!-- Item Filter -->
@@ -469,7 +469,13 @@
         headerFilterPlaceholder: "Search",
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
-      { title: "Client", field: "userId.clientName", width: 200, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      {
+        title: "Client",
+        field: "userId.clientName",
+        width: 200,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
       { title: "User", field: "userId.userName", width: 150, headerFilter: "input", headerFilterPlaceholder: "Search" },
       {
         title: "Item Type",
@@ -512,20 +518,32 @@
         width: 70,
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
+      },
+      {
+        title: "Sent",
+        field: "dispatchedQuantity",
+        hozAlign: "center",
+        width: 65,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        formatter: (cell) => cell.getValue() || 0,
+      },
+      {
+        title: "Bal",
+        hozAlign: "center",
+        width: 65,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        headerFilterFunc: (headerValue, rowValue, rowData, filterParams) => {
+          const bal = (rowData.quantity || 0) - (rowData.dispatchedQuantity || 0);
+          return String(bal).includes(String(headerValue));
+        },
         formatter: (cell) => {
           const row = cell.getRow().getData();
-          const quantity = row.quantity;
+          const quantity = row.quantity || 0;
           const dispatched = row.dispatchedQuantity || 0;
-          if (dispatched > 0) {
-            const remaining = quantity - dispatched;
-            return `
-              <div style="display:flex; flex-direction:column; align-items:center; line-height:1.2;">
-                <span style="font-weight:600; color:#044A78;">${remaining} left</span>
-                <span style="font-size:10px; color:#6b7280; font-weight:500;">(${dispatched} sent)</span>
-              </div>
-            `;
-          }
-          return quantity;
+          const remaining = quantity - dispatched;
+          return `<span style="font-weight:700; color:#044A78;">${remaining}</span>`;
         },
       },
       {
@@ -556,7 +574,14 @@
           return `<span style="font-weight:700; color:#044A78;">₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
         },
       },
-      { title: "Source", field: "sourceLocation", hozAlign: "center", width: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      {
+        title: "Source",
+        field: "sourceLocation",
+        hozAlign: "center",
+        width: 80,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+      },
       {
         title: "Est. Delivery",
         field: "estimatedDate",
@@ -588,7 +613,9 @@
     const filteredEl = document.getElementById("filtered-value-display");
     if (!filteredEl) return;
 
-    const isFiltered = rows.length !== orderData.length;
+    // Show filtered badge if any filters are active or the item dropdown has a selection
+    const itemFilterVal = document.getElementById("item-filter").value;
+    const isFiltered = (filters && filters.length > 0) || itemFilterVal !== "";
 
     if (!isFiltered) {
       filteredEl.style.display = "none";
@@ -756,8 +783,8 @@
     padding: 24px;
     backdrop-filter: blur(6px);
   "
-  >
-  <div id="pending-order-details-body" style="width: min(1180px, 100%); animation: detailsPopIn 0.2s ease-out;"></div>
+>
+  <div id="pending-order-details-body" style="width: min(1180px, 100%); animation: detailsPopIn 0.2s ease-out"></div>
 </div>
 
 <style>
@@ -816,7 +843,7 @@
     align-items: flex-start;
     padding: 26px 26px 24px;
     background:
-      radial-gradient(circle at top right, rgba(255,255,255,0.16), transparent 34%),
+      radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
       linear-gradient(135deg, #044a78 0%, #03365a 100%);
     color: #fff;
   }
