@@ -44,3 +44,4 @@ drop down in the client page for the item edit (added bt need to test) ✔️
 add option to add additional address in the vendor coordinator/client username
 add a seperate stock summary for clear view of the stocks available
 show client code and type in the sales order page
+in the pending page show the total value and the selected item value

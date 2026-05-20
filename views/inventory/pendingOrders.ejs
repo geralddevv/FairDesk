@@ -1,12 +1,37 @@
-<% layout('/layout/boilerplate') -%>
+<% layout('/layout/boilerplate') %>
 
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 <link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet" />
 
+<style>
+  .order-highlight {
+    padding: 0.3rem 0.85rem;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.12);
+    margin-left: 8px;
+    display: inline-block;
+  }
+  .order-highlight.active {
+    background-color: rgba(255, 255, 255, 0.18);
+  }
+  .order-highlight.filtered {
+    background-color: rgba(16, 185, 129, 0.22);
+    border-color: rgba(255, 255, 255, 0.65);
+  }
+</style>
+
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <div class="indi-head">
-    <h1>Pending Orders</h1>
+    <h1>
+      Pending Orders
+      <span id="total-value-display" class="order-highlight active">Total: ₹0.00</span>
+      <span id="filtered-value-display" class="order-highlight filtered" style="display:none;">Filtered: ₹0.00</span>
+    </h1>
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
       <!-- Item Filter -->
       <div style="position: relative; display: inline-block">
@@ -440,14 +465,18 @@
         title: "Date",
         field: "createdAt",
         width: 105,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
-      { title: "Client", field: "userId.clientName", width: 200 },
-      { title: "User", field: "userId.userName", width: 150 },
+      { title: "Client", field: "userId.clientName", width: 200, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "User", field: "userId.userName", width: 150, headerFilter: "input", headerFilterPlaceholder: "Search" },
       {
         title: "Item Type",
         field: "onModel",
         width: 100,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         formatter: (cell) => {
           const val = cell.getValue();
           if (val === "PosRoll") return "POS Roll";
@@ -461,6 +490,12 @@
         title: "Item Details",
         field: "tapeId",
         width: 200,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        headerFilterFunc: (headerValue, rowValue, rowData, filterParams) => {
+          const name = getItemName(rowData);
+          return String(name).toLowerCase().includes(String(headerValue).toLowerCase());
+        },
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const name = getItemName(row);
@@ -475,6 +510,8 @@
         field: "quantity",
         hozAlign: "center",
         width: 70,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const quantity = row.quantity;
@@ -491,15 +528,81 @@
           return quantity;
         },
       },
-      { title: "Source", field: "sourceLocation", hozAlign: "center", width: 80 },
+      {
+        title: "Rate (₹)",
+        field: "orderRate",
+        hozAlign: "right",
+        width: 90,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        formatter: (cell) => {
+          const val = cell.getValue();
+          if (val == null || val === "") return `<span style="color:#9ca3af;">—</span>`;
+          return `<span style="font-weight:600; color:#0f766e;">₹${Number(val).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+        },
+      },
+      {
+        title: "Value (₹)",
+        field: "orderRate",
+        hozAlign: "right",
+        width: 110,
+        headerSort: true,
+        formatter: (cell) => {
+          const row = cell.getRow().getData();
+          const rate = Number(row.orderRate) || 0;
+          const qty = Number(row.quantity) || 0;
+          const value = rate * qty;
+          if (rate === 0) return `<span style="color:#9ca3af;">—</span>`;
+          return `<span style="font-weight:700; color:#044A78;">₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+        },
+      },
+      { title: "Source", field: "sourceLocation", hozAlign: "center", width: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
       {
         title: "Est. Delivery",
         field: "estimatedDate",
         width: 120,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
-      { title: "Remarks", field: "remarks" },
+      { title: "Remarks", field: "remarks", headerFilter: "input", headerFilterPlaceholder: "Search" },
     ],
+  });
+
+  // Pre-compute grand total from all rows (never changes)
+  const grandTotal = orderData.reduce((sum, row) => {
+    return sum + (Number(row.orderRate) || 0) * (Number(row.quantity) || 0);
+  }, 0);
+
+  function formatINR(value) {
+    return "₹" + value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Set the static grand total on load
+  const totalDisplay = document.getElementById("total-value-display");
+  if (totalDisplay) totalDisplay.textContent = "Total: " + formatINR(grandTotal);
+
+  // Update filtered value whenever filters change
+  // dataFiltered passes (filters, rows) where rows = currently visible row components
+  table.on("dataFiltered", function (filters, rows) {
+    const filteredEl = document.getElementById("filtered-value-display");
+    if (!filteredEl) return;
+
+    const isFiltered = rows.length !== orderData.length;
+
+    if (!isFiltered) {
+      filteredEl.style.display = "none";
+      return;
+    }
+
+    let filteredTotal = 0;
+    rows.forEach((row) => {
+      const data = row.getData();
+      filteredTotal += (Number(data.orderRate) || 0) * (Number(data.quantity) || 0);
+    });
+
+    filteredEl.textContent = "Filtered: " + formatINR(filteredTotal);
+    filteredEl.style.display = "inline-block";
   });
 
   // Handle Item Filter
