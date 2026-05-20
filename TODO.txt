@@ -17,13 +17,13 @@ filtering option like (active, request, hold, closed)
 on top of the loan view show request total and active total
 
 Petty Cash:
-need a year/month selector, person and a from/to slector in the view transaction
-add a current button near view transaction which will show the current month
-month wise export (like a statement)
 total expense also outside the internal view ✔️
+add a current button near view transaction which will show the current month ✔️
+need a year/month selector, person and a from/to slector in the view transaction
+month wise export (like a statement)
 
 employee:
-add logs for commercial changes
+add logs for commercial changes in the employee edit
 
 Am Main:
 solve problem in the ttr stock entry ✔️
@@ -35,15 +35,17 @@ add a view page for the stocks available in the items ✔️
 seperate vendor and client in navbar ✔️
 add option to delete the things in the platform (added in the user and client bindings) ✔️
 add seamless scroll in the list ✔️
-rate and current rate in the sales order
-add that 3 columns active inactive and stocks in details page
-consider item combo options in the sales order page (hold)
 
 main stock count and then detailed view ✔️
 same style stock indicator in stock entry (sales order) ✔️
 view location change after editing (error in editing) in user ✔️
 drop down in the client page for the item edit (added bt need to test) ✔️
-add option to add additional address in the vendor coordinator/client username
-add a seperate stock summary for clear view of the stocks available
-show client code and type in the sales order page
-in the pending page show the total value and the selected item value
+in the pending page show the total value and the selected item value ✔️
+add option to add additional address in the vendor coordinator/client username (partially done) ✔️
+add a seperate stock summary for clear view of the stocks available ✔️
+show client code and type in the sales order page ✔️
+
+rate and current rate in the sales order
+add that 3 columns active inactive and stocks in details page
+consider item combo options in the sales order page (hold)
+if single digit add a 0 before the number

@@ -23,17 +23,23 @@
     border-color: rgba(255, 255, 255, 0.65);
   }
 
-  .view-txn-btn, .view-current-btn {
-    transition: all 0.2s ease-in-out;
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: transparent;
+    padding: 6px 14px;
+    border: 1px solid #ffffffaa;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
   }
 
-  .view-txn-btn:hover {
-    background-color: #033658 !important;
-    border-color: #033658 !important;
-  }
-
-  .view-current-btn:hover {
-    background-color: #f1f5f9 !important;
+  .back-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 </style>
 
@@ -41,49 +47,26 @@
   <div class="indi-head">
     <span style="display: flex; align-items: center; gap: 10px">
       <h1 id="pettyCashHeading">
-        Petty Cash
-        <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">
-          Current Balance: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(totalPettyCash || 0)) %>
+        Petty Cash - <%= location %>
+        <span style="font-size: 1.1rem; color: #cbd5e1; font-weight: 600; margin-left: 6px;">(<%= viewLabel %>)</span>
+        <span class="loan-highlight active" style="margin-left: 8px;">
+          Balance: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(balance || 0)) %>
         </span>
-        <span id="pettyCashExpense" class="loan-highlight expense" style="margin-left: 8px;">
-          Curr Mon Expense: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(currentMonthExpense || 0)) %>
+        <span class="loan-highlight expense" style="margin-left: 8px;">
+          <%= mode === 'CURRENT' ? 'Month Expense' : 'Total Expense' %>: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(currentMonthExpense || 0)) %>
         </span>
       </h1>
     </span>
 
-    <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
-      <a
-        href="/fairdesk/pettycash/logs/all/view"
-        style="
-          padding: 6px 14px;
-          background: #044a78;
-          color: white;
-          border-radius: 6px;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          transition: opacity 0.2s;
-        "
-        onmouseover="this.style.opacity = '0.85'"
-        onmouseout="this.style.opacity = '1'"
-      >
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        <span>View Logs</span>
-      </a>
+    <div class="download-selector" id="downloadSelector">
+      <div class="download-selector__trigger">
+        <span><i class="fa-solid fa-file-arrow-down"></i> Download</span>
+        <i class="fa-solid fa-chevron-down"></i>
+      </div>
 
-      <div class="download-selector" id="downloadSelector">
-        <div class="download-selector__trigger">
-          <span><i class="fa-solid fa-file-arrow-down"></i> Download</span>
-          <i class="fa-solid fa-chevron-down"></i>
-        </div>
-
-        <div class="download-selector__menu">
-          <div class="download-selector__option" id="download-pdf">PDF</div>
-          <div class="download-selector__option" id="download-xlsx">Excel</div>
-        </div>
+      <div class="download-selector__menu">
+        <div class="download-selector__option" id="download-pdf">PDF</div>
+        <div class="download-selector__option" id="download-xlsx">Excel</div>
       </div>
     </div>
   </div>
@@ -91,7 +74,6 @@
   <div class="table-spinner"><div class="spinner-circle"></div></div>
   <div id="master-table"></div>
 </div>
-
 
 <!-- ===== EDIT LOG DIALOG ===== -->
 <div
@@ -176,14 +158,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-  const tableData = <%- JSON.stringify(jsonData) %>;
-  const snapshotData = [...tableData];
-  const totalPettyCash = <%- JSON.stringify(Number(totalPettyCash || 0)) %>;
-  const allLogs = <%- JSON.stringify(allLogs || []) %>;
-  const currentMonthExpense = <%- JSON.stringify(Number(currentMonthExpense || 0)) %>;
-  let currentLocation = null;
-  let currentViewMode = "ALL";
-  const pettyCashHeadingEl = document.getElementById("pettyCashHeading");
+  const logsData = <%- JSON.stringify(logs || []) %>;
+  const currentViewMode = <%- JSON.stringify(mode || 'ALL') %>;
+  const currentLocation = <%- JSON.stringify(location) %>;
 
   function formatINRCurrency(value) {
     return new Intl.NumberFormat("en-IN", {
@@ -194,97 +171,10 @@
     }).format(Number(value) || 0);
   }
 
-  function setSnapshotHeading() {
-    pettyCashHeadingEl.innerHTML = `Petty Cash <span id="pettyCashTotal" class="loan-highlight active" style="margin-left: 8px;">Current Balance: ${formatINRCurrency(totalPettyCash)}</span><span id="pettyCashExpense" class="loan-highlight expense" style="margin-left: 8px;">Curr Mon Expense: ${formatINRCurrency(currentMonthExpense)}</span>`;
-  }
-
-  function getLogDate(log) {
-    const raw = String(log?.entryDate || log?.createdAt || "").trim();
-    if (!raw) return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-      const [y, m, d] = raw.split("-").map(Number);
-      return new Date(y, m - 1, d);
-    }
-    const d = new Date(raw);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  function getCurrentMonthExpense(history) {
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-    return (history || []).reduce((sum, log) => {
-      const d = getLogDate(log);
-      if (!d) return sum;
-      if (d.getMonth() !== month || d.getFullYear() !== year) return sum;
-      if (String(log.type || "").toUpperCase() !== "OUTWARD") return sum;
-      return sum + (Number(log.amount) || 0);
-    }, 0);
-  }
-
-  function getCurrentMonthExpenseByLocation(logs) {
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-    const expenseByLocation = new Map();
-
-    (logs || []).forEach((log) => {
-      const d = getLogDate(log);
-      if (!d || d.getMonth() !== month || d.getFullYear() !== year) return;
-      if (String(log.type || "").toUpperCase() !== "OUTWARD") return;
-
-      const location = String(log.location || "").trim();
-      if (!location) return;
-
-      expenseByLocation.set(location, (expenseByLocation.get(location) || 0) + (Number(log.amount) || 0));
-    });
-
-    return expenseByLocation;
-  }
-
-  function getCurrentMonthLabel() {
-    return new Intl.DateTimeFormat("en-IN", { month: "short" }).format(new Date());
-  }
-
-  function setTransactionHeading(location, history) {
-    const expense = getCurrentMonthExpense(history);
-    const month = getCurrentMonthLabel();
-    const modeLabel = currentViewMode === "CURRENT" ? "(Current Month)" : "(All Transactions)";
-    pettyCashHeadingEl.innerHTML = `Petty Cash - ${location} <span style="font-size: 1.1rem; color: #64748b; font-weight: 600; margin-left: 6px;">${modeLabel}</span> <span class="loan-highlight expense" style="margin-left: 8px;">${month} - ${formatINRCurrency(expense)}</span>`;
-  }
-
-  function formatDateTime(value) {
-      if (!value) return "-";
-
-      const d = new Date(value);
-      return d.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
-    }
-
   function formatDateOnly(value) {
     if (!value) return "-";
-
-    const raw = String(value);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-      const [y, m, d] = raw.split("-").map(Number);
-      const date = new Date(Date.UTC(y, m - 1, d));
-      return new Intl.DateTimeFormat("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(date);
-    }
-
-    const d = new Date(raw);
-    if (Number.isNaN(d.getTime())) return raw;
-
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
@@ -292,65 +182,74 @@
     });
   }
 
-  const currentMonthExpenseMap = getCurrentMonthExpenseByLocation(allLogs);
-
-
-  /* ===== SNAPSHOT COLUMNS (LIKE LOAN) ===== */
-  const baseColumns = [
-    { title: "Location", field: "location", headerSort: false },
+  const columns = [
+    { title: "From", field: "from", headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "To", field: "to", headerFilter: "input", headerFilterPlaceholder: "Search" },
     {
-      title: "Current Balance",
-      field: "balance",
-      formatter: (c) => formatINRCurrency(c.getValue())
+      title: "Opening Balance",
+      field: "openingBalance",
+      formatter: (c) => formatINRCurrency(c.getValue()),
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
     },
     {
-      title: "Current Month Expense",
-      field: "monthExpense",
-      formatter: (c) => formatINRCurrency(c.getValue())
+      title: "Amount",
+      field: "amount",
+      formatter: c => {
+        const r = c.getRow().getData();
+        return r.type === "OUTWARD"
+          ? `- ${formatINRCurrency(c.getValue())}` : `+ ${formatINRCurrency(c.getValue())}`;
+      },
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
     },
-    { title: "Status", field: "status" },
     {
-      title: "Last Updated",
-      field: "updatedAt",
-      formatter: cell => formatDateTime(cell.getValue()),
+      title: "Closing Balance",
+      field: "closingBalance",
+      formatter: (c) => formatINRCurrency(c.getValue()),
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+    },
+    { title: "Type", field: "type", headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Reason", field: "reason", headerFilter: "input", headerFilterPlaceholder: "Search" },
+    {
+      title: "Date",
+      field: "entryDate",
+      formatter: cell => formatDateOnly(cell.getValue() || cell.getRow().getData().createdAt),
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
     },
     {
-      title: "Action",
-      headerSort: false,
+      title: "Actions",
+      width: 80,
       hozAlign: "center",
-      formatter: (cell) => {
-        const { location } = cell.getRow().getData();
-        return `
-          <div style="display:flex; gap:6px; justify-content:center; align-items:center; height:100%;">
-            <a href="/fairdesk/pettycash/logs/${encodeURIComponent(location)}/view" 
-               class="view-txn-btn" 
-               title="View All" 
-               style="height:22px; padding:0 10px; border:1px solid #044A78; background:#044A78; color:#fff; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; line-height:22px; text-decoration:none; display:inline-block;">
-               View Transaction
-            </a>
-            <a href="/fairdesk/pettycash/logs/${encodeURIComponent(location)}/view?mode=CURRENT" 
-               class="view-current-btn" 
-               title="Current Month" 
-               style="height:22px; padding:0 10px; border:1px solid #044A78; background:#fff; color:#044A78; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; line-height:22px; text-decoration:none; display:inline-block;">
-               Current
-            </a>
-          </div>`;
-      }
+      headerHozAlign: "center",
+      headerSort: false,
+      formatter: () =>
+        `<button class="pc-log-btn pc-log-edit" title="Edit" style="height:20px; width:28px; padding:0; margin-right:6px; border:1px solid #d1d5db; background:#fff; border-radius:4px; cursor:pointer; line-height:1;">
+            <i class="fa-solid fa-pen-to-square" style="font-size:11px; color:#044A78;"></i>
+         </button>
+         <button class="pc-log-btn pc-log-delete" title="Delete" style="height:20px; width:28px; padding:0; border:1px solid #fca5a5; background:#fee2e2; border-radius:4px; cursor:pointer; line-height:1;">
+            <i class="fa-solid fa-trash" style="font-size:11px; color:#b91c1c;"></i>
+         </button>`,
+      cellClick: (e, cell) => {
+        const row = cell.getRow().getData();
+        if (e.target.closest(".pc-log-edit")) {
+          openEditDialog(row);
+        } else if (e.target.closest(".pc-log-delete")) {
+          openDeleteDialog(row);
+        }
+      },
     },
   ];
 
   const table = new Tabulator("#master-table", {
-    data: snapshotData.map((row) => ({
-      ...row,
-      monthExpense: currentMonthExpenseMap.get(String(row.location || "").trim()) || 0,
-    })),
+    data: logsData,
     layout: "fitColumns",
-    columnMinWidth: 0,
     pagination: "local",
     paginationSize: 30,
-    columns: baseColumns,
+    columns: columns,
   });
-  setSnapshotHeading();
 
   /* ===== DOWNLOAD ===== */
   const selector = document.getElementById("downloadSelector");
@@ -358,12 +257,12 @@
     selector.classList.toggle("download-selector--active");
 
   document.getElementById("download-pdf").onclick = () =>
-    table.download("pdf", "pettycash.pdf");
+    table.download("pdf", `pettycash_${currentLocation}.pdf`);
 
   document.getElementById("download-xlsx").onclick = () =>
-    table.download("xlsx", "pettycash.xlsx");
-</script>
-<script>
+    table.download("xlsx", `pettycash_${currentLocation}.xlsx`);
+
+  /* ===== DIALOGS ===== */
   const editDialog = document.getElementById("pc-edit-dialog");
   const deleteDialog = document.getElementById("pc-delete-dialog");
 
@@ -371,7 +270,6 @@
     const type = document.getElementById("pc-edit-type").value;
     const fromWrap = document.getElementById("pc-edit-from-wrap");
     const toWrap = document.getElementById("pc-edit-to-wrap");
-
     if (type === "PAID") {
       fromWrap.style.display = "none";
       toWrap.style.display = "block";
@@ -409,34 +307,6 @@
     deleteDialog.style.display = "none";
   }
 
-  function updateSnapshotBalance(location, balance) {
-    const idx = snapshotData.findIndex((s) => s.location === location);
-    if (idx !== -1) {
-      snapshotData[idx].balance = balance;
-      snapshotData[idx].status = balance > 0 ? "ACTIVE" : "EMPTY";
-      snapshotData[idx].updatedAt = new Date().toISOString();
-    }
-  }
-
-  async function refreshLogs() {
-    if (!currentLocation) return;
-    const res = await fetch(`/fairdesk/pettycash/logs/${currentLocation}`);
-    let { history } = await res.json();
-
-    if (currentViewMode === "CURRENT") {
-      const now = new Date();
-      const month = now.getMonth();
-      const year = now.getFullYear();
-      history = (history || []).filter(log => {
-        const d = getLogDate(log);
-        return d && d.getMonth() === month && d.getFullYear() === year;
-      });
-    }
-
-    table.replaceData(history);
-    setTransactionHeading(currentLocation, history);
-  }
-
   async function submitEditLog() {
     const id = document.getElementById("pc-edit-id").value;
     const typeUi = document.getElementById("pc-edit-type").value;
@@ -450,22 +320,6 @@
       alert("Please enter a valid amount.");
       return;
     }
-
-    if (typeUi === "RECEIVED" && !from) {
-      alert("From is required.");
-      return;
-    }
-
-    if (typeUi === "PAID" && !to) {
-      alert("To is required.");
-      return;
-    }
-
-    if (!entryDate) {
-      alert("Please select an entry date.");
-      return;
-    }
-
     const payload = {
       amount,
       type: typeUi === "RECEIVED" ? "INWARD" : "OUTWARD",
@@ -481,72 +335,23 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || "Failed to update log");
-        return;
-      }
-
-      updateSnapshotBalance(currentLocation, data.balance);
-      await refreshLogs();
+      if (res.ok) window.location.reload();
+      else alert("Failed to update log");
     } catch (err) {
       console.error(err);
       alert("Failed to update log");
     }
-
-    closeEditDialog();
   }
 
   async function submitDeleteLog() {
     const id = document.getElementById("pc-delete-id").value;
-    if (!id) return;
-
     try {
       const res = await fetch(`/fairdesk/pettycash/logs/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || "Failed to delete log");
-        return;
-      }
-
-      updateSnapshotBalance(currentLocation, data.balance);
-      await refreshLogs();
+      if (res.ok) window.location.reload();
+      else alert("Failed to delete log");
     } catch (err) {
       console.error(err);
       alert("Failed to delete log");
     }
-
-    closeDeleteDialog();
   }
 </script>
-
-<script>
-  /* ===== TRANSACTION TYPE → VISIBILITY + VALUE FIX ===== */
-  function syncFields() {
-    if (txnType.value === "PAID") {
-      // PAID → only TO
-      fromWrap.style.display = "none";
-      fromInput.required = false;
-      fromInput.value = "-"; // ✅ FIXED
-
-      toWrap.style.display = "block";
-      toInput.required = true;
-    } else {
-      // RECEIVED → only FROM
-      toWrap.style.display = "none";
-      toInput.required = false;
-      toInput.value = "-"; // ✅ FIXED
-
-      fromWrap.style.display = "block";
-      fromInput.required = true;
-    }
-  }
-
-  txnType.addEventListener("change", syncFields);
-  syncFields(); // run once on load
-</script>
-
-
-
-
-

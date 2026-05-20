@@ -257,6 +257,63 @@ router.get("/logs/:location", async (req, res) => {
   }
 });
 
+/* LOCATION-WISE LOGS (VIEW) */
+router.get("/logs/:location/view", async (req, res) => {
+  try {
+    const { location } = req.params;
+    const { mode } = req.query;
+
+    let logs;
+    let balance = 0;
+    let locationLabel = location;
+
+    if (location === "all") {
+      logs = sortPettyCashLogs(await PettyCashLog.find({}).lean()).reverse();
+      const pettyList = await PettyCash.find().lean();
+      balance = pettyList.reduce((sum, p) => sum + (Number(p.currentBalance) || 0), 0);
+      locationLabel = "All Locations";
+    } else {
+      logs = sortPettyCashLogs(await PettyCashLog.find({ location }).lean()).reverse();
+      const pettyCash = await findPettyCash(location);
+      balance = pettyCash?.currentBalance || 0;
+    }
+
+    let viewLabel = "All Transactions";
+    if (mode === "CURRENT") {
+      const now = new Date();
+      const month = now.getMonth();
+      const year = now.getFullYear();
+      logs = logs.filter((log) => {
+        const d = getLogDateForMonthTotals(log);
+        return d && d.getMonth() === month && d.getFullYear() === year;
+      });
+      viewLabel = "Current Month";
+    }
+
+    const currentMonthExpense = getCurrentMonthExpense(logs);
+
+    res.render("accounting/pettycashLogs", {
+      logs,
+      location: locationLabel,
+      balance,
+      currentMonthExpense,
+      viewLabel,
+      mode,
+      title: `Petty Cash Logs - ${locationLabel}`,
+      navigator: "pettycash",
+      CSS: "tableDisp.css",
+      JS: false,
+      notification: req.flash("notification"),
+      error: req.flash("error"),
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Failed to load petty cash logs");
+    res.redirect("/fairdesk/pettycash/view");
+  }
+});
+
+
 /* EDIT LOG */
 router.patch("/logs/:id", async (req, res) => {
   try {

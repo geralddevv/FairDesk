@@ -57,15 +57,39 @@
       <h1 id="loanHeading">Loans</h1>
     </span>
 
-    <div class="download-selector" id="downloadSelector">
-      <button class="download-selector__trigger">
-        <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
-        <i class="fas fa-chevron-down"></i>
-      </button>
+    <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
+      <a
+        href="/fairdesk/loan/logs"
+        style="
+          padding: 6px 14px;
+          background: #044a78;
+          color: white;
+          border-radius: 6px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: opacity 0.2s;
+        "
+        onmouseover="this.style.opacity = '0.85'"
+        onmouseout="this.style.opacity = '1'"
+      >
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>View Logs</span>
+      </a>
 
-      <div class="download-selector__menu">
-        <div class="download-selector__option" id="download-pdf"><i class="fas fa-file-pdf"></i> PDF</div>
-        <div class="download-selector__option" id="download-xlsx"><i class="fas fa-file-excel"></i> Excel</div>
+      <div class="download-selector" id="downloadSelector">
+        <button class="download-selector__trigger">
+          <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
+          <i class="fas fa-chevron-down"></i>
+        </button>
+
+        <div class="download-selector__menu">
+          <div class="download-selector__option" id="download-pdf"><i class="fas fa-file-pdf"></i> PDF</div>
+          <div class="download-selector__option" id="download-xlsx"><i class="fas fa-file-excel"></i> Excel</div>
+        </div>
       </div>
     </div>
   </div>

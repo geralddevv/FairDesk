@@ -518,6 +518,10 @@
         width: 70,
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
+        formatter: (cell) => {
+          const val = cell.getValue();
+          return val === 0 ? "" : val;
+        },
       },
       {
         title: "Sent",
@@ -526,7 +530,10 @@
         width: 65,
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
-        formatter: (cell) => cell.getValue() || 0,
+        formatter: (cell) => {
+          const val = cell.getValue();
+          return val === 0 ? "" : val;
+        },
       },
       {
         title: "Bal",

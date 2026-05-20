@@ -243,6 +243,56 @@ router.get("/view", async (req, res) => {
   });
 });
 
+/* LOAN ACTION LOGS */
+router.get("/logs", async (req, res) => {
+  try {
+    const logs = await LoanLog.find()
+      .populate("employee", "empName empId")
+      .populate("loan", "currentBalance emi status")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formatted = logs.map((log) => ({
+      _id: log._id,
+      employeeName: log.employee?.empName || "-",
+      empId: log.employee?.empId || "-",
+      loanStatus: log.loan?.status || "-",
+      loanBalance: log.loan?.currentBalance ?? 0,
+      openingBalance: log.openingBalance ?? 0,
+      amount: log.amount ?? 0,
+      closingBalance: log.closingBalance ?? 0,
+      type: log.type || "-",
+      source: log.source || "-",
+      action:
+        log.type === "CREDIT" && log.source === "MANUAL"
+          ? log.openingBalance === 0
+            ? "INITIAL LOAN"
+            : "LOAN TOP-UP"
+          : log.type === "DEBIT" && log.source === "MANUAL"
+            ? "LOAN CLOSE"
+            : log.type === "DEBIT" && log.source === "PAYROLL"
+              ? "EMI DEDUCTION"
+              : "-",
+      date: new Date(log.createdAt).toLocaleDateString("en-IN"),
+      time: new Date(log.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+    }));
+
+    res.render("accounting/loanLogs.ejs", {
+      logs: formatted,
+      title: "Loan Logs",
+      CSS: "tableDisp.css",
+      JS: false,
+      navigator: "loan",
+      notification: req.flash("notification"),
+      error: req.flash("error"),
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash("notification", "Failed to load loan logs");
+    res.redirect("/fairdesk/loan/view");
+  }
+});
+
 /* EMPLOYEE LOAN LOG HISTORY */
 router.get("/employee/:employeeId/logs", async (req, res) => {
   const { employeeId } = req.params;

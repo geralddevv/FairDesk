@@ -149,7 +149,7 @@ router.post("/create", async (req, res) => {
         source: "MANUAL",
       });
     } else {
-    /* UPDATE EXISTING ADVANCE */
+      /* UPDATE EXISTING ADVANCE */
       const openingBalance = advance.currentBalance;
       const closingBalance = openingBalance + amount;
 
@@ -196,6 +196,57 @@ router.get("/view", async (req, res) => {
     JS: false,
     navigator: "advance",
   });
+});
+
+/* ADVANCE ACTION LOGS */
+router.get("/logs", async (req, res) => {
+  try {
+    const logs = await AdvanceLog.find()
+      .populate("employee", "empName empId")
+      .populate("advance", "currentBalance status")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formatted = logs.map((log) => ({
+      _id: log._id,
+      employeeName: log.employee?.empName || "-",
+      empId: log.employee?.empId || "-",
+      advanceStatus: log.advance?.status || "-",
+      advanceBalance: log.advance?.currentBalance ?? 0,
+      openingBalance: log.openingBalance ?? 0,
+      amount: log.amount ?? 0,
+      closingBalance: log.closingBalance ?? 0,
+      type: log.type || "-",
+      source: log.source || "-",
+      action:
+        log.type === "CREDIT" && log.source === "MANUAL"
+          ? log.openingBalance === 0
+            ? "INITIAL ADVANCE"
+            : "ADVANCE TOP-UP"
+          : log.type === "DEBIT" && log.source === "PAYROLL"
+            ? "ADVANCE RECOVERY"
+            : log.type === "DEBIT" && log.source === "MANUAL"
+              ? "ADVANCE RECOVERY (MANUAL)"
+              : "-",
+      date: new Date(log.createdAt).toLocaleDateString("en-IN"),
+      time: new Date(log.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      createdAt: log.createdAt,
+    }));
+
+    res.render("accounting/advanceLogs", {
+      logs: formatted,
+      title: "Advance Logs",
+      CSS: "tableDisp.css",
+      JS: false,
+      navigator: "advance",
+      notification: req.flash("notification"),
+      error: req.flash("error"),
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash("notification", "Failed to load advance logs");
+    res.redirect("/fairdesk/advance/view");
+  }
 });
 
 /* EMPLOYEE ADVANCE LOG HISTORY */
