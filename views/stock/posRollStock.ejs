@@ -113,7 +113,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("locationInput");
   const stockDisplay = document.getElementById("stock-display");
-  const allLocations = <%- JSON.stringify(locations || []) %>;
+  const allLocations = <%- safeJson(locations || []) %>;
 
   const resolvedPosRoll = document.getElementById("resolvedPosRoll");
   const resolvedPosRollId = document.getElementById("resolvedPosRollId");
@@ -164,13 +164,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const initialOptions = {
-    "pos-paper-code": <%- JSON.stringify(paperCodes || []) %>,
-    "pos-paper-type": <%- JSON.stringify(paperTypes || []) %>,
-    "pos-color": <%- JSON.stringify(colors || []) %>,
-    "pos-gsm": <%- JSON.stringify(gsms || []) %>,
-    "pos-width": <%- JSON.stringify(widths || []) %>,
-    "pos-mtrs": <%- JSON.stringify(mtrsList || []) %>,
-    "pos-core-id": <%- JSON.stringify(coreIds || []) %>,
+    "pos-paper-code": <%- safeJson(paperCodes || []) %>,
+    "pos-paper-type": <%- safeJson(paperTypes || []) %>,
+    "pos-color": <%- safeJson(colors || []) %>,
+    "pos-gsm": <%- safeJson(gsms || []) %>,
+    "pos-width": <%- safeJson(widths || []) %>,
+    "pos-mtrs": <%- safeJson(mtrsList || []) %>,
+    "pos-core-id": <%- safeJson(coreIds || []) %>,
   };
 
   /* ================= SMART FILTER ================= */

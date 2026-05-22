@@ -131,7 +131,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("locationInput");
   const stockDisplay = document.getElementById("stock-display");
-  const allLocations = <%- JSON.stringify(locations || []) %>;
+  const allLocations = <%- safeJson(locations || []) %>;
 
   const resolvedTafeta = document.getElementById("resolvedTafeta");
   const resolvedTafetaId = document.getElementById("resolvedTafetaId");
@@ -188,15 +188,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const initialOptions = {
-    "tafeta-material-code": <%- JSON.stringify(materialCodes || []) %>,
-    "tafeta-material-type": <%- JSON.stringify(materialTypes || []) %>,
-    "tafeta-color": <%- JSON.stringify(colors || []) %>,
-    "tafeta-gsm": <%- JSON.stringify(gsms || []) %>,
-    "tafeta-width": <%- JSON.stringify(widths || []) %>,
-    "tafeta-mtrs": <%- JSON.stringify(mtrsList || []) %>,
-    "tafeta-core-len": <%- JSON.stringify(coreLens || []) %>,
-    "tafeta-notch": <%- JSON.stringify(notches || []) %>,
-    "tafeta-core-id": <%- JSON.stringify(coreIds || []) %>,
+    "tafeta-material-code": <%- safeJson(materialCodes || []) %>,
+    "tafeta-material-type": <%- safeJson(materialTypes || []) %>,
+    "tafeta-color": <%- safeJson(colors || []) %>,
+    "tafeta-gsm": <%- safeJson(gsms || []) %>,
+    "tafeta-width": <%- safeJson(widths || []) %>,
+    "tafeta-mtrs": <%- safeJson(mtrsList || []) %>,
+    "tafeta-core-len": <%- safeJson(coreLens || []) %>,
+    "tafeta-notch": <%- safeJson(notches || []) %>,
+    "tafeta-core-id": <%- safeJson(coreIds || []) %>,
   };
 
   /* ================= SMART FILTER ================= */

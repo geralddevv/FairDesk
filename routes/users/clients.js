@@ -3,6 +3,7 @@ import crypto from "crypto";
 import Client from "../../models/users/client.js";
 import Employee from "../../models/hr/employee_model.js";
 import Username from "../../models/users/username.js";
+import { escapeRegex } from "../../utils/security.js";
 
 const router = express.Router();
 
@@ -139,7 +140,6 @@ router.get("/edit/:id", async (req, res) => {
 /* ================= UPDATE CLIENT ================= */
 router.post("/edit/:id", async (req, res) => {
   try {
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const currentClient = await Client.findById(req.params.id).select("clientId").lean();
 
     if (!currentClient) {

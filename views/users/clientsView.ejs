@@ -193,7 +193,7 @@
   });
 
   /* ===== Table ===== */
-  const tableData = <%- JSON.stringify(jsonData) %>;
+  const tableData = <%- safeJson(jsonData) %>;
 
   function normalizeStatus(value) {
     return String(value ?? "").trim().toUpperCase();

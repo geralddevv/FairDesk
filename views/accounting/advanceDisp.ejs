@@ -162,7 +162,7 @@
     .addEventListener("click", (e) => e.stopPropagation());
 
   /* ===== Table ===== */
-  const tableData = <%- JSON.stringify(jsonData) %>;
+  const tableData = <%- safeJson(jsonData) %>;
   const snapshotData = [...tableData];
   let currentEmployeeId = null;
   const advanceHeadingEl = document.getElementById("advanceHeading");

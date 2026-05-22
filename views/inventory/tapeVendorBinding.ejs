@@ -201,7 +201,7 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const pageConfig = <%- JSON.stringify(cfg) %>;
+  const pageConfig = <%- safeJson(cfg) %>;
 
   const form = document.getElementById("vendor-item-form");
   const submitBtn = document.getElementById("vendor-item-submit");

@@ -132,7 +132,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script id="order-data" type="application/json">
-  <%- JSON.stringify(orders || []) %>
+  <%- safeJson(orders || []) %>
 </script>
 <script>
   /* Safe JSON injection */

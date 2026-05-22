@@ -140,7 +140,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("locationInput");
   const stockDisplay = document.getElementById("stock-display");
-  const allLocations = <%- JSON.stringify(locations || []) %>;
+  const allLocations = <%- safeJson(locations || []) %>;
 
   const resolvedTtr = document.getElementById("resolvedTtr");
   const resolvedTtrId = document.getElementById("resolvedTtrId");
@@ -200,16 +200,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const initialOptions = {
-    "ttr-type": <%- JSON.stringify(types || []) %>,
-    "ttr-color": <%- JSON.stringify(colors || []) %>,
-    "ttr-material-code": <%- JSON.stringify(materialCodes || []) %>,
-    "ttr-width": <%- JSON.stringify(widths || []) %>,
-    "ttr-mtrs": <%- JSON.stringify(mtrsList || []) %>,
-    "ttr-ink-face": <%- JSON.stringify(inkFaces || []) %>,
-    "ttr-core-id": <%- JSON.stringify(coreIds || []) %>,
-    "ttr-core-length": <%- JSON.stringify(coreLengths || []) %>,
-    "ttr-notch": <%- JSON.stringify(notches || []) %>,
-    "ttr-winding": <%- JSON.stringify(windings || []) %>,
+    "ttr-type": <%- safeJson(types || []) %>,
+    "ttr-color": <%- safeJson(colors || []) %>,
+    "ttr-material-code": <%- safeJson(materialCodes || []) %>,
+    "ttr-width": <%- safeJson(widths || []) %>,
+    "ttr-mtrs": <%- safeJson(mtrsList || []) %>,
+    "ttr-ink-face": <%- safeJson(inkFaces || []) %>,
+    "ttr-core-id": <%- safeJson(coreIds || []) %>,
+    "ttr-core-length": <%- safeJson(coreLengths || []) %>,
+    "ttr-notch": <%- safeJson(notches || []) %>,
+    "ttr-winding": <%- safeJson(windings || []) %>,
   };
 
   /* ================= SMART FILTER ================= */

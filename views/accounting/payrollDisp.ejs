@@ -84,7 +84,7 @@
 
     /* ================= TABLE ================= */
 
-    const tableData = <%- JSON.stringify(jsonData) %>;
+    const tableData = <%- safeJson(jsonData) %>;
     const snapshotData = [...tableData];
 
     const table = new Tabulator("#master-table", {

@@ -173,7 +173,7 @@
       .addEventListener("click", (e) => e.stopPropagation());
 
     /* ===== Table ===== */
-    const tableData = <%- JSON.stringify(jsonData) %>;
+    const tableData = <%- safeJson(jsonData) %>;
     const snapshotData = [...tableData];
     let currentEmployeeId = null;
     const loanHeadingEl = document.getElementById("loanHeading");
@@ -478,7 +478,8 @@
         console.error(err);
         alert("Failed to delete loan entry.");
       }
-    }    setLoanSnapshotHeading();
+    }
+    setLoanSnapshotHeading();
 </script>
 
 

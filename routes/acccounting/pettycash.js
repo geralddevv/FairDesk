@@ -166,7 +166,14 @@ router.post("/create", async (req, res) => {
     const normalizedEntryDate = normalizeEntryDate(entryDate);
 
     /* BASIC VALIDATION */
-    if (!location || txnAmount <= 0 || !type || !normalizedEntryDate || (type === "PAID" && !to) || (type === "RECEIVED" && !from)) {
+    if (
+      !location ||
+      txnAmount <= 0 ||
+      !type ||
+      !normalizedEntryDate ||
+      (type === "PAID" && !to) ||
+      (type === "RECEIVED" && !from)
+    ) {
       req.flash("error", "Invalid petty cash entry");
       return res.redirect("back");
     }
@@ -311,8 +318,8 @@ router.get("/logs/:location/view", async (req, res) => {
     req.flash("error", "Failed to load petty cash logs");
     res.redirect("/fairdesk/pettycash/view");
   }
+  g;
 });
-
 
 /* EDIT LOG */
 router.patch("/logs/:id", async (req, res) => {

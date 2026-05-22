@@ -176,11 +176,11 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-  const tableData = <%- JSON.stringify(jsonData) %>;
+  const tableData = <%- safeJson(jsonData) %>;
   const snapshotData = [...tableData];
-  const totalPettyCash = <%- JSON.stringify(Number(totalPettyCash || 0)) %>;
-  const allLogs = <%- JSON.stringify(allLogs || []) %>;
-  const currentMonthExpense = <%- JSON.stringify(Number(currentMonthExpense || 0)) %>;
+  const totalPettyCash = <%- safeJson(Number(totalPettyCash || 0)) %>;
+  const allLogs = <%- safeJson(allLogs || []) %>;
+  const currentMonthExpense = <%- safeJson(Number(currentMonthExpense || 0)) %>;
   let currentLocation = null;
   let currentViewMode = "ALL";
   const pettyCashHeadingEl = document.getElementById("pettyCashHeading");

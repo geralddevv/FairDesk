@@ -81,7 +81,7 @@
 
   <script>
     // Parse data from Express
-    const tableData = <%- JSON.stringify(jsonData) %>;
+    const tableData = <%- safeJson(jsonData) %>;
 
     // Initialize Tabulator
     const baseColumns = [

@@ -91,14 +91,12 @@ const tapeSalesOrderSchema = new mongoose.Schema(
       type: String,
       trim: true,
       immutable: true,
-      sparse: true,
     },
 
     orderSignature: {
       type: String,
       trim: true,
       immutable: true,
-      sparse: true,
     },
   },
   {

@@ -86,7 +86,7 @@
 
       // ================= DATA =================
 
-      const tableData = <%- JSON.stringify(jsonData) %>;
+      const tableData = <%- safeJson(jsonData) %>;
 
       function isMissingValue(value) {
         return value === null || value === undefined || String(value).trim() === "";

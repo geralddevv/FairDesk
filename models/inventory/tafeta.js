@@ -64,7 +64,6 @@ const tafetaSchema = new Schema(
       unique: true,
       sparse: true,
       trim: true,
-      index: true,
     },
   },
   {

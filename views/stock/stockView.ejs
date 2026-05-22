@@ -95,7 +95,7 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-  const tableData = <%- JSON.stringify(jsonData) %>;
+  const tableData = <%- safeJson(jsonData) %>;
   const locationValues = Array.from(
     new Set(tableData.map((row) => String(row.location || "").trim()).filter(Boolean)),
   ).sort((a, b) => a.localeCompare(b));

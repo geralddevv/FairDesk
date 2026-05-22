@@ -142,7 +142,7 @@
     // Render data from Express (passed into EJS)
     let tableData = [];
     try {
-      tableData = <%- JSON.stringify(jsonData || []) %>;
+      tableData = <%- safeJson(jsonData || []) %>;
       console.log(tableData);
     } catch (err) {
       console.error("Master Disp JSON error", err);

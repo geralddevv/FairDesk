@@ -34,6 +34,8 @@ import TtrStockLog from "../models/inventory/TtrStockLog.js";
 import Location from "../models/system/location.js";
 import Counter from "../models/system/counter.js";
 import Sample from "../models/inventory/sample.js";
+import { escapeRegex } from "../utils/security.js";
+
 const router = express.Router();
 
 function hashSignature(rawSignature) {
@@ -233,17 +235,13 @@ function normalizeLocationDetails(rawLocationDetails, fallbackLocation, fallback
   return locations;
 }
 
-function buildUserSignature(source, clientId) {
+function buildUserSignature(source, userId) {
   return [
-    normalizeClientPart(clientId),
+    normalizeClientPart(userId),
     normalizeUserName(source.userName),
     normalizeUserEmail(source.userEmail),
     normalizeUserContact(source.userContact),
   ].join("||");
-}
-
-function escapeRegexLiteral(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 // Route to handle CLIENT form submission
@@ -282,15 +280,15 @@ router.post("/form/client", async (req, res) => {
       $or: [
         { clientSignature },
         {
-          clientName: new RegExp(`^${escapeRegexLiteral(clientName)}$`, "i"),
-          clientType: new RegExp(`^${escapeRegexLiteral(clientType)}$`, "i"),
-          clientStatus: new RegExp(`^${escapeRegexLiteral(clientStatus)}$`, "i"),
-          hoLocation: new RegExp(`^${escapeRegexLiteral(hoLocation)}$`, "i"),
-          accountHead: new RegExp(`^${escapeRegexLiteral(accountHead)}$`, "i"),
-          clientGst: new RegExp(`^${escapeRegexLiteral(clientGst)}$`, "i"),
-          clientMsme: new RegExp(`^${escapeRegexLiteral(clientMsme)}$`, "i"),
-          clientGumasta: new RegExp(`^${escapeRegexLiteral(clientGumasta)}$`, "i"),
-          clientPan: new RegExp(`^${escapeRegexLiteral(clientPan)}$`, "i"),
+          clientName: new RegExp(`^${escapeRegex(clientName)}$`, "i"),
+          clientType: new RegExp(`^${escapeRegex(clientType)}$`, "i"),
+          clientStatus: new RegExp(`^${escapeRegex(clientStatus)}$`, "i"),
+          hoLocation: new RegExp(`^${escapeRegex(hoLocation)}$`, "i"),
+          accountHead: new RegExp(`^${escapeRegex(accountHead)}$`, "i"),
+          clientGst: new RegExp(`^${escapeRegex(clientGst)}$`, "i"),
+          clientMsme: new RegExp(`^${escapeRegex(clientMsme)}$`, "i"),
+          clientGumasta: new RegExp(`^${escapeRegex(clientGumasta)}$`, "i"),
+          clientPan: new RegExp(`^${escapeRegex(clientPan)}$`, "i"),
         },
       ],
     })
@@ -358,7 +356,7 @@ router.post("/form/user", async (req, res) => {
         client = await Client.findOne({ clientId: clientIdFallback });
       }
       if (!client && clientNameFallback) {
-        client = await Client.findOne({ clientName: new RegExp(`^${escapeRegexLiteral(clientNameFallback)}$`, "i") });
+        client = await Client.findOne({ clientName: new RegExp(`^${escapeRegex(clientNameFallback)}$`, "i") });
       }
     }
     if (!client) {
@@ -393,9 +391,9 @@ router.post("/form/user", async (req, res) => {
         { userSignature },
         {
           clientId,
-          userName: new RegExp(`^${escapeRegexLiteral(userName)}$`, "i"),
-          userEmail: new RegExp(`^${escapeRegexLiteral(userEmail)}$`, "i"),
-          userContact: new RegExp(`^${escapeRegexLiteral(userContact)}$`, "i"),
+          userName: new RegExp(`^${escapeRegex(userName)}$`, "i"),
+          userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i"),
+          userContact: new RegExp(`^${escapeRegex(userContact)}$`, "i"),
         },
       ],
     })
@@ -446,9 +444,9 @@ router.post("/form/user", async (req, res) => {
           { userSignature: fallbackUserSignature },
           {
             clientId,
-            userName: new RegExp(`^${escapeRegexLiteral(userName)}$`, "i"),
-            userEmail: new RegExp(`^${escapeRegexLiteral(userEmail)}$`, "i"),
-            userContact: new RegExp(`^${escapeRegexLiteral(userContact)}$`, "i"),
+            userName: new RegExp(`^${escapeRegex(userName)}$`, "i"),
+            userEmail: new RegExp(`^${escapeRegex(userEmail)}$`, "i"),
+            userContact: new RegExp(`^${escapeRegex(userContact)}$`, "i"),
           },
         ],
       })
@@ -502,7 +500,7 @@ router.get("/form/labels/:name", async (req, res) => {
     const rawName = String(req.params.name || "");
     const normalizedName = rawName.trim().replace(/\s+/g, " ");
     const clientData = await Client.findOne({
-      clientName: new RegExp(`^${escapeRegexLiteral(normalizedName)}$`, "i"),
+      clientName: new RegExp(`^${escapeRegex(normalizedName)}$`, "i"),
     })
       .populate("users")
       .lean();
@@ -1125,7 +1123,6 @@ router.get("/form/edit/user/:userId", async (req, res) => {
 router.post("/form/edit/user/:userId", async (req, res) => {
   try {
     let { userId } = req.params;
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const currentUser = await Username.findById(userId);
     if (!currentUser) {
       req.flash("error", "User not found.");
@@ -2529,8 +2526,6 @@ router.post("/vendor/edit/:id", async (req, res) => {
 // Route to handle VENDOR USER form submission
 router.post("/form/vendor-user", async (req, res) => {
   try {
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
     const { objectId } = req.body;
     const vendor = await Vendor.findOne({ _id: objectId });
     if (!vendor) {
@@ -4615,7 +4610,6 @@ router.get("/form/edit/vendor-user/:userId", async (req, res) => {
 
 router.post("/form/edit/vendor-user/:userId", async (req, res) => {
   try {
-    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const userId = req.params.userId;
     const user = await VendorUser.findById(userId);
     if (!user) {

@@ -121,7 +121,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("locationInput");
   const stockDisplay = document.getElementById("stock-display");
-  const allLocations = <%- JSON.stringify(locations || []) %>;
+  const allLocations = <%- safeJson(locations || []) %>;
   
   const resolvedTape = document.getElementById("resolvedTape");
   const resolvedTapeId = document.getElementById("resolvedTapeId");
@@ -172,11 +172,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const initialOptions = {
-    "tape-paper-code": <%- JSON.stringify(paperCodes || []) %>,
-    "tape-paper-type": <%- JSON.stringify(paperTypes || []) %>,
-    "tape-gsm": <%- JSON.stringify(gsms || []) %>,
-    "tape-width": <%- JSON.stringify(widths || []) %>,
-    "tape-mtrs": <%- JSON.stringify(mtrsList || []) %>,
+    "tape-paper-code": <%- safeJson(paperCodes || []) %>,
+    "tape-paper-type": <%- safeJson(paperTypes || []) %>,
+    "tape-gsm": <%- safeJson(gsms || []) %>,
+    "tape-width": <%- safeJson(widths || []) %>,
+    "tape-mtrs": <%- safeJson(mtrsList || []) %>,
     "tape-core-id": ["3", "1", "0.5"],
     "tape-finish": ["MATTE", "GLOSSY"],
   };

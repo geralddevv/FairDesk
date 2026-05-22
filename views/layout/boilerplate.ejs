@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="<%= csrfToken %>" />
+    <meta name="session-expires-at" content="<%= sessionExpiresAt || '' %>" />
     <title>Fairdesk - <%= title %></title>
     <link rel="icon" href="/assets/fairfavicon.png" type="image/png" />
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
@@ -707,7 +709,7 @@
       </div>
     </div>
 
-    <script src="/js/common.js" defer></script>
+    <script src="/js/common.js?v=debug-20260522-2" defer></script>
     <script src="/bootstrap/js/bootstrap.bundle.min.js" defer></script>
     <script src="/js/BTStrap.js" defer></script>
     <script src="/js/choices.min.js" defer></script>

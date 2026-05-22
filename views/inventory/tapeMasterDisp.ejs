@@ -80,7 +80,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <script id="table-data" type="application/json">
-    <%- JSON.stringify(jsonData) %>
+    <%- safeJson(jsonData) %>
   </script>
   <script>
     // Parse data from Express

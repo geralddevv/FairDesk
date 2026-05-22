@@ -90,7 +90,6 @@ const ttrSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       trim: true,
-      index: true,
     },
 
     /* ================= AUDIT ================= */

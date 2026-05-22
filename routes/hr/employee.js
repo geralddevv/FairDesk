@@ -1,5 +1,7 @@
 import express from "express";
 import Employee from "../../models/hr/employee_model.js";
+import Client from "../../models/users/client.js";
+import Username from "../../models/users/username.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -156,6 +158,9 @@ router.post("/edit/:id", handleUpload, async (req, res) => {
     const emp = await Employee.findById(req.params.id);
     if (!emp) return res.status(400).json({ success: false, message: "Employee not found" });
 
+    const oldName = emp.empName;
+    const newName = req.body.empName;
+
     const replaceFile = (field, folder) => {
       if (req.files?.[field]) {
         if (emp[field]) {
@@ -172,6 +177,15 @@ router.post("/edit/:id", handleUpload, async (req, res) => {
 
     Object.assign(emp, req.body);
     await emp.save();
+
+    // Propagate Name Change if empName was updated
+    if (oldName && newName && oldName !== newName) {
+      await Promise.all([
+        Client.updateMany({ accountHead: oldName }, { $set: { accountHead: newName } }),
+        Username.updateMany({ accountHead: oldName }, { $set: { accountHead: newName } }),
+        Employee.updateMany({ empReportingManager: oldName }, { $set: { empReportingManager: newName } }),
+      ]);
+    }
 
     req.flash("notification", "Employee updated successfully!");
     const redirectUrl = "/fairdesk/employee/view";

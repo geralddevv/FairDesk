@@ -11,9 +11,9 @@ Advance:
 in adavance keep date from 11 to 10 on 10 deduct from the salary
 
 Loan:
-add loan log
+add loan log ✔️
 loan approval when entry (hold with reason)
-filtering option like (active, request, hold, closed) 
+filtering option like (active, request, hold, closed)
 on top of the loan view show request total and active total
 
 Petty Cash:
@@ -24,6 +24,7 @@ month wise export (like a statement)
 
 employee:
 add logs for commercial changes in the employee edit
+when employee name is edited it should reflect all over the application
 
 Am Main:
 solve problem in the ttr stock entry ✔️

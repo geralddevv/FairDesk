@@ -60,7 +60,7 @@
     </div>
   </div>
 
-  <script id="table-data" type="application/json"><%- JSON.stringify(jsonData || []) %></script>
+  <script id="table-data" type="application/json"><%- safeJson(jsonData || []) %></script>
   <script>
     const rawData = JSON.parse(document.getElementById('table-data').textContent);
 

@@ -1,187 +1,294 @@
 // ================= SIDEBAR TOGGLE WITH PERSISTENCE =================
 
-const navToggle = document.querySelector(".nav-toggle");
-const sideNav = document.querySelector(".side-nav");
 
-// Storage key
-const STORAGE_KEY_NAV = "fd_navExpanded";
+(function () {
+  const navToggle = document.querySelector(".nav-toggle");
+  const sideNav = document.querySelector(".side-nav");
 
-// Sync toggle button state (sidebar class is already set by inline script in HTML)
-if (localStorage.getItem(STORAGE_KEY_NAV) === "collapsed") {
-  navToggle.classList.add("active");
-}
+  // Storage key
+  const STORAGE_KEY_NAV = "fd_navExpanded";
 
-navToggle.addEventListener("click", () => {
-  navToggle.classList.toggle("active");
-  sideNav.classList.toggle("nav-panel-toggle");
+  // CSRF Protection Helpers
+  const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
+  const getSessionExpiresAt = () => document.querySelector('meta[name="session-expires-at"]')?.getAttribute("content");
+  const redirectToLogin = () => {
+    if (window.location.pathname === "/login") return;
+    window.location.replace("/logout");
+  };
 
-  // Persist state
-  const isExpanded = sideNav.classList.contains("nav-panel-toggle");
-  localStorage.setItem(STORAGE_KEY_NAV, isExpanded ? "expanded" : "collapsed");
-});
+  const startSessionWatchdog = () => {
+    if (window.location.pathname === "/login") return;
 
-// ================= GENERIC NAV GROUP TOGGLE =================
+    const sessionExpiresAt = getSessionExpiresAt();
+    if (!sessionExpiresAt) {
+      return;
+    }
 
-function toggleNavGroup(wrapper) {
-  const menu = wrapper.querySelector(".nav-labels-opt");
-  if (!menu) return;
+    const expiresAt = new Date(sessionExpiresAt);
+    if (Number.isNaN(expiresAt.getTime())) {
+      return;
+    }
 
-  const isOpen = menu.style.height && menu.style.height !== "0px";
+    const redirectAt = expiresAt.getTime() + 250;
+    let timer = null;
 
-  if (isOpen) {
-    menu.style.height = "0px";
-  } else {
-    menu.style.height = menu.scrollHeight + "px";
+    const scheduleRedirect = () => {
+      const now = Date.now();
+      const delay = redirectAt - now;
+
+      // SAFETY: Wait until it's definitely expired (5s buffer)
+      if (delay <= -5000) {
+        redirectToLogin();
+        return;
+      }
+
+      if (timer) clearTimeout(timer);
+      
+      // If it's "recently" expired but within buffer, wait the buffer
+      const actualDelay = Math.max(delay, 5000);
+
+      timer = setTimeout(() => {
+        redirectToLogin();
+      }, delay);
+    };
+
+    scheduleRedirect();
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        scheduleRedirect();
+      }
+    });
+    window.addEventListener("focus", scheduleRedirect);
+  };
+
+  startSessionWatchdog();
+
+  // Global Fetch Wrapper to include CSRF token
+  const originalFetch = window.fetch;
+  window.fetch = function (url, options = {}) {
+    const requestUrl = typeof url === "string" ? url : url?.url || "";
+    const token = getCsrfToken();
+    if (token) {
+      options.headers = options.headers || {};
+      if (options.headers instanceof Headers) {
+        if (!options.headers.has("X-CSRF-Token")) {
+          options.headers.set("X-CSRF-Token", token);
+        }
+      } else if (Array.isArray(options.headers)) {
+        if (!options.headers.some(([k]) => k.toLowerCase() === "x-csrf-token")) {
+          options.headers.push(["X-CSRF-Token", token]);
+        }
+      } else {
+        if (!options.headers["X-CSRF-Token"]) {
+          options.headers["X-CSRF-Token"] = token;
+        }
+      }
+    }
+    return originalFetch(url, options).then((response) => {
+      const isSessionCheck =
+        requestUrl.includes("/check-session") || requestUrl.includes("/login") || requestUrl.includes("/logout");
+      const looksLikeLoginRedirect = response.redirected || (response.url && response.url.includes("/login"));
+      if (!isSessionCheck && (response.status === 401 || response.status === 403 || looksLikeLoginRedirect)) {
+        redirectToLogin();
+      }
+
+      return response;
+    });
+  };
+
+  // Global Form Submit Interceptor to inject CSRF token
+  document.addEventListener("submit", (e) => {
+    const form = e.target;
+    if (form && form.method && form.method.toLowerCase() === "post") {
+      const token = getCsrfToken();
+      if (token && !form.querySelector('input[name="_csrf"]')) {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "_csrf";
+        input.value = token;
+        form.appendChild(input);
+      }
+    }
+  });
+
+  // Sync toggle button state (sidebar class is already set by inline script in HTML)
+  if (localStorage.getItem(STORAGE_KEY_NAV) === "collapsed") {
+    navToggle.classList.add("active");
   }
-}
 
-window.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".nav-opt-wrap").forEach((wrapper) => {
+  navToggle.addEventListener("click", () => {
+    navToggle.classList.toggle("active");
+    sideNav.classList.toggle("nav-panel-toggle");
+
+    // Persist state
+    const isExpanded = sideNav.classList.contains("nav-panel-toggle");
+    localStorage.setItem(STORAGE_KEY_NAV, isExpanded ? "expanded" : "collapsed");
+  });
+
+  // ================= GENERIC NAV GROUP TOGGLE =================
+
+  function toggleNavGroup(wrapper) {
     const menu = wrapper.querySelector(".nav-labels-opt");
     if (!menu) return;
 
-    // Disable animation for initial open
-    menu.classList.add("no-transition");
+    const isOpen = menu.style.height && menu.style.height !== "0px";
 
-    if (menu.querySelector(".nav-items.active")) {
+    if (isOpen) {
+      menu.style.height = "0px";
+    } else {
       menu.style.height = menu.scrollHeight + "px";
     }
+  }
 
-    // Re-enable animation AFTER paint
-    requestAnimationFrame(() => {
+  window.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".nav-opt-wrap").forEach((wrapper) => {
+      const menu = wrapper.querySelector(".nav-labels-opt");
+      if (!menu) return;
+
+      // Disable animation for initial open
+      menu.classList.add("no-transition");
+
+      if (menu.querySelector(".nav-items.active")) {
+        menu.style.height = menu.scrollHeight + "px";
+      }
+
+      // Re-enable animation AFTER paint
       requestAnimationFrame(() => {
-        menu.classList.remove("no-transition");
+        requestAnimationFrame(() => {
+          menu.classList.remove("no-transition");
+        });
       });
     });
   });
-});
 
-// Attach toggle to ALL nav groups
-document.querySelectorAll(".nav-opt-wrap").forEach((wrapper) => {
-  const toggle = wrapper.querySelector(":scope > .nav-items");
-  if (!toggle) return;
+  // Attach toggle to ALL nav groups
+  document.querySelectorAll(".nav-opt-wrap").forEach((wrapper) => {
+    const toggle = wrapper.querySelector(":scope > .nav-items");
+    if (!toggle) return;
 
-  toggle.addEventListener("click", (e) => {
-    if (e.target.closest(".nav-labels-opt")) return;
-    e.stopPropagation();
-    toggleNavGroup(wrapper);
+    toggle.addEventListener("click", (e) => {
+      if (e.target.closest(".nav-labels-opt")) return;
+      e.stopPropagation();
+      toggleNavGroup(wrapper);
+    });
   });
-});
 
-// Prevent option clicks from closing the dropdown
-document.querySelectorAll(".nav-opt-wrap .nav-labels-opt").forEach((menu) => {
-  menu.addEventListener("click", (e) => {
-    e.stopPropagation();
+  // Prevent option clicks from closing the dropdown
+  document.querySelectorAll(".nav-opt-wrap .nav-labels-opt").forEach((menu) => {
+    menu.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
   });
-});
 
-// ================= INPUT UPPERCASE =================
+  // ================= INPUT UPPERCASE =================
 
-document.querySelectorAll("input[type='text']").forEach((input) => {
-  input.addEventListener("input", function () {
-    const start = this.selectionStart;
-    const end = this.selectionEnd;
-    const uppercased = this.value.toUpperCase();
-    if (this.value !== uppercased) {
-      this.value = uppercased;
-      this.setSelectionRange(start, end);
-    }
-  });
-});
-
-// ================= CUSTOM NAV HISTORY =================
-
-(function () {
-  const backBtn = document.getElementById("fdNavBack");
-  const forwardBtn = document.getElementById("fdNavForward");
-  if (!backBtn || !forwardBtn) return;
-
-  const STACK_KEY = "fd_navStack";
-  const FORWARD_KEY = "fd_navForwardStack";
-  const LAST_KEY = "fd_navLast";
-  const ACTION_KEY = "fd_navAction";
-
-  const getLocationKey = () => window.location.pathname + window.location.search;
-
-  const readStack = (key) => {
-    try {
-      const raw = sessionStorage.getItem(key);
-      return raw ? JSON.parse(raw) : [];
-    } catch (err) {
-      return [];
-    }
-  };
-
-  const writeStack = (key, arr) => {
-    sessionStorage.setItem(key, JSON.stringify(arr));
-  };
-
-  const updateButtons = (backStack, forwardStack) => {
-    const backDisabled = backStack.length === 0;
-    const forwardDisabled = forwardStack.length === 0;
-
-    backBtn.classList.toggle("disabled", backDisabled);
-    forwardBtn.classList.toggle("disabled", forwardDisabled);
-    backBtn.disabled = backDisabled;
-    forwardBtn.disabled = forwardDisabled;
-  };
-
-  const current = getLocationKey();
-  let backStack = readStack(STACK_KEY);
-  let forwardStack = readStack(FORWARD_KEY);
-
-  const last = sessionStorage.getItem(LAST_KEY);
-  const actionRaw = sessionStorage.getItem(ACTION_KEY);
-  let action = null;
-  try {
-    action = actionRaw ? JSON.parse(actionRaw) : null;
-  } catch (err) {
-    action = null;
-  }
-
-  if (action && action.target === current) {
-    sessionStorage.removeItem(ACTION_KEY);
-  } else if (last && last !== current) {
-    if (!backStack.length || backStack[backStack.length - 1] !== last) {
-      backStack.push(last);
-    }
-    forwardStack = [];
-  } else if (!last) {
-    try {
-      const ref = document.referrer ? new URL(document.referrer) : null;
-      if (ref && ref.origin === window.location.origin) {
-        const refKey = ref.pathname + ref.search;
-        if (refKey && refKey !== current) {
-          backStack.push(refKey);
-        }
+  document.querySelectorAll("input[type='text']").forEach((input) => {
+    input.addEventListener("input", function () {
+      const start = this.selectionStart;
+      const end = this.selectionEnd;
+      const uppercased = this.value.toUpperCase();
+      if (this.value !== uppercased) {
+        this.value = uppercased;
+        this.setSelectionRange(start, end);
       }
+    });
+  });
+
+  // ================= CUSTOM NAV HISTORY =================
+
+  (function () {
+    const backBtn = document.getElementById("fdNavBack");
+    const forwardBtn = document.getElementById("fdNavForward");
+    if (!backBtn || !forwardBtn) return;
+
+    const STACK_KEY = "fd_navStack";
+    const FORWARD_KEY = "fd_navForwardStack";
+    const LAST_KEY = "fd_navLast";
+    const ACTION_KEY = "fd_navAction";
+
+    const getLocationKey = () => window.location.pathname + window.location.search;
+
+    const readStack = (key) => {
+      try {
+        const raw = sessionStorage.getItem(key);
+        return raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        return [];
+      }
+    };
+
+    const writeStack = (key, arr) => {
+      sessionStorage.setItem(key, JSON.stringify(arr));
+    };
+
+    const updateButtons = (backStack, forwardStack) => {
+      const backDisabled = backStack.length === 0;
+      const forwardDisabled = forwardStack.length === 0;
+
+      backBtn.classList.toggle("disabled", backDisabled);
+      forwardBtn.classList.toggle("disabled", forwardDisabled);
+      backBtn.disabled = backDisabled;
+      forwardBtn.disabled = forwardDisabled;
+    };
+
+    const current = getLocationKey();
+    let backStack = readStack(STACK_KEY);
+    let forwardStack = readStack(FORWARD_KEY);
+
+    const last = sessionStorage.getItem(LAST_KEY);
+    const actionRaw = sessionStorage.getItem(ACTION_KEY);
+    let action = null;
+    try {
+      action = actionRaw ? JSON.parse(actionRaw) : null;
     } catch (err) {
-      // ignore invalid referrer
+      action = null;
     }
-  }
 
-  sessionStorage.setItem(LAST_KEY, current);
-  writeStack(STACK_KEY, backStack);
-  writeStack(FORWARD_KEY, forwardStack);
-  updateButtons(backStack, forwardStack);
+    if (action && action.target === current) {
+      sessionStorage.removeItem(ACTION_KEY);
+    } else if (last && last !== current) {
+      if (!backStack.length || backStack[backStack.length - 1] !== last) {
+        backStack.push(last);
+      }
+      forwardStack = [];
+    } else if (!last) {
+      try {
+        const ref = document.referrer ? new URL(document.referrer) : null;
+        if (ref && ref.origin === window.location.origin) {
+          const refKey = ref.pathname + ref.search;
+          if (refKey && refKey !== current) {
+            backStack.push(refKey);
+          }
+        }
+      } catch (err) {
+        // ignore invalid referrer
+      }
+    }
 
-  backBtn.addEventListener("click", () => {
-    if (!backStack.length) return;
-    const target = backStack.pop();
-    forwardStack.push(current);
+    sessionStorage.setItem(LAST_KEY, current);
     writeStack(STACK_KEY, backStack);
     writeStack(FORWARD_KEY, forwardStack);
-    sessionStorage.setItem(ACTION_KEY, JSON.stringify({ target }));
-    window.location.href = target;
-  });
+    updateButtons(backStack, forwardStack);
 
-  forwardBtn.addEventListener("click", () => {
-    if (!forwardStack.length) return;
-    const target = forwardStack.pop();
-    backStack.push(current);
-    writeStack(STACK_KEY, backStack);
-    writeStack(FORWARD_KEY, forwardStack);
-    sessionStorage.setItem(ACTION_KEY, JSON.stringify({ target }));
-    window.location.href = target;
-  });
+    backBtn.addEventListener("click", () => {
+      if (!backStack.length) return;
+      const target = backStack.pop();
+      forwardStack.push(current);
+      writeStack(STACK_KEY, backStack);
+      writeStack(FORWARD_KEY, forwardStack);
+      sessionStorage.setItem(ACTION_KEY, JSON.stringify({ target }));
+      window.location.href = target;
+    });
+
+    forwardBtn.addEventListener("click", () => {
+      if (!forwardStack.length) return;
+      const target = forwardStack.pop();
+      backStack.push(current);
+      writeStack(STACK_KEY, backStack);
+      writeStack(FORWARD_KEY, forwardStack);
+      sessionStorage.setItem(ACTION_KEY, JSON.stringify({ target }));
+      window.location.href = target;
+    });
+  })();
 })();

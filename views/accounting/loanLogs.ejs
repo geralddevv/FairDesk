@@ -70,7 +70,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-  const logsData = <%- JSON.stringify(logs || []) %>;
+  const logsData = <%- safeJson(logs || []) %>;
 
   function formatINR(value) {
     return new Intl.NumberFormat("en-IN", {

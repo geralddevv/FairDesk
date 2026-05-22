@@ -128,7 +128,7 @@
 <script>
   const form = document.querySelector("form");
   const submitBtn = form.querySelector('button[type="submit"]');
-  const returnTo = <%- JSON.stringify(returnTo || "") %>;
+  const returnTo = <%- safeJson(returnTo || "") %>;
 
   document.getElementById("cancelBtn").addEventListener("click", () => {
     if (returnTo) {

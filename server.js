@@ -26,7 +26,12 @@ import os from "os";
 
 import session from "express-session";
 import flash from "connect-flash";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import csrf from "csurf";
+import cookieParser from "cookie-parser";
 import MongoSessionStore from "./utils/mongoSessionStore.js";
+import { safeJson } from "./utils/security.js";
 
 const app = express();
 const port = 3000;
@@ -34,6 +39,23 @@ const port = 3000;
 /* ENV + DB */
 configDotenv({ quiet: true });
 connectDB();
+
+/* SECURITY MIDDLEWARE (HELMET) */
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Temporarily disable to troubleshoot layout issues
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
+/* RATE LIMITING */
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 login requests per window
+  message: "Too many login attempts, please try again after 15 minutes",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /* PATH SETUP */
 const file_name = fileURLToPath(import.meta.url);
@@ -48,45 +70,72 @@ app.set("views", path.join(dir_name, "views"));
 app.use(compression());
 
 /* BODY PARSERS */
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+// app.use(cookieParser()); // Redundant and can interfere with express-session
 
-/* STATIC (1-day browser cache) */
+/* STATIC FILES */
 app.use(express.static(path.join(dir_name, "public"), { maxAge: "1d" }));
 app.use("/bootstrap", express.static(dir_name + "/node_modules/bootstrap/dist", { maxAge: "1d" }));
-
 app.use("/images", express.static("images", { maxAge: "1d" }));
 
-/* SESSION (THIS IS THE KEY) */
+/* SESSION */
+const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes 
+
 const sessionStore = new MongoSessionStore({
-  ttlMs: 1000 * 60 * 60 * 4,
+  ttlMs: SESSION_TTL_MS,
 });
 
 app.use(
   session({
     name: "fairdesk.sid",
-    secret: "fairdesk-secret-key",
+    secret: process.env.SESSION_SECRET || "fd_k9#xP2$mR9Qz7wL5vN8uY3hB1jK4_production_fallback",
     resave: false,
     saveUninitialized: false,
     rolling: true,
     store: sessionStore,
     cookie: {
       httpOnly: true,
-      secure: false, // localhost
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 4, // 4 hours
+      maxAge: SESSION_TTL_MS, 
     },
   }),
 );
 
+/* CSRF PROTECTION SETUP */
+const csrfProtection = csrf({ cookie: false });
+
 /* FLASH */
 app.use(flash());
 
-/* GLOBAL LOCALS */
+/* GLOBAL LOCALS (EARLY) */
 app.use((req, res, next) => {
   res.locals.notification = req.session.flash?.notification || [];
   res.locals.error = req.session.flash?.error || [];
   res.locals.authUser = req.session?.authUser || null;
+  res.locals.sessionExpiresAt = req.session?.cookie?.expires ? new Date(req.session.cookie.expires).toISOString() : null;
+  res.locals.safeJson = safeJson;
+
+  next();
+});
+
+/* Favicon */
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
+/* Session check endpoint – used by client-side polling (exempt from CSRF) */
+app.get("/check-session", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  if (req.session?.authUser) {
+    return res.json({ authenticated: true });
+  }
+  return res.status(401).json({ authenticated: false });
+});
+
+/* Apply CSRF protection to ALL routes */
+app.use(csrfProtection);
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
   next();
 });
 
@@ -103,6 +152,13 @@ app.get("/", (req, res) => {
 
 app.get("/login", (req, res) => {
   if (req.session?.authUser) {
+    const remaining = req.session.cookie.maxAge;
+    // LOOP BREAKER: If session is about to expire (less than 1 minute), 
+    // force logout instead of redirecting back to dashboard.
+    if (!remaining || remaining < 60000) {
+       return res.redirect("/logout");
+    }
+
     const role = req.session.authUser.role;
     if (role === "hr") return res.redirect("/fairdesk/employee/view");
     if (role === "sales") return res.redirect("/fairdesk/sales/order");
@@ -117,7 +173,7 @@ const redirectByRole = (role) => {
   return "/fairdesk/master/view";
 };
 
-app.post("/login", (req, res) => {
+app.post("/login", loginLimiter, (req, res) => {
   const { username, password } = req.body;
   const adminUser = process.env.ADMIN_USER;
   const adminPass = process.env.ADMIN_PASS;
@@ -188,6 +244,8 @@ const requireRole = (roles) => (req, res, next) => {
   return res.redirect("/login");
 };
 
+
+
 app.use("/fairdesk/payroll", requireAuth, requireRole(["admin", "hr"]), payrollRoute);
 app.use("/fairdesk/loan", requireAuth, requireRole(["admin", "hr"]), loanRoute);
 app.use("/fairdesk/advance", requireAuth, requireRole(["admin", "hr"]), advanceRoute);
@@ -214,8 +272,14 @@ app.all("*", (req, res) => {
 
 /* ERROR HANDLER */
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(err.statusCode || 500).send(err.message || "Something went wrong");
+  if (err.code === "EBADCSRFTOKEN") {
+    console.warn(`[CSRF] Invalid token on ${req.method} ${req.originalUrl} from ${req.ip}`);
+    return res.status(403).send("Form tampered or session expired. Please refresh.");
+  }
+  console.error("[Error Handler]", err);
+  const status = err.statusCode || 500;
+  const message = status === 500 && process.env.NODE_ENV === "production" ? "Something went wrong" : err.message;
+  res.status(status).send(message);
 });
 
 /* Get dynamic IP address */

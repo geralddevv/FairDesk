@@ -131,7 +131,7 @@
 
   let tableData = [];
   try {
-    tableData = <%- JSON.stringify(jsonData || []) %>;
+    tableData = <%- safeJson(jsonData || []) %>;
   } catch (err) {
     console.error("Vendor coordinator view JSON error", err);
   }

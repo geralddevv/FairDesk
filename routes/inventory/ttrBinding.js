@@ -5,8 +5,8 @@ import Vendor from "../../models/users/vendor.js";
 import VendorUser from "../../models/users/vendorUser.js";
 import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
 import TtrStock from "../../models/inventory/TtrStock.js";
-import Client from "../../models/users/client.js";
 import Username from "../../models/users/username.js";
+import { escapeRegex } from "../../utils/security.js";
 
 const router = express.Router();
 
@@ -46,13 +46,7 @@ const trimOr = (value, fallback = "") => {
   return out === "" ? fallback : out;
 };
 
-const numOr = (value, fallback = 0) => {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-};
-
 const normalizeCode = (value) => trimOr(value).toUpperCase();
-const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const TTR_SMART_FILTER_KEYS = [
   "ttrType",

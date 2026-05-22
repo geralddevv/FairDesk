@@ -158,9 +158,9 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-  const logsData = <%- JSON.stringify(logs || []) %>;
-  const currentViewMode = <%- JSON.stringify(mode || 'ALL') %>;
-  const currentLocation = <%- JSON.stringify(location) %>;
+  const logsData = <%- safeJson(logs || []) %>;
+  const currentViewMode = <%- safeJson(mode || 'ALL') %>;
+  const currentLocation = <%- safeJson(location) %>;
 
   function formatINRCurrency(value) {
     return new Intl.NumberFormat("en-IN", {

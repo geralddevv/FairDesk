@@ -196,7 +196,7 @@
   };
 
   /* ===== Table ===== */
-  const tableData = <%- JSON.stringify(jsonData) %>;
+  const tableData = <%- safeJson(jsonData) %>;
 
   const table = new Tabulator("#master-table", {
     data: tableData,
