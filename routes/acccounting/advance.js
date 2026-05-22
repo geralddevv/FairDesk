@@ -249,7 +249,61 @@ router.get("/logs", async (req, res) => {
   }
 });
 
-/* EMPLOYEE ADVANCE LOG HISTORY */
+
+/* EMPLOYEE ADVANCE LOGS (FULL PAGE VIEW) */
+router.get("/employee/:employeeId/view-logs", async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const emp = await Employee.findById(employeeId);
+    if (!emp) {
+      req.flash("error", "Employee not found");
+      return res.redirect("/fairdesk/advance/view");
+    }
+
+    const logs = await AdvanceLog.find({ employee: employeeId })
+      .populate("employee", "empName empId")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formatted = logs.map((l) => ({
+      _id: l._id,
+      employeeName: l.employee?.empName || "-",
+      empId: l.employee?.empId || "-",
+      openingBalance: l.openingBalance ?? 0,
+      amount: l.amount ?? 0,
+      closingBalance: l.closingBalance ?? 0,
+      type: l.type,
+      source: l.source,
+      canEdit: l.source === "MANUAL" && l.type === "CREDIT",
+      canDelete: l.source === "MANUAL" && l.type === "CREDIT",
+      date: new Date(l.createdAt).toLocaleDateString("en-IN"),
+      time: new Date(l.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+    }));
+
+    const latest = logs.length > 0 ? logs[0] : { closingBalance: 0, status: "CLOSED" };
+
+    res.render("accounting/employeeAdvanceLogs", {
+      logs: formatted,
+      employee: emp,
+      summary: {
+        currentBalance: latest.closingBalance ?? 0,
+        status: latest.closingBalance === 0 ? "CLOSED" : "ACTIVE",
+      },
+      title: `Advance History - ${emp.empName}`,
+      CSS: "tableDisp.css",
+      JS: false,
+      navigator: "advance",
+      notification: req.flash("notification"),
+      error: req.flash("error"),
+    });
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Failed to load employee logs");
+    res.redirect("/fairdesk/advance/view");
+  }
+});
+
+/* EMPLOYEE ADVANCE LOG HISTORY (JSON API) */
 router.get("/employee/:employeeId/logs", async (req, res) => {
   const { employeeId } = req.params;
 

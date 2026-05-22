@@ -190,66 +190,17 @@
       field: "employeeName",
       formatter: function (cell) {
         const data = cell.getRow().getData();
-
-        return `
-          <div
-            class="emp-link"
-            data-id="${data.employeeId}"
-            style="
-              width:100%;
-              height:100%;
-              cursor:pointer;
-              font-weight:600;
-              text-decoration:underline;
-              display:flex;
-              align-items:center;
-            "
-            title="${data.employeeName}"
-          >
-            ${data.employeeName}
-          </div>
-        `;
+        return `<a href="/fairdesk/advance/employee/${data.employeeId}/view-logs" 
+                   style="color: #044a78; font-weight: 600; text-decoration: underline;"
+                   title="View History">
+                  ${data.employeeName}
+                </a>`;
       }
     },
     { title: "Employee ID", field: "empId" },
     { title: "Current Balance", field: "currentBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
     { title: "Status", field: "status" },
     { title: "Last Updated", field: "updatedAt" },
-  ];
-
-  const logColumns = [
-    { title: "Employee Name", field: "employeeName", headerFilter: "input", headerFilterPlaceholder: "Search name" },
-    { title: "Employee ID", field: "empId", headerFilter: "input", headerFilterPlaceholder: "Search ID" },
-    { title: "Opening Balance", field: "openingBalance", formatter: (c) => formatINRCurrency(c.getValue()), headerFilter: "input", headerFilterPlaceholder: "Search opening" },
-    { title: "Amount", field: "amount", formatter: (c) => formatINRCurrency(c.getValue()), headerFilter: "input", headerFilterPlaceholder: "Search amount" },
-    { title: "Closing Balance", field: "closingBalance", formatter: (c) => formatINRCurrency(c.getValue()), headerFilter: "input", headerFilterPlaceholder: "Search closing" },
-    { title: "Type", field: "type", headerFilter: "input", headerFilterPlaceholder: "Search type" },
-    { title: "Source", field: "source", headerFilter: "input", headerFilterPlaceholder: "Search source" },
-    { title: "Date", field: "date", headerFilter: "input", headerFilterPlaceholder: "Search date" },
-    {
-      title: "Actions",
-      width: 90,
-      hozAlign: "center",
-      headerHozAlign: "center",
-      headerSort: false,
-      formatter: (cell) => {
-        const row = cell.getRow().getData();
-        if (!row.canEdit) return "-";
-
-        return `<button class="advance-log-btn advance-log-edit" title="Edit" style="height:20px; width:28px; padding:0; margin-right:6px; border:1px solid #d1d5db; background:#fff; border-radius:4px; cursor:pointer; line-height:1;">
-            <i class="fa-solid fa-pen-to-square" style="font-size:11px; color:#044A78;"></i>
-          </button>
-          <button class="advance-log-btn advance-log-delete" title="Delete" style="height:20px; width:28px; padding:0; border:1px solid #fca5a5; background:#fee2e2; border-radius:4px; cursor:pointer; line-height:1;">
-            <i class="fa-solid fa-trash" style="font-size:11px; color:#b91c1c;"></i>
-          </button>`;
-      },
-      cellClick: (e, cell) => {
-        const row = cell.getRow().getData();
-        if (!row.canEdit) return;
-        if (e.target.closest(".advance-log-edit")) openAdvanceEditDialog(row);
-        if (e.target.closest(".advance-log-delete")) openAdvanceDeleteDialog(row);
-      },
-    },
   ];
 
   const table = new Tabulator("#master-table", {
@@ -260,33 +211,6 @@
     columns: baseColumns,
   });
 
-  document.addEventListener("click", async (e) => {
-    if (!e.target.classList.contains("emp-link")) return;
-
-    const employeeId = e.target.dataset.id;
-    currentEmployeeId = employeeId;
-
-    const res = await fetch(
-      `/fairdesk/advance/employee/${employeeId}/logs`
-    );
-
-    const { history, summary } = await res.json();
-    if (!history.length) return;
-
-    table.setColumns(logColumns);
-    table.replaceData(history);
-    document.body.classList.add("no-underline");
-
-    const statusClass = summary.status.toLowerCase();
-
-    advanceHeadingEl.innerHTML =
-      `Advance — Outstanding:
-       <span class="loan-highlight ${statusClass}">
-         ${formatINRCurrency(summary.currentBalance)} (${summary.status})
-       </span>`;
-
-    // document.getElementById("backToSnapshot").style.display = "inline-flex";
-  });
 
   /*
   document

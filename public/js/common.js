@@ -113,18 +113,21 @@
   });
 
   // Sync toggle button state (sidebar class is already set by inline script in HTML)
-  if (localStorage.getItem(STORAGE_KEY_NAV) === "collapsed") {
+  if (navToggle && localStorage.getItem(STORAGE_KEY_NAV) === "collapsed") {
     navToggle.classList.add("active");
   }
 
-  navToggle.addEventListener("click", () => {
-    navToggle.classList.toggle("active");
-    sideNav.classList.toggle("nav-panel-toggle");
 
-    // Persist state
-    const isExpanded = sideNav.classList.contains("nav-panel-toggle");
-    localStorage.setItem(STORAGE_KEY_NAV, isExpanded ? "expanded" : "collapsed");
-  });
+  if (navToggle && sideNav) {
+    navToggle.addEventListener("click", () => {
+      navToggle.classList.toggle("active");
+      sideNav.classList.toggle("nav-panel-toggle");
+
+      // Persist state
+      const isExpanded = sideNav.classList.contains("nav-panel-toggle");
+      localStorage.setItem(STORAGE_KEY_NAV, isExpanded ? "expanded" : "collapsed");
+    });
+  }
 
   // ================= GENERIC NAV GROUP TOGGLE =================
 
@@ -137,7 +140,8 @@
     if (isOpen) {
       menu.style.height = "0px";
     } else {
-      menu.style.height = menu.scrollHeight + "px";
+      const scrollH = menu.scrollHeight;
+      menu.style.height = (scrollH > 0 ? scrollH : 500) + "px"; // Fallback to 500 if scrollHeight is 0
     }
   }
 
@@ -152,6 +156,7 @@
       if (menu.querySelector(".nav-items.active")) {
         menu.style.height = menu.scrollHeight + "px";
       }
+
 
       // Re-enable animation AFTER paint
       requestAnimationFrame(() => {

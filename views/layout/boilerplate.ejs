@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/css/choices.min.css" />
     <!-- <link rel="stylesheet" href="/css/ratecalculator.css" /> -->
-    <link rel="stylesheet" href="/css/common.css?v=5" />
+    <link rel="stylesheet" href="/css/common.css?v=6" />
     <% if (CSS) { %>
     <link rel="stylesheet" href="/css/<%= CSS %>" />
     <% } %>
@@ -191,6 +191,11 @@
         left: 12px;
         display: flex;
         gap: 10px;
+      }
+
+      #fdNavBack, #fdNavForward {
+        padding: 6px 12px;
+        font-size: 16px;
       }
 
       .header-nav-right {
@@ -374,6 +379,7 @@
               <i class="fa-solid fa-eye" style="color: #ffffff"></i>
               <p class="nav-items-para">Client Details</p>
             </div>
+
 
             <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
               <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">Entry</p>
@@ -709,7 +715,7 @@
       </div>
     </div>
 
-    <script src="/js/common.js?v=debug-20260522-2" defer></script>
+    <script src="/js/common.js?v=sidebar-fix-v4" defer></script>
     <script src="/bootstrap/js/bootstrap.bundle.min.js" defer></script>
     <script src="/js/BTStrap.js" defer></script>
     <script src="/js/choices.min.js" defer></script>

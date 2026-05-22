@@ -318,7 +318,6 @@ router.get("/logs/:location/view", async (req, res) => {
     req.flash("error", "Failed to load petty cash logs");
     res.redirect("/fairdesk/pettycash/view");
   }
-  g;
 });
 
 /* EDIT LOG */
