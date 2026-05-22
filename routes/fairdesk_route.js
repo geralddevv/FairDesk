@@ -3686,7 +3686,7 @@ router.get("/sales/order/logs", async (req, res) => {
           {
             path: "tapeId",
             select:
-              "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
+              "tapeProductId tapePaperCode tapeGsm tapeFinish posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrColor ttrType ttrWidth ttrMtrs labelWidth labelHeight",
           },
         ],
       })
