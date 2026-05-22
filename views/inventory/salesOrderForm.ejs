@@ -550,14 +550,6 @@
 
   let clientChoices, userChoices, locationChoices, itemTypeChoices, itemChoices;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    // Initialize Choices.js for select fields
-    clientChoices = new Choices(clientSelect, { searchEnabled: true, itemSelectText: "" });
-    userChoices = new Choices(userSelect, { searchEnabled: true, itemSelectText: "" });
-    locationChoices = new Choices(locationSelect, { searchEnabled: false, itemSelectText: "", shouldSort: false });
-    itemTypeChoices = new Choices(itemTypeSelect, { searchEnabled: true, itemSelectText: "" });
-    itemChoices = new Choices(itemSelect, { searchEnabled: true, itemSelectText: "" });
-  });
 
   // Reset all downstream fields
   function resetUsers() {
@@ -572,6 +564,7 @@
     locationChoices.setChoices([{ value: "", label: "Location", disabled: true, selected: true }], "value", "label", true);
   }
   function resetItems() {
+    if (!itemChoices) return;
     itemChoices.clearStore();
     itemChoices.setChoices([{ value: "", label: "Select Item", disabled: true, selected: true }], "value", "label", true);
     updateStockDisplay();
@@ -780,6 +773,7 @@
   }
 
   async function updateStockDisplay() {
+    if (!itemChoices) return;
     const selectedOption = itemChoices.getValue(); // Choices.js object
     const stockDisplay = document.getElementById("stock-display");
     const detailsBox = document.getElementById("selected-item-details");
@@ -898,7 +892,8 @@
           if (locRadio) {
             locRadio.checked = true;
             locRadio.dispatchEvent(new Event('change'));
-            lockDispatchLocation(editLocation);
+            if (confirmMode) lockDispatchLocation(editLocation);
+
           }
         } else {
           // 2) Create mode: preselect user's location if available
@@ -1363,6 +1358,14 @@
 
   // Pre-fill form from URL params or Order Data
   window.addEventListener("DOMContentLoaded", async () => {
+    // 0. Initialize Choices.js for select fields
+    if (clientSelect) clientChoices = new Choices(clientSelect, { searchEnabled: true, itemSelectText: "" });
+    if (userSelect) userChoices = new Choices(userSelect, { searchEnabled: true, itemSelectText: "" });
+    if (locationSelect) locationChoices = new Choices(locationSelect, { searchEnabled: false, itemSelectText: "", shouldSort: false });
+    if (itemTypeSelect) itemTypeChoices = new Choices(itemTypeSelect, { searchEnabled: true, itemSelectText: "" });
+    if (itemSelect) itemChoices = new Choices(itemSelect, { searchEnabled: true, itemSelectText: "" });
+
+
     // Restore scroll position after log edit/delete reload
     const savedScroll = sessionStorage.getItem('logEditScrollY');
     if (savedScroll !== null) {

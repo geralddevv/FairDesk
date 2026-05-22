@@ -6,6 +6,7 @@ import VendorUser from "../../models/users/vendorUser.js";
 import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
 import TtrStock from "../../models/inventory/TtrStock.js";
 import Username from "../../models/users/username.js";
+import Client from "../../models/users/client.js";
 import { escapeRegex } from "../../utils/security.js";
 
 const router = express.Router();

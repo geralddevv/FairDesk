@@ -50,3 +50,5 @@ rate and current rate in the sales order
 add that 3 columns active inactive and stocks in details page
 consider item combo options in the sales order page (hold)
 if single digit add a 0 before the number
+allow the location editing in the sales order edit form
+user based login and permission to to every task
