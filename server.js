@@ -23,6 +23,8 @@ import { configDotenv } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
 import os from "os";
+import Employee from "./models/hr/employee_model.js";
+
 
 import session from "express-session";
 import flash from "connect-flash";
@@ -134,7 +136,8 @@ app.get("/check-session", (req, res) => {
 
 /* Apply CSRF protection to ALL routes EXCEPT login POST */
 app.use((req, res, next) => {
-  if (req.path === "/login" && req.method === "POST") {
+  const isLoginPath = req.path.toLowerCase().replace(/\/$/, "") === "/login";
+  if (isLoginPath && req.method === "POST") {
     return next();
   }
   csrfProtection(req, res, next);
@@ -173,13 +176,24 @@ app.get("/login", (req, res) => {
   res.render("auth/login", { title: "Login", CSS: "login.css" });
 });
 
-const redirectByRole = (role) => {
+const redirectByRole = (role, permissions) => {
+  if (role === "admin" || role === "hod") return "/fairdesk/master/view";
   if (role === "hr") return "/fairdesk/employee/view";
   if (role === "sales") return "/fairdesk/sales/order";
-  return "/fairdesk/master/view";
+  
+  // Generic employee redirection based on permissions
+  if (permissions) {
+    if (permissions.master) return "/fairdesk/master/view";
+    if (permissions.sales) return "/fairdesk/sales/order";
+    if (permissions.inventory) return "/fairdesk/stocks/view";
+    if (permissions.hr) return "/fairdesk/employee/view";
+    if (permissions.accounting) return "/fairdesk/payroll/view";
+  }
+
+  return "/fairdesk/master/view"; // Default
 };
 
-app.post("/login", loginLimiter, (req, res) => {
+app.post("/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   const adminUser = process.env.ADMIN_USER;
   const adminPass = process.env.ADMIN_PASS;
@@ -205,30 +219,55 @@ app.post("/login", loginLimiter, (req, res) => {
   const isHod = hodUser && hodPass && username === hodUser && password === hodPass;
   const isSales = salesUser && salesPass && username === salesUser && password === salesPass;
 
-  if (!isAdmin && !isHr && !isHod && !isSales) {
-    return res.status(401).render("auth/login", {
-      title: "Login",
-      CSS: "login.css",
-      username,
-      password,
-      error: ["Invalid username or password."],
+  const processLogin = async (authUser) => {
+    req.session.authUser = authUser;
+    return req.session.save((err) => {
+      if (err) {
+        console.error("Failed to persist session on login:", err);
+        return res.status(500).render("auth/login", {
+          title: "Login",
+          CSS: "login.css",
+          username,
+          error: ["Unable to start session. Please try again."],
+        });
+      }
+      return res.redirect(redirectByRole(authUser.role, authUser.permissions));
     });
+  };
+
+  if (isAdmin || isHr || isHod || isSales) {
+    const role = isAdmin ? "admin" : isHr ? "hr" : isHod ? "hod" : "sales";
+    // Super admins get all permissions for now
+    const permissions = { sales: true, inventory: true, hr: true, accounting: true, master: true };
+    return processLogin({ username, role, permissions });
   }
 
-  const role = isAdmin ? "admin" : isHr ? "hr" : isHod ? "hod" : "sales";
-  req.session.authUser = { username, role };
-  return req.session.save((err) => {
-    if (err) {
-      console.error("Failed to persist session on login:", err);
-      return res.status(500).render("auth/login", {
-        title: "Login",
-        CSS: "login.css",
-        username,
-        error: ["Unable to start session. Please try again."],
+  // Fallback to database check
+  try {
+    const employee = await Employee.findOne({ 
+      $or: [{ empId: username }, { empName: username }],
+      password: password,
+      isActive: true 
+    });
+
+    if (employee) {
+      return processLogin({ 
+        username: employee.empName, 
+        role: employee.role || "employee", 
+        permissions: employee.permissions,
+        empId: employee.empId 
       });
     }
+  } catch (err) {
+    console.error("Login database error:", err);
+  }
 
-    return res.redirect(redirectByRole(role));
+  return res.status(401).render("auth/login", {
+    title: "Login",
+    CSS: "login.css",
+    username,
+    password,
+    error: ["Invalid username or password."],
   });
 });
 
@@ -280,7 +319,10 @@ app.all("*", (req, res) => {
 app.use((err, req, res, next) => {
   if (err.code === "EBADCSRFTOKEN") {
     console.warn(`[CSRF] Invalid token on ${req.method} ${req.originalUrl} from ${req.ip}`);
-    return res.status(403).send("Form tampered or session expired. Please refresh.");
+    if (req.xhr || req.headers.accept?.includes("json")) {
+      return res.status(403).json({ success: false, message: "Session expired" });
+    }
+    return res.redirect("/login");
   }
   console.error("[Error Handler]", err);
   const status = err.statusCode || 500;

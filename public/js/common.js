@@ -80,8 +80,8 @@
           options.headers.push(["X-CSRF-Token", token]);
         }
       } else {
-        if (!options.headers["X-CSRF-Token"]) {
-          options.headers["X-CSRF-Token"] = token;
+        if (!options.headers["x-csrf-token"]) {
+          options.headers["x-csrf-token"] = token;
         }
       }
     }
@@ -89,7 +89,7 @@
       const isSessionCheck =
         requestUrl.includes("/check-session") || requestUrl.includes("/login") || requestUrl.includes("/logout");
       const looksLikeLoginRedirect = response.redirected || (response.url && response.url.includes("/login"));
-      if (!isSessionCheck && (response.status === 401 || response.status === 403 || looksLikeLoginRedirect)) {
+      if (!isSessionCheck && (response.status === 401 || looksLikeLoginRedirect)) {
         redirectToLogin();
       }
 

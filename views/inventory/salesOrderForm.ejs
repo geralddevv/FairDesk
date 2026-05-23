@@ -2,6 +2,7 @@
 
 <div class="main-content">
   <form action="<%= typeof confirmMode !== 'undefined' && confirmMode ? '/fairdesk/sales/order/status' : '/fairdesk/sales/order' %>" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="hidden" name="orderId" value="<%= typeof orderToEdit !== 'undefined' && orderToEdit ? orderToEdit._id : '' %>" />
     <input type="hidden" name="submissionToken" value="<%= typeof submissionToken !== 'undefined' && submissionToken ? submissionToken : '' %>" />
     <% if (typeof confirmMode !== 'undefined' && confirmMode) { %>
@@ -1305,56 +1306,7 @@
     return true;
   });
 
-  // Toast Function
-  function showToast(message, type = "info") {
-    // Create toast container if not exists
-    let container = document.getElementById("toast-container");
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "toast-container";
-      container.style.cssText = "position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;";
-      document.body.appendChild(container);
-    }
 
-    const toast = document.createElement("div");
-    toast.textContent = message;
-    
-    // Style based on type (supports "error", "success", true/false)
-    const isError = type === "error" || type === true;
-    const isSuccess = type === "success" || type === false;
-    const bg = isError ? "#fee2e2" : (isSuccess ? "#dcfce7" : "#e0f2fe");
-    const color = isError ? "#991b1b" : (isSuccess ? "#166534" : "#075985");
-    const border = isError ? "#f87171" : (isSuccess ? "#22c55e" : "#38bdf8");
-
-    toast.style.cssText = `
-      padding: 12px 24px;
-      background: ${bg};
-      color: ${color};
-      border-left: 5px solid ${border};
-      border-radius: 4px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      font-weight: 500;
-      min-width: 300px;
-      opacity: 0;
-      transform: translateX(100%);
-      transition: all 0.3s ease;
-    `;
-
-    container.appendChild(toast);
-
-    // Animate In
-    requestAnimationFrame(() => {
-      toast.style.opacity = "1";
-      toast.style.transform = "translateX(0)";
-    });
-
-    // Remove after 3s
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateX(100%)";
-      setTimeout(() => toast.remove(), 300);
-    }, 4000);
-  }
 
   // Pre-fill form from URL params or Order Data
   window.addEventListener("DOMContentLoaded", async () => {

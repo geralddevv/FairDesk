@@ -200,4 +200,42 @@ router.post("/edit/:id", handleUpload, async (req, res) => {
   }
 });
 
+/* ================= PERMISSION DASHBOARD ================= */
+router.get("/admin/permissions", async (req, res) => {
+  try {
+    if (req.session.authUser.role !== "admin") {
+      return res.redirect("/");
+    }
+
+    const employees = await Employee.find({ isActive: true }).sort({ empName: 1 }).lean();
+    res.render("hr/permissionsDashboard.ejs", {
+      title: "Permission Dashboard",
+      employees,
+      CSS: "tableDisp.css",
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server Error");
+  }
+});
+
+/* ================= UPDATE PERMISSIONS (AJAX) ================= */
+router.post("/admin/permissions/:id", async (req, res) => {
+  try {
+    // Role checking is already handled by middleware in server.js
+    // ensure the route processes the request.
+    const { role, permissions, canRead, canWrite, canDelete } = req.body;
+    await Employee.findByIdAndUpdate(req.params.id, {
+      $set: { role, permissions, canRead, canWrite, canDelete }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

@@ -271,12 +271,49 @@
     </style>
   </head>
   <body>
+    <!-- Client-side Toast Container -->
+    <div id="fd-toast" class="toast-notification toast-success" style="display: none; opacity: 0;">
+      <span id="fd-toast-msg"></span>
+      <span class="toast-close" onclick="hideFdToast()">×</span>
+    </div>
+
     <% if ((notification && notification.length) || (error && error.length)) { %>
     <div class="toast-notification <%= error && error.length ? 'toast-error' : 'toast-success' %>" id="toast">
       <span> <%= error && error.length ? error[0] : notification[0] %> </span>
       <span class="toast-close" onclick="hideToast()">×</span>
     </div>
     <% } %>
+
+    <script>
+      function showToast(message, type = 'success') {
+        const t = document.getElementById("fd-toast");
+        const m = document.getElementById("fd-toast-msg");
+        if (!t || !m) return;
+        
+        // Map boolean BTStrap style to string Boilerplate style
+        // true -> error, false -> success
+        if (type === true) type = 'error';
+        if (type === false) type = 'success';
+        
+        const icon = type === 'success' 
+          ? '<i class="fa-solid fa-circle-check" style="margin-right: 8px;"></i>' 
+          : '<i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i>';
+          
+        m.innerHTML = icon + message;
+        t.className = `toast-notification toast-${type}`;
+        t.style.display = "block";
+        t.style.animation = "slideIn 0.5s forwards";
+        
+        setTimeout(hideFdToast, 4000);
+      }
+
+      function hideFdToast() {
+        const t = document.getElementById("fd-toast");
+        if (!t) return;
+        t.style.animation = "slideOut 0.5s forwards";
+        setTimeout(() => { t.style.display = "none"; }, 500);
+      }
+    </script>
 
     <nav>
       <div class="header-nav-wrap">
@@ -326,10 +363,14 @@
         <% const isHr = authUser && authUser.role === "hr"; %>
         <% const isHod = authUser && authUser.role === "hod"; %>
         <% const isSales = authUser && authUser.role === "sales"; %>
-        <% const canAdmin = isAdmin || isHod; %>
-        <% const canView = canAdmin || isSales; %>
-        <% const canStock = canAdmin || isSales; %>
-        <% const canOrders = canAdmin || isSales; %>
+        
+        <% const permissions = authUser && authUser.permissions ? authUser.permissions : {}; %>
+        
+        <% const canView = isAdmin || isHod || isSales || permissions.master; %>
+        <% const canStock = isAdmin || isHod || permissions.inventory || isSales; %>
+        <% const canOrders = isAdmin || isHod || permissions.sales || isSales; %>
+        <% const canAccounting = isAdmin || isHr || permissions.accounting; %>
+        <% const canHr = isAdmin || isHr || permissions.hr; %>
 
         <% if (canView) { %>
         <div class="nav-opt-wrap">
@@ -467,7 +508,7 @@
         </div>
         <% } %>    
 
-        <% if (canAdmin) { %>
+        <% if (isAdmin || isHod) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -569,13 +610,12 @@
           </div> -->
         <% } %>
 
-        <% if (isAdmin || isHr) { %>
+        <% if (canAccounting || canHr) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
             <p class="nav-items-para">HR</p>
           </div>
-
           <div class="nav-labels-opt">
             <!-- ===== VIEW HEADING ===== -->
             <div class="nav-items" style="cursor: default; opacity: 0.6; pointer-events: none">
@@ -641,6 +681,21 @@
         </div>
         <% } %>
 
+        <% if (isAdmin) { %>
+        <div class="nav-opt-wrap">
+          <div title="Admin" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Admin Control</p>
+          </div>
+          <div class="nav-labels-opt">
+            <div title="Permission Dashboard" class="<%= title === 'Permission Dashboard' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/employee/admin/permissions'">
+              <i class="fa-solid fa-shield-halved" style="color: #ffffff"></i>
+              <p class="nav-items-para">Permissions</p>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
         <!-- <div class="nav-opt-wrap">
           <div title="View" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -659,7 +714,7 @@
         <div class="nav-opt-wrap">
           <div title="Orders" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Stocks</p>
+            <p class="nav-items-para">Stock Inward</p>
           </div>
 
           <div class="nav-labels-opt">

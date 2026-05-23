@@ -3,14 +3,45 @@
   "use strict";
 
   /* ================= REUSABLE TOAST ================= */
-  function showToast(message, isError = true) {
-    // Remove any existing client toast
+  function showToast(message, type = true) {
+    // 1. Map input to standard types: "success" or "error"
+    // Handle both boolean (BTStrap style) and string (Boilerplate style)
+    const isError = type === true || type === "error";
+    const finalType = isError ? "error" : "success";
+
+    const fdToast = document.getElementById("fd-toast");
+    const fdMsg = document.getElementById("fd-toast-msg");
+
+    if (fdToast && fdMsg) {
+      const icon =
+        finalType === "success"
+          ? '<i class="fa-solid fa-circle-check" style="margin-right: 8px;"></i>'
+          : '<i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i>';
+
+      fdMsg.innerHTML = icon + message;
+      fdToast.className = `toast-notification toast-${finalType}`;
+      fdToast.style.display = "block";
+      fdToast.style.animation = "slideIn 0.5s forwards";
+
+      // Use the global hide function if defined in boilerplate
+      if (typeof window.hideFdToast === "function") {
+        setTimeout(window.hideFdToast, 4000);
+      } else {
+        setTimeout(() => {
+          fdToast.style.animation = "slideOut 0.5s forwards";
+          setTimeout(() => { fdToast.style.display = "none"; }, 500);
+        }, 4000);
+      }
+      return;
+    }
+
+    // 2. Fallback: Create a new toast element if boilerplate container is missing
     const existing = document.getElementById("client-toast");
     if (existing) existing.remove();
 
     const toast = document.createElement("div");
     toast.id = "client-toast";
-    toast.className = `toast-notification ${isError ? "toast-error" : "toast-success"}`;
+    toast.className = `toast-notification toast-${finalType}`;
     toast.innerHTML = `
       <span>${message}</span>
       <span class="toast-close" onclick="this.parentElement.remove()">×</span>
@@ -18,7 +49,6 @@
 
     document.body.appendChild(toast);
 
-    // Auto-hide after 5 seconds
     setTimeout(() => {
       if (toast.parentElement) {
         toast.style.animation = "slideOut 0.5s forwards";
@@ -27,7 +57,7 @@
     }, 5000);
   }
 
-  // Expose globally so inline scripts (e.g. binding forms) can also use it
+  // Expose globally
   window.showToast = showToast;
 
   /* ================= FORM HANDLING ================= */

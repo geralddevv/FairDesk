@@ -87,6 +87,20 @@ const employeeSchema = new mongoose.Schema(
     dependentsCount: { type: Number, default: 0 },
     dependentsDetails: [dependentSchema],
 
+    /* ================= AUTHENTICATION & PERMISSIONS ================= */
+    password: { type: String }, // Hashed password
+    role: { type: String, default: "employee" }, 
+    permissions: {
+      sales: { type: Boolean, default: false },
+      inventory: { type: Boolean, default: false },
+      hr: { type: Boolean, default: false },
+      accounting: { type: Boolean, default: false },
+      master: { type: Boolean, default: false },
+    },
+    canRead: { type: Boolean, default: true },
+    canWrite: { type: Boolean, default: false },
+    canDelete: { type: Boolean, default: false },
+
     /* ================= META ================= */
     isActive: { type: Boolean, default: true },
   },
