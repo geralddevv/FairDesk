@@ -52,3 +52,4 @@ consider item combo options in the sales order page (hold)
 if single digit add a 0 before the number
 allow the location editing in the sales order edit form
 user based login and permission to to every task
+add a pop up message when logged out default

@@ -221,8 +221,10 @@ router.post("/edit/:id", async (req, res) => {
       { clientId: currentClient.clientId },
       {
         $set: {
+          clientId: currentClient.clientId,
           clientName,
           clientType,
+          clientStatus,
           hoLocation,
           accountHead,
         },
