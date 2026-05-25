@@ -287,7 +287,18 @@ app.get("/logout", (req, res) => {
   });
 });
 const requireAuth = (req, res, next) => {
-  if (req.session?.authUser) return next();
+  if (req.session?.authUser) {
+    if (req.session.authUser.role === "none") {
+      return res.status(403).render("auth/login", {
+        title: "Login",
+        CSS: "login.css",
+        username: "",
+        password: "",
+        error: ["Your account is disabled. Please contact admin."],
+      });
+    }
+    return next();
+  }
   return res.redirect("/login?reason=timeout");
 };
 

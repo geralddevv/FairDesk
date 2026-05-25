@@ -94,7 +94,8 @@
   const ROLE_PERMISSIONS = {
       'admin': { sales: true, inventory: true, hr: true, accounting: true, master: true },
       'hr':    { sales: false, inventory: false, hr: true, accounting: true, master: false },
-      'sales': { sales: true, inventory: true, hr: false, accounting: false, master: false }
+      'sales': { sales: true, inventory: true, hr: false, accounting: false, master: false },
+      'none':  { sales: false, inventory: false, hr: false, accounting: false, master: false }
   };
 
   function autoSave(row) {
@@ -107,6 +108,13 @@
       const canDelete = rowEl.querySelector(".mode-delete").checked;
 
       const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS['sales'];
+      
+      // If role is none, force read/write/delete to false visually as well
+      if (role === 'none') {
+        rowEl.querySelector(".mode-read").checked = false;
+        rowEl.querySelector(".mode-write").checked = false;
+        rowEl.querySelector(".mode-delete").checked = false;
+      }
 
       fetch(`/fairdesk/employee/admin/permissions/${data._id}`, {
           method: "POST",
@@ -171,6 +179,7 @@
                       const val = cell.getValue();
                       return `
                           <select class="role-select">
+                              <option value="none" ${val === 'none' ? 'selected' : ''}>None (No Access)</option>
                               <option value="sales" ${val === 'sales' ? 'selected' : ''}>Sales</option>
                               <option value="hr" ${val === 'hr' ? 'selected' : ''}>HR / Accounts</option>
                               <option value="admin" ${val === 'admin' ? 'selected' : ''}>System Admin</option>
