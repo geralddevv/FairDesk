@@ -37,6 +37,12 @@ const tapeBindingSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // Client-specific item type or category
+    itemClientItemType: {
+      type: String,
+      trim: true,
+    },
+
     /* ================= PRICING ================= */
     tapeRatePerRoll: {
       type: Number,

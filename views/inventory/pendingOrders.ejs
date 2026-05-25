@@ -2,7 +2,6 @@
 
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
-<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet" />
 
 <style>
   .order-highlight {
@@ -406,6 +405,9 @@
     responsiveLayout: false,
     movableColumns: true,
     placeholder: "No pending orders found",
+    initialFilter: [
+      { field: "totalStock", type: ">", value: 0 }
+    ],
     columns: [
       {
         title: "Actions",
@@ -537,6 +539,7 @@
       },
       {
         title: "Bal",
+        field: "balance", // Field name for filter identification
         hozAlign: "center",
         width: 65,
         headerFilter: "input",
@@ -551,6 +554,32 @@
           const dispatched = row.dispatchedQuantity || 0;
           const remaining = quantity - dispatched;
           return `<span style="font-weight:700; color:#044A78;">${remaining}</span>`;
+        },
+      },
+      {
+        title: "Stock",
+        field: "totalStock",
+        hozAlign: "center",
+        width: 80,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        formatter: (cell) => {
+          const row = cell.getRow().getData();
+          const val = cell.getValue() || 0;
+          const itemId = row.tapeId?._id || row.tapeId;
+          const model = row.onModel;
+          
+          if (!itemId || !model) return val;
+
+          let typeSlug = "tape";
+          if (model === "PosRoll") typeSlug = "pos-roll";
+          else if (model === "Tafeta") typeSlug = "tafeta";
+          else if (model === "Ttr") typeSlug = "ttr";
+          else if (model === "Label") typeSlug = "label";
+
+          const url = `/fairdesk/${typeSlug}/profile/${itemId}`;
+          
+          return `<a href="${url}" style="text-decoration:underline; font-weight:700; color: ${val > 0 ? '#059669' : '#b91c1c'}">${val}</a>`;
         },
       },
       {

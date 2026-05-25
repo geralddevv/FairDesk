@@ -51,5 +51,11 @@ add that 3 columns active inactive and stocks in details page
 consider item combo options in the sales order page (hold)
 if single digit add a 0 before the number
 allow the location editing in the sales order edit form
-user based login and permission to to every task
-add a pop up message when logged out default
+user based login and permission to to every task (implemented) ✔️
+add a pop up message when logged out default (partial need to check)
+want to add daily log⬇️
+(it should be more like an automated activity log (showing things like "Order #123 created by Gerald")?)
+add a specific date and qty for the sales order
+total item stock in the pending order (⭐) ✔️
+add item client item type in the tape binding and look out for other things also make a script to update the existing thing
+in the table by default show the items which are available (⭐) ✔️

@@ -3513,7 +3513,6 @@ router.post("/sales/order", async (req, res) => {
 // View Pending Orders
 router.get("/sales/pending", async (req, res) => {
   try {
-    // For now we only have TapeSalesOrder
     const pendingOrders = await TapeSalesOrder.find({ status: "PENDING" })
       .select(
         "tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate createdAt sourceLocation poNumber orderRate remarks status onModel onBindingModel",
@@ -3531,6 +3530,56 @@ router.get("/sales/pending", async (req, res) => {
       })
       .sort({ createdAt: 1 })
       .lean();
+
+    // Group pending orders by model type and itemId to fetch total stock
+    const itemIdsByModel = {
+      Tape: new Set(),
+      PosRoll: new Set(),
+      Tafeta: new Set(),
+      Ttr: new Set(),
+      Label: new Set()
+    };
+
+    pendingOrders.forEach(o => {
+      if (o.onModel && o.tapeId) {
+        itemIdsByModel[o.onModel].add(o.tapeId?._id?.toString());
+      }
+    });
+
+    const stockMap = {}; // mapping: "onModel:itemId" -> totalStock
+
+    // Fetch stocks in parallel
+    const stockPromises = [
+      TapeStock.aggregate([
+        { $match: { tape: { $in: Array.from(itemIdsByModel.Tape).map(id => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: "$tape", total: { $sum: "$quantity" } } }
+      ]),
+      PosRollStock.aggregate([
+        { $match: { posRoll: { $in: Array.from(itemIdsByModel.PosRoll).map(id => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: "$posRoll", total: { $sum: "$quantity" } } }
+      ]),
+      TafetaStock.aggregate([
+        { $match: { tafeta: { $in: Array.from(itemIdsByModel.Tafeta).map(id => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: "$tafeta", total: { $sum: "$quantity" } } }
+      ]),
+      TtrStock.aggregate([
+        { $match: { ttr: { $in: Array.from(itemIdsByModel.Ttr).map(id => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: "$ttr", total: { $sum: "$quantity" } } }
+      ])
+    ];
+
+    const [tapeStocks, posStocks, tafetaStocks, ttrStocks] = await Promise.all(stockPromises);
+
+    tapeStocks.forEach(s => stockMap[`Tape:${s._id}`] = s.total);
+    posStocks.forEach(s => stockMap[`PosRoll:${s._id}`] = s.total);
+    tafetaStocks.forEach(s => stockMap[`Tafeta:${s._id}`] = s.total);
+    ttrStocks.forEach(s => stockMap[`Ttr:${s._id}`] = s.total);
+
+    // Attach totalStock to each order
+    pendingOrders.forEach(o => {
+      const key = `${o.onModel}:${o.tapeId?._id}`;
+      o.totalStock = stockMap[key] || 0;
+    });
 
     res.render("inventory/pendingOrders.ejs", {
       orders: pendingOrders,

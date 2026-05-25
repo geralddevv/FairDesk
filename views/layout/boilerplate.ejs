@@ -18,6 +18,22 @@
     <% } %>
 
     <style>
+      .premium-input {
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+        border: 1.5px solid #e2e8f0 !important;
+        font-size: 14px !important;
+        height: auto !important;
+        background-color: #f8fafc !important;
+        box-sizing: border-box !important;
+        transition: all 0.2s ease !important;
+      }
+      .premium-input:focus {
+        border-color: #044A78 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 0 0 4px rgba(4, 74, 120, 0.1) !important;
+        outline: none !important;
+      }
       .toast-notification {
         position: fixed;
         bottom: 20px;
@@ -203,6 +219,49 @@
         right: 12px;
       }
 
+      /* Premium Profile Button Style */
+      #fdProfileBtn {
+        height: 32px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px 0 2px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.12);
+        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+      }
+
+      .profile-avatar-circle {
+        width: 26px;
+        height: 26px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.2) 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .profile-username-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        letter-spacing: 0.01em;
+      }
+
+      #fdProfileBtn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      }
+
+      #fdProfileBtn i {
+        font-size: 13px;
+        color: #ffffff;
+      }
+
       .logout-modal {
         position: fixed;
         inset: 0;
@@ -268,19 +327,112 @@
         color: #ffffff;
         border-color: #044a78;
       }
+
+      /* Profile Dropdown Styles */
+      .profile-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+
+      .profile-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        width: 240px;
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid rgba(4, 74, 120, 0.15);
+        box-shadow: 0 10px 25px rgba(4, 74, 120, 0.18);
+        padding: 12px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 9999;
+      }
+
+      .profile-menu.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .profile-menu-header {
+        padding: 8px 12px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        margin-bottom: 8px;
+      }
+
+      .profile-menu-name {
+        display: block;
+        font-weight: 700;
+        color: #044a78;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .profile-menu-role {
+        display: block;
+        font-size: 11px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        font-weight: 600;
+      }
+
+      .profile-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        color: #1e293b;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+      }
+
+      .profile-menu-item:hover {
+        background: #f1f5f9;
+        color: #044a78;
+      }
+
+      .profile-menu-item i {
+        font-size: 14px;
+        width: 16px;
+        text-align: center;
+        color: #64748b;
+      }
+
+      .profile-menu-item:hover i {
+        color: #044a78;
+      }
+
+      .profile-menu-divider {
+        height: 1px;
+        background: #f1f5f9;
+        margin: 6px 0;
+      }
     </style>
   </head>
   <body>
-    <!-- Client-side Toast Container -->
+    <!-- Client-side Toast Container (Dynamic) -->
     <div id="fd-toast" class="toast-notification toast-success" style="display: none; opacity: 0;">
       <span id="fd-toast-msg"></span>
       <span class="toast-close" onclick="hideFdToast()">×</span>
     </div>
 
+    <!-- Server-side Flash Notification (Static) -->
     <% if ((notification && notification.length) || (error && error.length)) { %>
-    <div class="toast-notification <%= error && error.length ? 'toast-error' : 'toast-success' %>" id="toast">
+    <div class="toast-notification <%= error && error.length ? 'toast-error' : 'toast-success' %>" id="static-toast">
       <span> <%= error && error.length ? error[0] : notification[0] %> </span>
-      <span class="toast-close" onclick="hideToast()">×</span>
+      <span class="toast-close" onclick="hideStaticToast()">×</span>
     </div>
     <% } %>
 
@@ -290,17 +442,16 @@
         const m = document.getElementById("fd-toast-msg");
         if (!t || !m) return;
         
-        // Map boolean BTStrap style to string Boilerplate style
-        // true -> error, false -> success
-        if (type === true) type = 'error';
-        if (type === false) type = 'success';
+        let toastType = type;
+        if (type === true) toastType = 'error';
+        if (type === false) toastType = 'success';
         
-        const icon = type === 'success' 
+        const icon = toastType === 'success' 
           ? '<i class="fa-solid fa-circle-check" style="margin-right: 8px;"></i>' 
           : '<i class="fa-solid fa-triangle-exclamation" style="margin-right: 8px;"></i>';
           
         m.innerHTML = icon + message;
-        t.className = `toast-notification toast-${type}`;
+        t.className = `toast-notification toast-${toastType}`;
         t.style.display = "block";
         t.style.animation = "slideIn 0.5s forwards";
         
@@ -313,6 +464,19 @@
         t.style.animation = "slideOut 0.5s forwards";
         setTimeout(() => { t.style.display = "none"; }, 500);
       }
+
+      function hideStaticToast() {
+        const t = document.getElementById("static-toast");
+        if (!t) return;
+        t.style.animation = "slideOut 0.5s forwards";
+        setTimeout(() => { t.style.display = "none"; }, 500);
+      }
+
+      // Auto-hide static toast if preset
+      window.addEventListener("DOMContentLoaded", () => {
+        const staticT = document.getElementById("static-toast");
+        if (staticT) setTimeout(hideStaticToast, 5000);
+      });
     </script>
 
     <nav>
@@ -325,23 +489,94 @@
         </button>
       </div>
       <div class="header-nav-wrap header-nav-right">
-        <a href="/logout" class="header-nav" id="fdLogout">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          Logout
-        </a>
+        <div class="profile-dropdown">
+          <button type="button" id="fdProfileBtn" title="Profile">
+            <div class="profile-avatar-circle">
+              <i class="fa-solid fa-user"></i>
+            </div>
+            <span class="profile-username-label"><%= authUser?.username %></span>
+          </button>
+          
+          <div class="profile-menu" id="fdProfileMenu">
+            <div class="profile-menu-header">
+              <span class="profile-menu-name"><%= authUser?.username %></span>
+              <span class="profile-menu-role"><%= authUser?.role %> Access</span>
+            </div>
+            
+            <button type="button" class="profile-menu-item" id="openPasswordModal">
+              <i class="fa-solid fa-key"></i>
+              Change Password
+            </button>
+            
+            <div class="profile-menu-divider"></div>
+            
+            <a href="/logout" class="profile-menu-item" id="fdLogout" style="color: #dc2626;">
+              <i class="fa-solid fa-right-from-bracket" style="color: #dc2626;"></i>
+              Logout
+            </a>
+          </div>
+        </div>
       </div>
       <h1>Fairtech Systems</h1>
-    </nav>
-    <div class="logout-modal" id="logoutModal" aria-hidden="true">
+    </nav>    <div class="logout-modal" id="logoutModal" aria-hidden="true">
       <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
         <h2 class="logout-title" id="logoutTitle">Log out?</h2>
         <p class="logout-text">You will need to sign in again to continue.</p>
         <div class="logout-actions">
           <button class="logout-btn" type="button" id="logoutCancel">Cancel</button>
-          <a class="logout-btn primary" href="/logout" id="logoutConfirm">Log out</a>
+          <a class="logout-btn primary" href="/logout" id="logoutConfirm">Logout</a>
         </div>
       </div>
     </div>
+    <!-- Password Change Modal -->
+    <div class="logout-modal" id="passwordModal" aria-hidden="true" style="padding: 15px; overflow-y: auto; align-items: center; backdrop-filter: blur(10px);">
+      <div class="logout-dialog" role="dialog" aria-modal="true" style="width: min(380px, 95vw); margin: auto; padding: 0; border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.4); animation: modalScaleIn 0.3s ease-out;">
+
+        <div style="background: #044A78; padding: 20px; text-align: center; color: white;">
+          <h2 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Update Password</h2>
+        </div>
+
+        <div style="padding: 24px; background: #ffffff;">
+          <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 20px;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            
+            <div class="password-input-group">
+              <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">Current Password</label>
+              <input type="password" name="oldPassword" required class="form-control premium-input" style="padding: 12px 14px !important;" placeholder="Enter current password">
+            </div>
+
+            <div class="password-input-group">
+              <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">New Password</label>
+              <input type="password" name="newPassword" required class="form-control premium-input" style="padding: 12px 14px !important;" placeholder="Enter new password">
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+              <button class="logout-btn primary" type="submit" style="width: 100%; border-radius: 12px; padding: 14px; font-size: 14px; font-weight: 700; background: #044A78; border: none; transition: all 0.25s ease; cursor: pointer; box-shadow: 0 4px 12px rgba(4, 74, 120, 0.25);">
+                Update Password
+              </button>
+              <button type="button" id="passwordCancel" style="width: 100%; border: none; background: transparent; color: #64748b; font-weight: 600; padding: 10px; font-size: 13px; cursor: pointer; transition: color 0.2s;">
+                Discard Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes modalScaleIn {
+        from { opacity: 0; transform: scale(0.95) translateY(10px); filter: blur(4px); }
+        to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+      }
+      #togglePasswordBtn:hover {
+        background: #f0f9ff;
+        transform: translateY(-1px);
+      }
+    </style>
     <div class="contain">
       <!-- Navigation bar -->
       <div class="side-nav">
@@ -778,23 +1013,7 @@
     <script src="/js/<%= JS %>" defer></script>
     <% } %>
 
-
     <script>
-      const toast = document.getElementById("toast");
-
-      function hideToast() {
-        toast.style.animation = "slideOut 0.5s forwards";
-        setTimeout(() => {
-          toast.style.display = "none";
-        }, 500);
-      }
-
-      // Auto hide after 5 seconds
-      if (toast) {
-        setTimeout(hideToast, 5000);
-      }
-
-
       // Instantly hide and remove table spinners after page fully loads
       window.addEventListener("load", () => {
         document.querySelectorAll('.table-spinner').forEach(el => {
@@ -815,11 +1034,18 @@
       const fdLogout = document.getElementById("fdLogout");
       const logoutModal = document.getElementById("logoutModal");
       const logoutCancel = document.getElementById("logoutCancel");
-      const logoutConfirm = document.getElementById("logoutConfirm");
+      
+      const fdProfileBtn = document.getElementById("fdProfileBtn");
+      const fdProfileMenu = document.getElementById("fdProfileMenu");
+      const openPasswordModal = document.getElementById("openPasswordModal");
+      const passwordModal = document.getElementById("passwordModal");
+      const passwordCancel = document.getElementById("passwordCancel");
+      const changePasswordForm = document.getElementById("changePasswordForm");
 
       if (fdLogout) {
         fdLogout.addEventListener("click", (e) => {
           e.preventDefault();
+          if (fdProfileMenu) fdProfileMenu.classList.remove("show");
           if (logoutModal) {
             logoutModal.classList.add("show");
             logoutModal.setAttribute("aria-hidden", "false");
@@ -839,6 +1065,74 @@
           if (e.target === logoutModal) {
             logoutModal.classList.remove("show");
             logoutModal.setAttribute("aria-hidden", "true");
+          }
+        });
+      }
+
+      /* Profile Dropdown Logic */
+      if (fdProfileBtn && fdProfileMenu) {
+        fdProfileBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          fdProfileMenu.classList.toggle("show");
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!fdProfileMenu.contains(e.target) && e.target !== fdProfileBtn) {
+            fdProfileMenu.classList.remove("show");
+          }
+        });
+      }
+
+      /* Password Modal Logic */
+      if (openPasswordModal) {
+        openPasswordModal.addEventListener("click", () => {
+          fdProfileMenu.classList.remove("show");
+          if (passwordModal) {
+            passwordModal.classList.add("show");
+            passwordModal.setAttribute("aria-hidden", "false");
+          }
+        });
+      }
+
+      if (passwordCancel && passwordModal) {
+        passwordCancel.addEventListener("click", () => {
+          passwordModal.classList.remove("show");
+          passwordModal.setAttribute("aria-hidden", "true");
+        });
+      }
+
+      if (passwordModal) {
+        passwordModal.addEventListener("click", (e) => {
+          if (e.target === passwordModal) {
+            passwordModal.classList.remove("show");
+            passwordModal.setAttribute("aria-hidden", "true");
+          }
+        });
+      }
+
+      if (changePasswordForm) {
+        changePasswordForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(changePasswordForm);
+          const data = Object.fromEntries(formData.entries());
+
+          try {
+            const resp = await fetch("/fairdesk/profile/password", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(data)
+            });
+            const resData = await resp.json();
+            if (resData.success) {
+              showToast("Password updated successfully", "success");
+              passwordModal.classList.remove("show");
+              passwordModal.setAttribute("aria-hidden", "true");
+              changePasswordForm.reset();
+            } else {
+              showToast(resData.message || "Failed to update password", true);
+            }
+          } catch (err) {
+            showToast("Server error occurred", true);
           }
         });
       }

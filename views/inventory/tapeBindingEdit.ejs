@@ -12,48 +12,53 @@
         <h1>Edit Tape Binding</h1>
     </div>
     <!-- ================= READ-ONLY INFO ================= -->
-    <div class="span-four">
+    <div class="span-six">
       <label>Tape ID</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.tapeId?.tapeProductId || 'N/A' %>" readonly />
     </div>
-    <div class="span-four">
+    <div class="span-six">
       <label>Paper Code</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.tapeId?.tapePaperCode || '' %>" readonly />
     </div>
-    <div class="span-four">
+    <div class="span-six">
+      <label>Paper Type</label>
+      <input type="text" class="form-control input-tag"
+        value="<%= binding.tapeId?.tapePaperType || '' %>" readonly />
+    </div>
+    <div class="span-seven">
       <label>User Name</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.userId?.userName || '' %>" readonly />
     </div>
-    <div class="span-five">
+    <div class="span-seven">
       <label>Client Name</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.userId?.clientName || '' %>" readonly />
     </div>
     <!-- ================= TAPE MASTER SPECS (READ-ONLY) ================= -->
-    <div class="span-three">
+    <div class="span-seven">
       <label>GSM</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.tapeId?.tapeGsm || '' %>" readonly />
     </div>
-    <div class="span-three">
+    <div class="span-six">
       <label>Width</label>
       <input type="text" class="form-control input-tag" id="tape-width"
         value="<%= binding.tapeId?.tapeWidth || '' %>" readonly />
     </div>
-    <div class="span-three">
+    <div class="span-six">
       <label>MTRS</label>
       <input type="text" class="form-control input-tag" id="tape-mtrs"
         value="<%= binding.tapeId?.tapeMtrs || '' %>" readonly />
     </div>
-    <div class="span-three">
+    <div class="span-six">
       <label>Core ID</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.tapeId?.tapeCoreId || '' %>" readonly />
     </div>
-    <div class="span-three">
+    <div class="span-seven">
       <label>Finish</label>
       <input type="text" class="form-control input-tag"
         value="<%= binding.tapeId?.tapeFinish || '' %>" readonly />
@@ -76,6 +81,11 @@
       <label>MTRS Delivered</label>
       <input type="text" name="tapeMtrsDel" class="form-control"
         value="<%= binding.tapeMtrsDel %>" required />
+    </div>
+    <div class="span-six">
+      <label>Client Item Type</label>
+      <input type="text" name="itemClientItemType" class="form-control"
+        value="<%= binding.itemClientItemType || '' %>" placeholder="e.g. Standard, Premium" />
     </div>
     <div class="span-six">
       <label>Rate Per Roll</label>

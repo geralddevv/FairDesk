@@ -92,11 +92,9 @@
   const CSRF = "<%= csrfToken %>";
 
   const ROLE_PERMISSIONS = {
-      'admin':    { sales: true, inventory: true, hr: true, accounting: true, master: true },
-      'hod':      { sales: true, inventory: true, hr: true, accounting: true, master: true },
-      'hr':       { sales: false, inventory: false, hr: true, accounting: true, master: false },
-      'sales':    { sales: true, inventory: true, hr: false, accounting: false, master: false },
-      'employee': { sales: false, inventory: false, hr: false, accounting: false, master: true }
+      'admin': { sales: true, inventory: true, hr: true, accounting: true, master: true },
+      'hr':    { sales: false, inventory: false, hr: true, accounting: true, master: false },
+      'sales': { sales: true, inventory: true, hr: false, accounting: false, master: false }
   };
 
   function autoSave(row) {
@@ -108,7 +106,7 @@
       const canWrite = rowEl.querySelector(".mode-write").checked;
       const canDelete = rowEl.querySelector(".mode-delete").checked;
 
-      const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS['employee'];
+      const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS['sales'];
 
       fetch(`/fairdesk/employee/admin/permissions/${data._id}`, {
           method: "POST",
@@ -170,13 +168,11 @@
                   vertAlign: "middle",
                   width: 220,
                   formatter: function(cell) {
-                      const val = cell.getValue() || "employee";
+                      const val = cell.getValue();
                       return `
                           <select class="role-select">
-                              <option value="employee" ${val === 'employee' ? 'selected' : ''}>Standard Employee</option>
-                              <option value="sales" ${val === 'sales' ? 'selected' : ''}>Sales Executive</option>
+                              <option value="sales" ${val === 'sales' ? 'selected' : ''}>Sales</option>
                               <option value="hr" ${val === 'hr' ? 'selected' : ''}>HR / Accounts</option>
-                              <option value="hod" ${val === 'hod' ? 'selected' : ''}>HOD</option>
                               <option value="admin" ${val === 'admin' ? 'selected' : ''}>System Admin</option>
                           </select>
                       `;

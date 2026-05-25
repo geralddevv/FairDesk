@@ -88,7 +88,7 @@ const employeeSchema = new mongoose.Schema(
     dependentsDetails: [dependentSchema],
 
     /* ================= AUTHENTICATION & PERMISSIONS ================= */
-    password: { type: String }, // Hashed password
+    password: { type: String, default: "pass" }, // Hashed password
     role: { type: String, default: "employee" }, 
     permissions: {
       sales: { type: Boolean, default: false },
@@ -98,8 +98,8 @@ const employeeSchema = new mongoose.Schema(
       master: { type: Boolean, default: false },
     },
     canRead: { type: Boolean, default: true },
-    canWrite: { type: Boolean, default: false },
-    canDelete: { type: Boolean, default: false },
+    canWrite: { type: Boolean, default: true },
+    canDelete: { type: Boolean, default: true },
 
     /* ================= META ================= */
     isActive: { type: Boolean, default: true },

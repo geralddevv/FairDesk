@@ -358,6 +358,7 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
       tapeCreditTerm,
       status,
       returnTo,
+      itemClientItemType,
     } = req.body;
 
     const binding = await TapeBinding.findById(id);
@@ -380,6 +381,7 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
       binding.status = status;
     }
 
+    binding.itemClientItemType = itemClientItemType;
     await binding.save();
 
     req.flash("notification", "Tape binding updated successfully!");

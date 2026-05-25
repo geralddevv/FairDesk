@@ -45,8 +45,9 @@ connectDB();
 /* SECURITY MIDDLEWARE (HELMET) */
 app.use(
   helmet({
-    contentSecurityPolicy: false, // Temporarily disable to troubleshoot layout issues
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: "unsafe-none" },
   }),
 );
 
@@ -242,13 +243,21 @@ app.post("/login", loginLimiter, async (req, res) => {
     return processLogin({ username, role, permissions });
   }
 
+  const trimmedUser = String(username || "").trim();
+  const trimmedPass = String(password || "").trim();
+
   // Fallback to database check
   try {
     const employee = await Employee.findOne({ 
-      $or: [{ empId: username }, { empName: username }],
-      password: password,
+      $or: [
+        { empId: { $regex: new RegExp(`^${trimmedUser}$`, "i") } }, 
+        { empName: { $regex: new RegExp(`^${trimmedUser}$`, "i") } }
+      ],
+      password: trimmedPass,
       isActive: true 
     });
+
+    console.log(`[DEBUG] Database login attempt for: "${trimmedUser}". Found: ${employee ? employee.empName : "NULL"}`);
 
     if (employee) {
       return processLogin({ 
@@ -277,21 +286,48 @@ app.get("/logout", (req, res) => {
     res.redirect("/login");
   });
 });
-
 const requireAuth = (req, res, next) => {
   if (req.session?.authUser) return next();
-  return res.redirect("/login");
+  return res.redirect("/login?reason=timeout");
 };
 
 const requireRole = (roles) => (req, res, next) => {
   const role = req.session?.authUser?.role;
   if (roles.includes(role)) return next();
-  return res.redirect("/login");
+  return res.redirect("/login?reason=timeout");
 };
 
-
-
 app.use("/fairdesk/payroll", requireAuth, requireRole(["admin", "hr"]), payrollRoute);
+
+/* PROFILE / ACCOUNT SECURITY - Accessible to all roles */
+app.post("/fairdesk/profile/password", requireAuth, async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    const authUser = req.session.authUser;
+
+    if (!authUser || !authUser.empId) {
+      return res.status(403).json({ success: false, message: "System accounts (managed via configuration) cannot change password via profile modal." });
+    }
+
+    const employee = await Employee.findOne({ empId: authUser.empId });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee record not found." });
+    }
+
+    if (employee.password !== oldPassword) {
+      return res.status(400).json({ success: false, message: "Current password is incorrect." });
+    }
+
+    employee.password = newPassword;
+    await employee.save();
+
+    res.json({ success: true, message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("PASSWORD CHANGE ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error during password update." });
+  }
+});
+
 app.use("/fairdesk/loan", requireAuth, requireRole(["admin", "hr"]), loanRoute);
 app.use("/fairdesk/advance", requireAuth, requireRole(["admin", "hr"]), advanceRoute);
 app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr"]), employeeRoute);
