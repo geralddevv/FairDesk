@@ -690,7 +690,7 @@
         </div>
         <% } %>
 
-        <% if (canView) { %>
+        <% if (canView && !isSales) { %>
         <div class="nav-opt-wrap">
           <div title="Vendor" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -743,7 +743,7 @@
         </div>
         <% } %>    
 
-        <% if (isAdmin || isHod) { %>
+        <% if (isAdmin || isHod || isSales) { %>
         <div class="nav-opt-wrap">
           <div title="Masters" class="masters-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
