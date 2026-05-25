@@ -379,6 +379,12 @@
         reasonInput.value = cancelReasonInput.value.trim();
         form.appendChild(reasonInput);
 
+        const csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.content;
+        form.appendChild(csrfInput);
+
         document.body.appendChild(form);
         form.submit();
       },

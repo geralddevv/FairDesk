@@ -4027,6 +4027,8 @@ router.post("/sales/order/status", async (req, res) => {
 
     if (finalStatus === "PENDING" && status === "CONFIRMED") {
       req.flash("notification", `Partially dispatched. remaining is pending.`);
+    } else if (status === "CANCELLED") {
+      req.flash("notification", "order deleted");
     } else {
       req.flash("notification", `Order status updated to ${finalStatus}`);
     }
