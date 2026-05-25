@@ -3279,7 +3279,9 @@ router.post("/sales/order", async (req, res) => {
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
-        // createdBy remains same for edits, but tracking modifiedBy could be good
+        status: "PENDING",
+        onModel: "Tape",
+        onBindingModel: "TapeBinding",
       };
 
       if (orderId) {
@@ -3341,6 +3343,7 @@ router.post("/sales/order", async (req, res) => {
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
+        status: "PENDING",
       };
 
       if (orderId) {
@@ -3395,6 +3398,7 @@ router.post("/sales/order", async (req, res) => {
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
+        status: "PENDING",
       };
 
       if (orderId) {
@@ -3449,6 +3453,7 @@ router.post("/sales/order", async (req, res) => {
         quantity: Number(quantity),
         estimatedDate: new Date(estimatedDate),
         remarks,
+        status: "PENDING",
       };
 
       if (orderId) {
@@ -3528,7 +3533,7 @@ router.get("/sales/pending", async (req, res) => {
         select:
           "tapeRatePerRoll tapeOdrQty tapeMinQty posRatePerRoll posOdrQty posMinQty tafetaRatePerRoll tafetaOdrQty tafetaMinQty ttrRatePerRoll ttrOdrQty ttrMinQty",
       })
-      .sort({ createdAt: 1 })
+      .sort({ createdAt: -1 })
       .lean();
 
     // Group pending orders by model type and itemId to fetch total stock

@@ -405,9 +405,6 @@
     responsiveLayout: false,
     movableColumns: true,
     placeholder: "No pending orders found",
-    initialFilter: [
-      { field: "totalStock", type: ">", value: 0 }
-    ],
     columns: [
       {
         title: "Actions",
@@ -650,8 +647,8 @@
     if (!filteredEl) return;
 
     // Show filtered badge if any filters are active or the item dropdown has a selection
-    const itemFilterVal = document.getElementById("item-filter").value;
-    const isFiltered = (filters && filters.length > 0) || itemFilterVal !== "";
+    const itemFilterVal = document.getElementById("item-filter")?.value;
+    const isFiltered = (filters && filters.length > 0) || (itemFilterVal && itemFilterVal !== "");
 
     if (!isFiltered) {
       filteredEl.style.display = "none";
