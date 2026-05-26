@@ -54,6 +54,341 @@ function canonicalizeLocationName(value) {
     .replace(/^[.,]+|[.,]+$/g, "");
 }
 
+function toNumber(value) {
+  return Number(value || 0);
+}
+
+async function getTtrStockSummary(ttrId) {
+  const ttrObjectId = new mongoose.Types.ObjectId(ttrId);
+  const [stockAggregation, bookedAggregation] = await Promise.all([
+    TtrStock.aggregate([
+      { $match: { ttr: ttrObjectId } },
+      {
+        $group: {
+          _id: {
+            location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+          },
+          qty: { $sum: "$quantity" },
+        },
+      },
+      { $sort: { "_id.location": 1 } },
+    ]),
+    TapeSalesOrder.aggregate([
+      {
+        $match: {
+          tapeId: ttrObjectId,
+          onModel: "Ttr",
+          status: { $nin: ["CANCELLED"] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
+          },
+          bookedQty: {
+            $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+          },
+        },
+      },
+    ]),
+  ]);
+
+  const stockMap = new Map(
+    stockAggregation.map((row) => [canonicalizeLocationName(row._id?.location), toNumber(row.qty)]),
+  );
+  const bookedMap = new Map(
+    bookedAggregation.map((row) => [canonicalizeLocationName(row._id?.location), toNumber(row.bookedQty)]),
+  );
+
+  const locations = Array.from(new Set([...stockMap.keys(), ...bookedMap.keys()]))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b))
+    .map((location) => {
+      const qty = toNumber(stockMap.get(location));
+      const booked = toNumber(bookedMap.get(location));
+      return {
+        location,
+        qty,
+        booked,
+        balance: qty - booked,
+      };
+    })
+    .filter((entry) => entry.qty !== 0 || entry.booked !== 0);
+
+  return {
+    locations,
+    totalStock: locations.reduce((sum, entry) => sum + toNumber(entry.qty), 0),
+    totalBooked: locations.reduce((sum, entry) => sum + toNumber(entry.booked), 0),
+    totalBalance: locations.reduce((sum, entry) => sum + toNumber(entry.balance), 0),
+  };
+}
+
+async function applyTtrStockDelta({ ttrId, location, delta, remarks, createdBy }) {
+  const normalizedLocation = canonicalizeLocationName(location) || "UNKNOWN";
+  const ttrObjectId = new mongoose.Types.ObjectId(ttrId);
+  const [balanceRow] = await TtrStock.aggregate([
+    { $match: { ttr: ttrObjectId, location: normalizedLocation } },
+    { $group: { _id: null, qty: { $sum: "$quantity" } } },
+  ]);
+  const openingStock = toNumber(balanceRow?.qty);
+  const closingStock = openingStock + delta;
+
+  if (delta === 0) {
+    return { openingStock, closingStock, changed: false };
+  }
+
+  await TtrStock.create({
+    ttr: ttrObjectId,
+    location: normalizedLocation,
+    quantity: delta,
+    remarks,
+  });
+
+  await TtrStockLog.create({
+    ttr: ttrObjectId,
+    location: normalizedLocation,
+    openingStock,
+    quantity: Math.abs(delta),
+    closingStock,
+    type: delta > 0 ? "INWARD" : "OUTWARD",
+    source: "MANUAL",
+    remarks,
+    createdBy: createdBy || "SYSTEM",
+  });
+
+  return { openingStock, closingStock, changed: true };
+}
+
+function getProfileStockConfig(itemType) {
+  return {
+    Tape: {
+      itemLabel: "Tape",
+      stockModel: TapeStock,
+      logModel: TapeStockLog,
+      itemField: "tape",
+      onModel: "Tape",
+    },
+    "POS Roll": {
+      itemLabel: "POS Roll",
+      stockModel: PosRollStock,
+      logModel: PosRollStockLog,
+      itemField: "posRoll",
+      onModel: "PosRoll",
+    },
+    Tafeta: {
+      itemLabel: "Tafeta",
+      stockModel: TafetaStock,
+      logModel: TafetaStockLog,
+      itemField: "tafeta",
+      onModel: "Tafeta",
+    },
+    TTR: {
+      itemLabel: "TTR",
+      stockModel: TtrStock,
+      logModel: TtrStockLog,
+      itemField: "ttr",
+      onModel: "Ttr",
+    },
+  }[itemType] || null;
+}
+
+async function getItemStockSummary(itemType, itemId) {
+  const config = getProfileStockConfig(itemType);
+  if (!config) throw new Error(`Unsupported stock item type: ${itemType}`);
+  const itemObjectId = new mongoose.Types.ObjectId(itemId);
+  const [stockAggregation, bookedAggregation] = await Promise.all([
+    config.stockModel.aggregate([
+      { $match: { [config.itemField]: itemObjectId } },
+      {
+        $group: {
+          _id: {
+            location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
+          },
+          qty: { $sum: "$quantity" },
+        },
+      },
+      { $sort: { "_id.location": 1 } },
+    ]),
+    TapeSalesOrder.aggregate([
+      {
+        $match: {
+          tapeId: itemObjectId,
+          onModel: config.onModel,
+          status: { $nin: ["CANCELLED"] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
+          },
+          bookedQty: {
+            $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+          },
+        },
+      },
+    ]),
+  ]);
+
+  const stockMap = new Map(
+    stockAggregation.map((row) => [canonicalizeLocationName(row._id?.location), toNumber(row.qty)]),
+  );
+  const bookedMap = new Map(
+    bookedAggregation.map((row) => [canonicalizeLocationName(row._id?.location), toNumber(row.bookedQty)]),
+  );
+
+  const locations = Array.from(new Set([...stockMap.keys(), ...bookedMap.keys()]))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b))
+    .map((location) => {
+      const qty = toNumber(stockMap.get(location));
+      const booked = toNumber(bookedMap.get(location));
+      return {
+        location,
+        qty,
+        booked,
+        balance: qty - booked,
+      };
+    })
+    .filter((entry) => entry.qty !== 0 || entry.booked !== 0);
+
+  return {
+    config,
+    locations,
+    totalStock: locations.reduce((sum, entry) => sum + toNumber(entry.qty), 0),
+    totalBooked: locations.reduce((sum, entry) => sum + toNumber(entry.booked), 0),
+    totalBalance: locations.reduce((sum, entry) => sum + toNumber(entry.balance), 0),
+  };
+}
+
+async function applyItemStockDelta({ itemType, itemId, location, delta, remarks, createdBy }) {
+  const config = getProfileStockConfig(itemType);
+  if (!config) throw new Error(`Unsupported stock item type: ${itemType}`);
+  const normalizedLocation = canonicalizeLocationName(location) || "UNKNOWN";
+  const itemObjectId = new mongoose.Types.ObjectId(itemId);
+  const [balanceRow] = await config.stockModel.aggregate([
+    { $match: { [config.itemField]: itemObjectId, location: normalizedLocation } },
+    { $group: { _id: null, qty: { $sum: "$quantity" } } },
+  ]);
+  const openingStock = toNumber(balanceRow?.qty);
+  const closingStock = openingStock + delta;
+
+  if (delta === 0) {
+    return { openingStock, closingStock, changed: false };
+  }
+
+  await config.stockModel.create({
+    [config.itemField]: itemObjectId,
+    location: normalizedLocation,
+    quantity: delta,
+    remarks,
+  });
+
+  await config.logModel.create({
+    [config.itemField]: itemObjectId,
+    location: normalizedLocation,
+    openingStock,
+    quantity: Math.abs(delta),
+    closingStock,
+    type: delta > 0 ? "INWARD" : "OUTWARD",
+    source: "MANUAL",
+    remarks,
+    createdBy: createdBy || "SYSTEM",
+  });
+
+  return { openingStock, closingStock, changed: true };
+}
+
+async function handleProfileStockEdit(req, res, { itemType, model, redirectPath }) {
+  try {
+    const item = await model.findById(req.params.id).select("_id").lean();
+    if (!item) {
+      req.flash("notification", `${itemType} not found`);
+      return res.redirect(redirectPath);
+    }
+
+    const fromLocation = canonicalizeLocationName(req.body.fromLocation) || "UNKNOWN";
+    const toLocation = canonicalizeLocationName(req.body.toLocation) || "UNKNOWN";
+    const requestedQuantity = Number(req.body.quantity);
+    const itemProfileUrl = `${redirectPath}/${item._id}`;
+
+    if (!Number.isFinite(requestedQuantity) || requestedQuantity < 0) {
+      req.flash("notification", "Enter a valid stock quantity");
+      return res.redirect(itemProfileUrl);
+    }
+
+    const stockSummary = await getItemStockSummary(itemType, item._id);
+    const sourceEntry = stockSummary.locations.find((entry) => entry.location === fromLocation);
+    const currentQuantity = toNumber(sourceEntry?.qty);
+    const sourceBooked = toNumber(sourceEntry?.booked);
+    const createdBy = req.user?.username || req.session?.authUser?.username || "SYSTEM";
+
+    if (!sourceEntry && currentQuantity === 0) {
+      req.flash("notification", "Stock location not found");
+      return res.redirect(itemProfileUrl);
+    }
+
+    if (fromLocation === toLocation) {
+      if (requestedQuantity < sourceBooked) {
+        req.flash("notification", `Quantity cannot go below booked stock (${sourceBooked})`);
+        return res.redirect(itemProfileUrl);
+      }
+
+      const delta = requestedQuantity - currentQuantity;
+      if (delta === 0) {
+        req.flash("notification", "Stock is already up to date");
+        return res.redirect(itemProfileUrl);
+      }
+
+      await applyItemStockDelta({
+        itemType,
+        itemId: item._id,
+        location: fromLocation,
+        delta,
+        remarks: `${itemType} stock adjusted to ${requestedQuantity} from profile`,
+        createdBy,
+      });
+      req.flash("notification", `${itemType} stock updated successfully.`);
+      return res.redirect(itemProfileUrl);
+    }
+
+    if (sourceBooked > 0) {
+      req.flash("notification", `Cannot move stock from ${fromLocation} while booked quantity (${sourceBooked}) exists.`);
+      return res.redirect(itemProfileUrl);
+    }
+
+    if (currentQuantity !== 0) {
+      await applyItemStockDelta({
+        itemType,
+        itemId: item._id,
+        location: fromLocation,
+        delta: -currentQuantity,
+        remarks: `${itemType} stock moved from ${fromLocation} to ${toLocation} via profile`,
+        createdBy,
+      });
+    }
+
+    if (requestedQuantity !== 0) {
+      await applyItemStockDelta({
+        itemType,
+        itemId: item._id,
+        location: toLocation,
+        delta: requestedQuantity,
+        remarks: `${itemType} stock moved from ${fromLocation} to ${toLocation} via profile`,
+        createdBy,
+      });
+    }
+
+    req.flash("notification", `${itemType} stock location updated successfully.`);
+    return res.redirect(itemProfileUrl);
+  } catch (err) {
+    console.error(`${itemType.toUpperCase()} PROFILE STOCK EDIT ERROR:`, err);
+    req.flash("notification", `Failed to update ${itemType} stock`);
+    return res.redirect(`${redirectPath}/${req.params.id}`);
+  }
+}
+
 function buildSalesOrderSignature({
   itemType,
   itemId,
@@ -1670,25 +2005,8 @@ router.get("/tape/profile/:id", async (req, res) => {
   const backUrl = primaryBinding?.userId?._id
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/tape/view";
-
-  const stockAggregation = await TapeStock.aggregate([
-    { $match: { tape: tape._id } },
-    {
-      $group: {
-        _id: {
-          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-        },
-        qty: { $sum: "$quantity" },
-      },
-    },
-    { $sort: { "_id.location": 1 } },
-  ]);
-
-  const stockInfoLocations = stockAggregation.map((row) => ({
-    location: String(row._id?.location || "UNKNOWN"),
-    qty: Number(row.qty || 0),
-  }));
-  const totalStock = stockInfoLocations.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+  const stockSummary = await getItemStockSummary("Tape", tape._id);
+  const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
 
   const rows = [
     { label: "Paper Code", value: tape.tapePaperCode || "N/A" },
@@ -1713,8 +2031,16 @@ router.get("/tape/profile/:id", async (req, res) => {
     primaryBinding,
     backUrl,
     stockInfo: {
-      totalStock,
-      locations: stockInfoLocations,
+      totalStock: stockSummary.totalStock,
+      locations: stockSummary.locations,
+      booked: stockSummary.totalBooked,
+      balance: stockSummary.totalBalance,
+    },
+    stockEditConfig: {
+      enabled: true,
+      itemType: "Tape",
+      editAction: `/fairdesk/tape/profile/${tape._id}/stock/edit`,
+      locationOptions: locationOptions.map((entry) => canonicalizeLocationName(entry.locationName)).filter(Boolean),
     },
     title: "Tape Details",
     CSS: false,
@@ -1722,6 +2048,13 @@ router.get("/tape/profile/:id", async (req, res) => {
     notification: req.flash("notification"),
   });
 });
+
+router.post("/tape/profile/:id/stock/edit", async (req, res) =>
+  handleProfileStockEdit(req, res, {
+    itemType: "Tape",
+    model: Tape,
+    redirectPath: "/fairdesk/tape/profile",
+  }));
 
 function normalizePosPart(value) {
   if (value === undefined || value === null) return "";
@@ -1883,25 +2216,8 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
   const backUrl = primaryBinding?.userId?._id
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/pos-roll/view";
-
-  const stockAggregation = await PosRollStock.aggregate([
-    { $match: { posRoll: posRoll._id } },
-    {
-      $group: {
-        _id: {
-          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-        },
-        qty: { $sum: "$quantity" },
-      },
-    },
-    { $sort: { "_id.location": 1 } },
-  ]);
-
-  const stockInfoLocations = stockAggregation.map((row) => ({
-    location: String(row._id?.location || "UNKNOWN"),
-    qty: Number(row.qty || 0),
-  }));
-  const totalStock = stockInfoLocations.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
+  const stockSummary = await getItemStockSummary("POS Roll", posRoll._id);
+  const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
 
   const rows = [
     { label: "Paper Code", value: posRoll.posPaperCode || "N/A" },
@@ -1925,8 +2241,16 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     primaryBinding,
     backUrl,
     stockInfo: {
-      totalStock,
-      locations: stockInfoLocations,
+      totalStock: stockSummary.totalStock,
+      locations: stockSummary.locations,
+      booked: stockSummary.totalBooked,
+      balance: stockSummary.totalBalance,
+    },
+    stockEditConfig: {
+      enabled: true,
+      itemType: "POS Roll",
+      editAction: `/fairdesk/pos-roll/profile/${posRoll._id}/stock/edit`,
+      locationOptions: locationOptions.map((entry) => canonicalizeLocationName(entry.locationName)).filter(Boolean),
     },
     title: "POS Roll Details",
     CSS: false,
@@ -1934,6 +2258,13 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     notification: req.flash("notification"),
   });
 });
+
+router.post("/pos-roll/profile/:id/stock/edit", async (req, res) =>
+  handleProfileStockEdit(req, res, {
+    itemType: "POS Roll",
+    model: PosRoll,
+    redirectPath: "/fairdesk/pos-roll/profile",
+  }));
 
 // ================= POS ROLL EDIT =================
 router.get("/pos-roll/edit/:id", async (req, res) => {
@@ -2030,63 +2361,8 @@ router.get("/tafeta/profile/:id", async (req, res) => {
   const backUrl = primaryBinding?.userId?._id
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/tafeta/view";
-
-  const stockAggregation = await TafetaStock.aggregate([
-    { $match: { tafeta: tafeta._id } },
-    {
-      $group: {
-        _id: {
-          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-        },
-        qty: { $sum: "$quantity" },
-      },
-    },
-    { $sort: { "_id.location": 1 } },
-  ]);
-
-  const locations = stockAggregation.map((row) => ({
-    location: String(row._id?.location || "UNKNOWN"),
-    qty: Number(row.qty || 0),
-  }));
-  const bookedAggregation = await TapeSalesOrder.aggregate([
-    {
-      $match: {
-        tapeId: tafeta._id,
-        onModel: "Tafeta",
-        status: "PENDING",
-      },
-    },
-    {
-      $group: {
-        _id: "$sourceLocation",
-        bookedQty: {
-          $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
-        },
-      },
-    },
-  ]);
-
-  const bookedMap = {};
-  let totalBooked = 0;
-  bookedAggregation.forEach((row) => {
-    const loc = String(row._id || "UNKNOWN");
-    const qty = Number(row.bookedQty || 0);
-    bookedMap[loc] = qty;
-    totalBooked += qty;
-  });
-
-  let totalStock = 0;
-  const stockInfoLocations = locations.map((entry) => {
-    const booked = bookedMap[entry.location] || 0;
-    totalStock += Number(entry.qty || 0);
-    return {
-      location: entry.location,
-      qty: Number(entry.qty || 0),
-      booked,
-      balance: Number(entry.qty || 0) - booked,
-    };
-  });
-  const totalBalance = totalStock - totalBooked;
+  const stockSummary = await getItemStockSummary("Tafeta", tafeta._id);
+  const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
 
   const rows = [
     { label: "Material Code", value: tafeta.tafetaMaterialCode || "N/A" },
@@ -2112,10 +2388,16 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     primaryBinding,
     backUrl,
     stockInfo: {
-      totalStock,
-      locations: stockInfoLocations,
-      booked: totalBooked,
-      balance: totalBalance,
+      totalStock: stockSummary.totalStock,
+      locations: stockSummary.locations,
+      booked: stockSummary.totalBooked,
+      balance: stockSummary.totalBalance,
+    },
+    stockEditConfig: {
+      enabled: true,
+      itemType: "Tafeta",
+      editAction: `/fairdesk/tafeta/profile/${tafeta._id}/stock/edit`,
+      locationOptions: locationOptions.map((entry) => canonicalizeLocationName(entry.locationName)).filter(Boolean),
     },
     title: "Tafeta Details",
     CSS: false,
@@ -2123,6 +2405,13 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     notification: req.flash("notification"),
   });
 });
+
+router.post("/tafeta/profile/:id/stock/edit", async (req, res) =>
+  handleProfileStockEdit(req, res, {
+    itemType: "Tafeta",
+    model: Tafeta,
+    redirectPath: "/fairdesk/tafeta/profile",
+  }));
 
 // ================= TAFETA EDIT =================
 router.get("/tafeta/edit/:id", async (req, res) => {
@@ -2223,63 +2512,8 @@ router.get("/ttr/profile/:id", async (req, res) => {
   const backUrl = primaryBinding?.userId?._id
     ? `/fairdesk/client/details/${primaryBinding.userId._id}`
     : "/fairdesk/ttr/view";
-
-  const stockAggregation = await TtrStock.aggregate([
-    { $match: { ttr: ttr._id } },
-    {
-      $group: {
-        _id: {
-          location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-        },
-        qty: { $sum: "$quantity" },
-      },
-    },
-    { $sort: { "_id.location": 1 } },
-  ]);
-
-  const locations = stockAggregation.map((row) => ({
-    location: String(row._id?.location || "UNKNOWN"),
-    qty: Number(row.qty || 0),
-  }));
-  const bookedAggregation = await TapeSalesOrder.aggregate([
-    {
-      $match: {
-        tapeId: ttr._id,
-        onModel: "Ttr",
-        status: "PENDING",
-      },
-    },
-    {
-      $group: {
-        _id: "$sourceLocation",
-        bookedQty: {
-          $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
-        },
-      },
-    },
-  ]);
-
-  const bookedMap = {};
-  let totalBooked = 0;
-  bookedAggregation.forEach((row) => {
-    const loc = String(row._id || "UNKNOWN");
-    const qty = Number(row.bookedQty || 0);
-    bookedMap[loc] = qty;
-    totalBooked += qty;
-  });
-
-  let totalStock = 0;
-  const stockInfoLocations = locations.map((entry) => {
-    const booked = bookedMap[entry.location] || 0;
-    totalStock += Number(entry.qty || 0);
-    return {
-      location: entry.location,
-      qty: Number(entry.qty || 0),
-      booked,
-      balance: Number(entry.qty || 0) - booked,
-    };
-  });
-  const totalBalance = totalStock - totalBooked;
+  const stockSummary = await getTtrStockSummary(ttr._id);
+  const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
   const ttrHeading = `${ttr.ttrType || "TTR"} ${ttr.ttrCoreLength ?? ""} x ${ttr.ttrMtrs ?? ""} m`
     .replace(/\s+/g, " ")
     .trim();
@@ -2309,10 +2543,16 @@ router.get("/ttr/profile/:id", async (req, res) => {
     primaryBinding,
     backUrl,
     stockInfo: {
-      totalStock,
-      locations: stockInfoLocations,
-      booked: totalBooked,
-      balance: totalBalance,
+      totalStock: stockSummary.totalStock,
+      locations: stockSummary.locations,
+      booked: stockSummary.totalBooked,
+      balance: stockSummary.totalBalance,
+    },
+    stockEditConfig: {
+      enabled: true,
+      itemType: "TTR",
+      editAction: `/fairdesk/ttr/profile/${ttr._id}/stock/edit`,
+      locationOptions: locationOptions.map((entry) => canonicalizeLocationName(entry.locationName)).filter(Boolean),
     },
     title: ttrHeading || "TTR Details",
     CSS: false,
@@ -2320,6 +2560,13 @@ router.get("/ttr/profile/:id", async (req, res) => {
     notification: req.flash("notification"),
   });
 });
+
+router.post("/ttr/profile/:id/stock/edit", async (req, res) =>
+  handleProfileStockEdit(req, res, {
+    itemType: "TTR",
+    model: Ttr,
+    redirectPath: "/fairdesk/ttr/profile",
+  }));
 
 // route for vendor form.
 router.get("/form/vendor", async (req, res) => {

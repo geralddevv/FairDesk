@@ -224,6 +224,179 @@
     padding-right: 8px;
   }
 
+  .stock-table .action-col {
+    width: 92px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .stock-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    border-radius: 999px;
+    background: #044a78;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 10px;
+    transition: background 0.18s ease;
+  }
+
+  .stock-edit-btn:hover {
+    background: #03365a;
+  }
+
+  .stock-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 9999;
+    padding: 20px;
+  }
+
+  .stock-modal.show {
+    display: flex;
+  }
+
+  .stock-modal-card {
+    width: min(460px, 100%);
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid rgba(4, 74, 120, 0.12);
+    box-shadow: 0 22px 48px rgba(15, 23, 42, 0.22);
+    overflow: hidden;
+  }
+
+  .stock-modal-head {
+    padding: 18px 20px 10px;
+  }
+
+  .stock-modal-head h3 {
+    margin: 0;
+    color: #044a78;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .stock-modal-subtitle {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .stock-modal-body {
+    padding: 8px 20px 20px;
+  }
+
+  .stock-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .stock-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .stock-form-field.select-field {
+    position: relative;
+  }
+
+  .stock-form-field.full {
+    grid-column: 1 / -1;
+  }
+
+  .stock-form-field label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .stock-form-field input,
+  .stock-form-field select {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    min-height: 42px;
+    font-size: 14px;
+    outline: none;
+    background: #fff;
+    line-height: 1.2;
+    box-sizing: border-box;
+  }
+
+  .stock-form-field select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 40px;
+  }
+
+  .stock-form-field.select-field::after {
+    content: "";
+    position: absolute;
+    right: 16px;
+    top: calc(50% + 11px);
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #64748b;
+    border-bottom: 2px solid #64748b;
+    transform: translateY(-50%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  .stock-form-field input[readonly] {
+    background: #f8fafc;
+  }
+
+  .stock-form-note {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .stock-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .stock-modal-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .stock-modal-btn.cancel {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .stock-modal-btn.primary {
+    background: #044a78;
+    color: #fff;
+  }
+
   @media (max-width: 1100px) {
     .item-details-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -245,6 +418,10 @@
       grid-template-columns: 1fr;
       gap: 4px;
       border-right: none;
+    }
+
+    .stock-form-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -274,6 +451,11 @@
               <tr>
                 <th>Location</th>
                 <th class="qty-col">Stock</th>
+                <% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+                  <th class="qty-col">Booked</th>
+                  <th class="qty-col">Available</th>
+                  <th class="action-col"></th>
+                <% } %>
               </tr>
             </thead>
             <tbody>
@@ -281,11 +463,32 @@
                 <tr>
                   <td><%= entry.location %></td>
                   <td class="qty-col"><%= entry.qty %></td>
+                  <% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+                    <td class="qty-col"><%= entry.booked ?? 0 %></td>
+                    <td class="qty-col"><%= entry.balance ?? 0 %></td>
+                    <td class="action-col">
+                      <button
+                        type="button"
+                        class="stock-edit-btn"
+                        data-stock-edit
+                        data-location="<%= entry.location %>"
+                        data-qty="<%= entry.qty %>"
+                        data-booked="<%= entry.booked ?? 0 %>">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        Edit
+                      </button>
+                    </td>
+                  <% } %>
                 </tr>
               <% }) %>
               <tr>
                 <td><strong>Total</strong></td>
                 <td class="qty-col"><strong><%= stockInfo.totalStock ?? 0 %></strong></td>
+                <% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+                  <td class="qty-col"><strong><%= stockInfo.booked ?? 0 %></strong></td>
+                  <td class="qty-col"><strong><%= stockInfo.balance ?? 0 %></strong></td>
+                  <td class="action-col"></td>
+                <% } %>
               </tr>
             </tbody>
           </table>
@@ -314,6 +517,11 @@
               <tr>
                 <th>Location</th>
                 <th class="qty-col">Stock</th>
+                <% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+                  <th class="qty-col">Booked</th>
+                  <th class="qty-col">Available</th>
+                  <th class="action-col"></th>
+                <% } %>
               </tr>
             </thead>
             <tbody>
@@ -321,11 +529,32 @@
                 <tr>
                   <td><%= entry.location %></td>
                   <td class="qty-col"><%= entry.qty %></td>
+                  <% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+                    <td class="qty-col"><%= entry.booked ?? 0 %></td>
+                    <td class="qty-col"><%= entry.balance ?? 0 %></td>
+                    <td class="action-col">
+                      <button
+                        type="button"
+                        class="stock-edit-btn"
+                        data-stock-edit
+                        data-location="<%= entry.location %>"
+                        data-qty="<%= entry.qty %>"
+                        data-booked="<%= entry.booked ?? 0 %>">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        Edit
+                      </button>
+                    </td>
+                  <% } %>
                 </tr>
               <% }) %>
               <tr>
                 <td><strong>Total</strong></td>
                 <td class="qty-col"><strong><%= stockInfo.totalStock ?? 0 %></strong></td>
+                <% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+                  <td class="qty-col"><strong><%= stockInfo.booked ?? 0 %></strong></td>
+                  <td class="qty-col"><strong><%= stockInfo.balance ?? 0 %></strong></td>
+                  <td class="action-col"></td>
+                <% } %>
               </tr>
             </tbody>
           </table>
@@ -334,3 +563,143 @@
     </div>
   </div>
 </div>
+
+<% if (typeof stockEditConfig !== 'undefined' && stockEditConfig && stockEditConfig.enabled) { %>
+  <form id="stock-edit-form" action="<%= stockEditConfig.editAction %>" method="post" style="display:none;">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input type="hidden" name="fromLocation" id="stock-from-location" />
+    <input type="hidden" name="toLocation" id="stock-to-location-hidden" />
+    <input type="hidden" name="quantity" id="stock-quantity-hidden" />
+  </form>
+
+  <div class="stock-modal" id="stock-edit-modal" aria-hidden="true">
+    <div class="stock-modal-card" role="dialog" aria-modal="true" aria-labelledby="stock-edit-title">
+      <div class="stock-modal-head">
+        <h3 id="stock-edit-title">Edit Stock</h3>
+        <p class="stock-modal-subtitle" id="stock-edit-subtitle"></p>
+      </div>
+      <div class="stock-modal-body">
+        <div class="stock-form-grid">
+          <div class="stock-form-field">
+            <label for="stock-current-location">Current Location</label>
+            <input type="text" id="stock-current-location" readonly />
+          </div>
+          <div class="stock-form-field">
+            <label for="stock-booked-qty">Booked</label>
+            <input type="text" id="stock-booked-qty" readonly />
+          </div>
+          <div class="stock-form-field select-field">
+            <label for="stock-new-location">New Location</label>
+            <select id="stock-new-location" required>
+              <% Array.from(new Set(stockEditConfig.locationOptions || [])).forEach((location) => { %>
+                <option value="<%= location %>"><%= location %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="stock-form-field">
+            <label for="stock-new-quantity">New Quantity</label>
+            <input type="number" id="stock-new-quantity" min="0" step="1" required />
+          </div>
+        </div>
+        <div class="stock-form-note" id="stock-edit-note">
+          
+        </div>
+        <div class="stock-modal-actions">
+          <button type="button" class="stock-modal-btn cancel" id="stock-edit-cancel">Cancel</button>
+          <button type="button" class="stock-modal-btn primary" id="stock-edit-save">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const modal = document.getElementById("stock-edit-modal");
+      const form = document.getElementById("stock-edit-form");
+      const fromLocationInput = document.getElementById("stock-from-location");
+      const toLocationHidden = document.getElementById("stock-to-location-hidden");
+      const quantityHidden = document.getElementById("stock-quantity-hidden");
+      const currentLocationInput = document.getElementById("stock-current-location");
+      const bookedQtyInput = document.getElementById("stock-booked-qty");
+      const newLocationSelect = document.getElementById("stock-new-location");
+      const newQuantityInput = document.getElementById("stock-new-quantity");
+      const subtitle = document.getElementById("stock-edit-subtitle");
+      const note = document.getElementById("stock-edit-note");
+      let activeRow = null;
+
+      const closeModal = () => {
+        modal.classList.remove("show");
+        modal.setAttribute("aria-hidden", "true");
+        activeRow = null;
+      };
+
+      const ensureLocationOption = (value) => {
+        if (!value) return;
+        const exists = Array.from(newLocationSelect.options).some((option) => option.value === value);
+        if (!exists) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          newLocationSelect.appendChild(option);
+        }
+      };
+
+      document.querySelectorAll("[data-stock-edit]").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeRow = {
+            location: button.dataset.location || "UNKNOWN",
+            qty: Number(button.dataset.qty || 0),
+            booked: Number(button.dataset.booked || 0),
+          };
+          ensureLocationOption(activeRow.location);
+          fromLocationInput.value = activeRow.location;
+          currentLocationInput.value = activeRow.location;
+          bookedQtyInput.value = String(activeRow.booked);
+          newLocationSelect.value = activeRow.location;
+          newQuantityInput.value = String(activeRow.qty);
+          subtitle.textContent = `${activeRow.location} stock can be adjusted or moved to another location.`;
+          note.textContent = activeRow.booked > 0
+            ? `Booked stock at this location is ${activeRow.booked}. You can increase quantity here, but you cannot move this stock to another location unless booked stock is cleared.`
+            : "";
+          modal.classList.add("show");
+          modal.setAttribute("aria-hidden", "false");
+        });
+      });
+
+      document.getElementById("stock-edit-cancel").addEventListener("click", closeModal);
+      document.getElementById("stock-edit-save").addEventListener("click", () => {
+        if (!activeRow) return;
+        const quantity = Number(newQuantityInput.value);
+        const toLocation = String(newLocationSelect.value || "").trim();
+
+        if (!Number.isFinite(quantity) || quantity < 0) {
+          alert("Enter a valid quantity.");
+          return;
+        }
+
+        if (!toLocation) {
+          alert("Select a location.");
+          return;
+        }
+
+        if (toLocation === activeRow.location && quantity < activeRow.booked) {
+          alert(`Quantity cannot go below booked stock (${activeRow.booked}).`);
+          return;
+        }
+
+        if (toLocation !== activeRow.location && activeRow.booked > 0) {
+          alert(`Cannot move stock while booked stock (${activeRow.booked}) exists at ${activeRow.location}.`);
+          return;
+        }
+
+        toLocationHidden.value = toLocation;
+        quantityHidden.value = String(quantity);
+        form.submit();
+      });
+
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+    })();
+  </script>
+<% } %>
