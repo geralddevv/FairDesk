@@ -59,3 +59,4 @@ add a specific date and qty for the sales order
 total item stock in the pending order (⭐) ✔️
 add item client item type in the tape binding and look out for other things also make a script to update the existing thing
 in the table by default show the items which are available (⭐) ✔️
+need to add a dashboard for each role (roles co1, co2, etc)

@@ -1,7 +1,7 @@
 <% layout('/layout/boilerplate') -%>
 
 <div class="main-content">
-  <form action="<%= typeof confirmMode !== 'undefined' && confirmMode ? '/fairdesk/sales/order/status' : '/fairdesk/sales/order' %>" method="post" class="needs-validation" autocomplete="off" novalidate>
+  <form id="sales-order-form" action="<%= typeof confirmMode !== 'undefined' && confirmMode ? '/fairdesk/sales/order/status' : '/fairdesk/sales/order' %>" method="post" class="needs-validation" autocomplete="off" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="hidden" name="orderId" value="<%= typeof orderToEdit !== 'undefined' && orderToEdit ? orderToEdit._id : '' %>" />
     <input type="hidden" name="submissionToken" value="<%= typeof submissionToken !== 'undefined' && submissionToken ? submissionToken : '' %>" />
@@ -390,7 +390,7 @@
   const estimatedDateInput = document.getElementById("estimated-date");
   const remarksInput = document.getElementById("remarks");
   const confirmQuantityInput = document.getElementById("confirm-quantity");
-  const orderForm = document.querySelector("form");
+  const orderForm = document.getElementById("sales-order-form");
   const submitButton = orderForm?.querySelector('button[type="submit"]');
 
   if (confirmMode) {
@@ -1237,8 +1237,8 @@
     if (confirmMode) {
       const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || selectedLocation || selectedRadio?.value || "");
       const availableQty = getAvailableStockForLocation(confirmLocation);
-      if (dispatchQty > availableQty) {
-        showToast("Cannot dispatch, Not enought stocks", "error");
+      if (availableQty <= 0 || dispatchQty > availableQty) {
+        showToast("cannot dispatch, not enough stocks", "error");
         setSubmittingState(false);
         return;
       }
@@ -1256,7 +1256,7 @@
 
     // For create/update sales order, submit via AJAX so backend JSON errors show as toast
     const actionPath = orderForm.getAttribute("action") || "";
-    if (actionPath === "/fairdesk/sales/order") {
+    if (actionPath === "/fairdesk/sales/order" || actionPath === "/fairdesk/sales/order/status") {
       try {
         const formData = new FormData(orderForm);
         const payload = new URLSearchParams();
@@ -1291,7 +1291,11 @@
           return true;
         }
 
-        showToast("Sales order submitted successfully", "success");
+        if (actionPath === "/fairdesk/sales/order/status") {
+          showToast("Order dispatched successfully", "success");
+        } else {
+          showToast("Sales order submitted successfully", "success");
+        }
         window.location.reload();
         return true;
       } catch (err) {

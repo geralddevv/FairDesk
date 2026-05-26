@@ -3766,14 +3766,17 @@ router.post("/sales/order/status", async (req, res) => {
   try {
     const accepts = req.headers.accept || "";
     const wantsJson = req.xhr || accepts.includes("application/json") || accepts.includes("text/json");
-    const { orderId, status, cancelReason, invoiceNumber, confirmDate, confirmQuantity, poNumber } = req.body;
+    const { orderId, status, cancelReason, invoiceNumber, confirmDate, confirmQuantity, poNumber, sourceLocation } = req.body;
+    const confirmRedirectUrl = orderId ? `/fairdesk/sales/order/confirm?orderId=${encodeURIComponent(orderId)}` : "/fairdesk/sales/pending";
     const order = await TapeSalesOrder.findById(orderId)
       .populate({ path: "tapeId", select: "tapeFinish tapePaperCode tapeGsm" })
       .lean();
 
     if (!order) {
-      req.flash("notification", "Order not found");
-      return res.redirect("back");
+      const message = "Order not found";
+      if (wantsJson) return res.status(404).json({ success: false, message });
+      req.flash("notification", message);
+      return res.redirect(confirmRedirectUrl);
     }
 
     const previousStatus = order.status;
@@ -3786,7 +3789,7 @@ router.post("/sales/order/status", async (req, res) => {
         const message = "PO Number is required before confirming this order.";
         if (wantsJson) return res.status(400).json({ success: false, message });
         req.flash("notification", message);
-        return res.redirect("back");
+        return res.redirect(confirmRedirectUrl);
       }
 
       const incomingInvoice = String(invoiceNumber || "").trim();
@@ -3794,7 +3797,7 @@ router.post("/sales/order/status", async (req, res) => {
         const message = "Please enter Invoice Number before submitting the form.";
         if (wantsJson) return res.status(400).json({ success: false, message });
         req.flash("notification", message);
-        return res.redirect("back");
+        return res.redirect(confirmRedirectUrl);
       }
     }
 
@@ -3803,7 +3806,7 @@ router.post("/sales/order/status", async (req, res) => {
 
     if (status === "CONFIRMED" && previousStatus === "PENDING") {
       const tapeObjectId = new mongoose.Types.ObjectId(order.tapeId._id);
-      const location = order.sourceLocation;
+      const location = canonicalizeLocationName(sourceLocation || order.sourceLocation);
 
       let StockModel = TapeStock;
       let StockLogModel = TapeStockLog;
@@ -3824,8 +3827,12 @@ router.post("/sales/order/status", async (req, res) => {
       }
 
       if (!location) {
-        req.flash("notification", "Cannot confirm: Source location missing on order");
-        return res.redirect("back");
+        const message = "Cannot confirm: Source location missing on order";
+        if (wantsJson) {
+          return res.status(400).json({ success: false, message });
+        }
+        req.flash("notification", message);
+        return res.redirect(confirmRedirectUrl);
       }
 
       const tape = order.tapeId;
@@ -3834,25 +3841,53 @@ router.post("/sales/order/status", async (req, res) => {
       const remaining = order.quantity - dispatchedSoFar;
 
       if (qty > remaining) {
-        req.flash("notification", `Cannot dispatch ${qty}. Only ${remaining} remaining.`);
-        return res.redirect("back");
-      }
-
-      // Get current stock at this location
-      const bal = await StockModel.aggregate([
-        { $match: { [matchField]: tapeObjectId, location } },
-        { $group: { _id: null, qty: { $sum: "$quantity" } } },
-      ]);
-      const currentStock = bal[0]?.qty || 0;
-
-      // Validate sufficient stock
-      if (currentStock < qty) {
-        const message = `Cannot dispatch ${qty}. Only ${currentStock} available at ${location}.`;
+        const message = `Cannot dispatch ${qty}. Only ${remaining} remaining.`;
         if (wantsJson) {
           return res.status(400).json({ success: false, message });
         }
         req.flash("notification", message);
-        return res.redirect("/fairdesk/sales/pending");
+        return res.redirect(confirmRedirectUrl);
+      }
+
+      // Match the confirm-page balance: physical stock minus other pending bookings at this location.
+      const [bal, bookedAgg] = await Promise.all([
+        StockModel.aggregate([
+          { $match: { [matchField]: tapeObjectId, location } },
+          { $group: { _id: null, qty: { $sum: "$quantity" } } },
+        ]),
+        TapeSalesOrder.aggregate([
+          {
+            $match: {
+              tapeId: tapeObjectId,
+              status: "PENDING",
+              sourceLocation: location,
+              _id: { $ne: new mongoose.Types.ObjectId(orderId) },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              bookedQty: {
+                $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+              },
+            },
+          },
+        ]),
+      ]);
+      const currentStock = bal[0]?.qty || 0;
+      const bookedQty = bookedAgg[0]?.bookedQty || 0;
+      const availableStock = currentStock - bookedQty;
+
+      // Validate sufficient stock
+      if (availableStock < qty) {
+        const message = availableStock <= 0
+          ? "cannot dispatch, not enough stocks"
+          : `Cannot dispatch ${qty}. Only ${availableStock} available at ${location}.`;
+        if (wantsJson) {
+          return res.status(400).json({ success: false, message });
+        }
+        req.flash("notification", message);
+        return res.redirect(confirmRedirectUrl);
       }
 
       // Insert negative stock entry (outward)

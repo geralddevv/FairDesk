@@ -145,6 +145,7 @@
           layout: "fitColumns",
           resizableColumns: true,
           initialSort: [{ column: "empName", dir: "asc" }],
+          initialFilter: [{ field: "role", type: "!=", value: "none" }],
           columns: [
               {
                   title: "Employee Name",
@@ -175,6 +176,17 @@
                   hozAlign: "center",
                   vertAlign: "middle",
                   width: 220,
+                  headerFilter: "select",
+                  headerFilterParams: {
+                      values: {
+                          "": "All",
+                          none: "None (No Access)",
+                          sales: "Sales",
+                          hr: "HR / Accounts",
+                          admin: "System Admin",
+                      },
+                  },
+                  headerFilterFunc: "=", 
                   formatter: function(cell) {
                       const val = cell.getValue();
                       return `

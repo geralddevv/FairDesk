@@ -60,6 +60,148 @@
       text-decoration: underline;
       cursor: pointer;
     }
+
+    .stock-action-group {
+      display: inline-flex;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+      white-space: nowrap;
+    }
+
+    .stock-action-btn {
+      border: none;
+      border-radius: 6px;
+      color: #ffffff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .stock-action-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .stock-action-btn.view {
+      background: #044a78;
+    }
+
+    .stock-action-btn.edit {
+      background: #0f766e;
+    }
+
+    .stock-action-btn.delete {
+      background: #dc2626;
+    }
+
+    .stock-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 9999;
+    }
+
+    .stock-modal.show {
+      display: flex;
+    }
+
+    .stock-modal-card {
+      width: min(520px, 94vw);
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid rgba(4, 74, 120, 0.12);
+      box-shadow: 0 30px 70px rgba(15, 23, 42, 0.24);
+      padding: 22px;
+    }
+
+    .stock-modal-title {
+      margin: 0 0 6px 0;
+      color: #03365a;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .stock-modal-subtitle {
+      margin: 0 0 16px 0;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+
+    .stock-modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stock-modal-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stock-modal-field label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stock-modal-field input,
+    .stock-modal-field textarea {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .stock-modal-field input[readonly] {
+      background: #f8fafc;
+    }
+
+    .stock-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stock-modal-actions button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .stock-modal-actions .cancel-btn {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .stock-modal-actions .primary-btn {
+      background: #044a78;
+      color: #ffffff;
+    }
+
+    .stock-delete-note {
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
   </style>
 
   <div class="indi-head">
@@ -91,6 +233,60 @@
   <div id="stock-summary-table"></div>
 </div>
 
+<form id="stock-edit-form" method="post" style="display:none">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+  <input type="hidden" name="quantity" id="stock-edit-form-quantity" />
+</form>
+<form id="stock-delete-form" method="post" style="display:none">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+</form>
+
+<div id="stock-edit-modal" class="stock-modal" aria-hidden="true">
+  <div class="stock-modal-card" role="dialog" aria-modal="true" aria-labelledby="stock-edit-title">
+    <h2 id="stock-edit-title" class="stock-modal-title">Edit Stock Entry</h2>
+    <p id="stock-edit-subtitle" class="stock-modal-subtitle"></p>
+    <div class="stock-modal-grid">
+      <div class="stock-modal-field">
+        <label>Item Type</label>
+        <input type="text" id="stock-edit-item-type" readonly />
+      </div>
+      <div class="stock-modal-field">
+        <label>Location</label>
+        <input type="text" id="stock-edit-location" readonly />
+      </div>
+      <div class="stock-modal-field">
+        <label>Current Total</label>
+        <input type="text" id="stock-edit-current" readonly />
+      </div>
+      <div class="stock-modal-field">
+        <label>Booked</label>
+        <input type="text" id="stock-edit-booked" readonly />
+      </div>
+    </div>
+    <div class="stock-modal-field">
+      <label for="stock-edit-quantity">New Total Stock</label>
+      <input type="number" id="stock-edit-quantity" min="0" step="1" required />
+    </div>
+    <div class="stock-delete-note" id="stock-edit-note"></div>
+    <div class="stock-modal-actions">
+      <button type="button" class="cancel-btn" id="stock-edit-cancel">Cancel</button>
+      <button type="button" class="primary-btn" id="stock-edit-confirm">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="stock-delete-modal" class="stock-modal" aria-hidden="true">
+  <div class="stock-modal-card" role="dialog" aria-modal="true" aria-labelledby="stock-delete-title">
+    <h2 id="stock-delete-title" class="stock-modal-title">Delete Stock Entry</h2>
+    <p id="stock-delete-subtitle" class="stock-modal-subtitle"></p>
+    <div class="stock-delete-note" id="stock-delete-note"></div>
+    <div class="stock-modal-actions">
+      <button type="button" class="cancel-btn" id="stock-delete-cancel">Cancel</button>
+      <button type="button" class="primary-btn" id="stock-delete-confirm" style="background:#dc2626;">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
@@ -106,6 +302,21 @@
 
   const downloadSelector = document.getElementById("downloadSelector");
   const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
+  const stockEditModal = document.getElementById("stock-edit-modal");
+  const stockDeleteModal = document.getElementById("stock-delete-modal");
+  const stockEditForm = document.getElementById("stock-edit-form");
+  const stockDeleteForm = document.getElementById("stock-delete-form");
+  const stockEditFormQuantity = document.getElementById("stock-edit-form-quantity");
+  const stockEditQuantity = document.getElementById("stock-edit-quantity");
+  const stockEditSubtitle = document.getElementById("stock-edit-subtitle");
+  const stockEditItemType = document.getElementById("stock-edit-item-type");
+  const stockEditLocation = document.getElementById("stock-edit-location");
+  const stockEditCurrent = document.getElementById("stock-edit-current");
+  const stockEditBooked = document.getElementById("stock-edit-booked");
+  const stockEditNote = document.getElementById("stock-edit-note");
+  const stockDeleteSubtitle = document.getElementById("stock-delete-subtitle");
+  const stockDeleteNote = document.getElementById("stock-delete-note");
+  let activeStockRow = null;
 
   triggerBtn.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -142,13 +353,19 @@
     placeholder: "No stock summary available",
     columns: [
       {
-        title: "",
-        width: 54,
+        title: "Actions",
+        width: 210,
         hozAlign: "center",
         headerSort: false,
         formatter: (cell) => {
           const row = cell.getRow().getData();
-          return `<button onclick="window.location.href='${row.profileUrl}'" style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"><i class="fa-solid fa-eye"></i></button>`;
+          const payload = encodeURIComponent(JSON.stringify(row));
+          return `
+            <div class="stock-action-group">
+              <button class="stock-action-btn view" type="button" onclick="window.location.href='${row.profileUrl}'" title="View Profile"><i class="fa-solid fa-eye"></i></button>
+              <button class="stock-action-btn edit" type="button" onclick="openStockEdit('${payload}')" title="Edit Stock"><i class="fa-solid fa-pen"></i></button>
+              <button class="stock-action-btn delete" type="button" onclick="openStockDelete('${payload}')" title="Delete Stock"><i class="fa-solid fa-trash"></i></button>
+            </div>`;
         },
       },
       {
@@ -222,5 +439,75 @@
   document.getElementById("download-csv").addEventListener("click", () => {
     table.download("csv", "stock-view.csv");
     downloadSelector.classList.remove("download-selector--active");
+  });
+
+  function closeStockEditModal() {
+    stockEditModal.classList.remove("show");
+    stockEditModal.setAttribute("aria-hidden", "true");
+    activeStockRow = null;
+  }
+
+  function closeStockDeleteModal() {
+    stockDeleteModal.classList.remove("show");
+    stockDeleteModal.setAttribute("aria-hidden", "true");
+    activeStockRow = null;
+  }
+
+  window.openStockEdit = function (encodedRow) {
+    const row = JSON.parse(decodeURIComponent(encodedRow));
+    activeStockRow = row;
+    stockEditForm.action = `/fairdesk/stocks/edit/${encodeURIComponent(row.itemType)}/${encodeURIComponent(row.itemId)}/${encodeURIComponent(row.location)}`;
+    stockEditItemType.value = row.itemType || "";
+    stockEditLocation.value = row.location || "";
+    stockEditCurrent.value = row.quantity ?? 0;
+    stockEditBooked.value = row.booked ?? 0;
+    stockEditQuantity.value = row.quantity ?? 0;
+    stockEditSubtitle.textContent = `${row.productId || "Item"} at ${row.location || "UNKNOWN"}`;
+    stockEditNote.textContent = `Booked: ${row.booked ?? 0}. New quantity cannot go below booked stock.`;
+    stockEditModal.classList.add("show");
+    stockEditModal.setAttribute("aria-hidden", "false");
+    stockEditQuantity.focus();
+    stockEditQuantity.select?.();
+  };
+
+  window.openStockDelete = function (encodedRow) {
+    const row = JSON.parse(decodeURIComponent(encodedRow));
+    activeStockRow = row;
+    stockDeleteForm.action = `/fairdesk/stocks/delete/${encodeURIComponent(row.itemType)}/${encodeURIComponent(row.itemId)}/${encodeURIComponent(row.location)}`;
+    stockDeleteSubtitle.textContent = `${row.productId || "Item"} at ${row.location || "UNKNOWN"}`;
+    stockDeleteNote.textContent = row.booked > 0
+      ? `Booked quantity is ${row.booked}. Deletion will be blocked until booked stock is cleared.`
+      : `This will reverse the current physical stock quantity (${row.quantity ?? 0}) to zero.`;
+    stockDeleteModal.classList.add("show");
+    stockDeleteModal.setAttribute("aria-hidden", "false");
+  };
+
+  document.getElementById("stock-edit-cancel").addEventListener("click", closeStockEditModal);
+  document.getElementById("stock-delete-cancel").addEventListener("click", closeStockDeleteModal);
+  document.getElementById("stock-edit-confirm").addEventListener("click", () => {
+    if (!activeStockRow) return;
+    const qty = Number(stockEditQuantity.value);
+    if (!Number.isFinite(qty) || qty < 0) {
+      alert("Enter a valid quantity");
+      return;
+    }
+    const booked = Number(activeStockRow.booked || 0);
+    if (qty < booked) {
+      alert(`New quantity cannot be below booked stock (${booked}).`);
+      return;
+    }
+    stockEditFormQuantity.value = String(qty);
+    stockEditForm.submit();
+  });
+  document.getElementById("stock-delete-confirm").addEventListener("click", () => {
+    if (!activeStockRow) return;
+    stockDeleteForm.submit();
+  });
+
+  stockEditModal.addEventListener("click", (e) => {
+    if (e.target === stockEditModal) closeStockEditModal();
+  });
+  stockDeleteModal.addEventListener("click", (e) => {
+    if (e.target === stockDeleteModal) closeStockDeleteModal();
   });
 </script>
