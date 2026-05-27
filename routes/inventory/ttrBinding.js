@@ -47,6 +47,11 @@ const trimOr = (value, fallback = "") => {
   return out === "" ? fallback : out;
 };
 
+const numOr = (value, fallback = 0) => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
 const normalizeCode = (value) => trimOr(value).toUpperCase();
 
 const TTR_SMART_FILTER_KEYS = [

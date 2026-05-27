@@ -611,8 +611,19 @@
         field: "valueAmount",
         hozAlign: "right",
         width: 110,
-        sorter: "number",
+        sorter: (a, b) => Number(a || 0) - Number(b || 0),
         headerSort: true,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        headerFilterFunc: (headerValue, rowValue) => {
+          const filterText = String(headerValue ?? "").trim();
+          if (!filterText) return true;
+
+          const normalized = filterText.replace(/[^0-9.-]/g, "");
+          if (!normalized) return true;
+
+          return String(Number(rowValue) || 0).includes(normalized);
+        },
         formatter: (cell) => {
           const value = Number(cell.getValue()) || 0;
           if (value === 0) return `<span style="color:#9ca3af;">—</span>`;
