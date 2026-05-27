@@ -86,6 +86,12 @@
     // Parse data from Express
     const tableData = JSON.parse(document.getElementById("table-data").textContent);
 
+    const withTextFilter = (column) => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+      ...column,
+    });
+
     const baseColumns = [
       {
         title: "",
@@ -104,12 +110,14 @@
             `;
         },
       },
-      { title: "Product ID", field: "tapeProductId", minWidth: 180, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      withTextFilter({ title: "Product ID", field: "tapeProductId", minWidth: 180 }),
       {
         title: "Stock",
         field: "stock",
         hozAlign: "left",
         headerHozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         width: 90,
         minWidth: 80,
         maxWidth: 100,
@@ -123,38 +131,14 @@
           return `<a href="/fairdesk/tape/profile/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
         },
       },
-      { title: "Paper Code", field: "tapePaperCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      { title: "GSM", field: "tapeGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      {
-        title: "Paper Type",
-        field: "tapePaperType",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", THERMAL: "THERMAL", CHROMO: "CHROMO", POLYESTER: "POLYESTER" },
-          clearable: true,
-        },
-      },
-      { title: "Width", field: "tapeWidth" },
-      { title: "Meters", field: "tapeMtrs" },
-      {
-        title: "Core ID",
-        field: "tapeCoreId",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", 0.5: "0.5", 1: "1", 3: "3" },
-          clearable: true,
-        },
-      },
-      {
-        title: "Finish",
-        field: "tapeFinish",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", MATTE: "MATTE", GLOSSY: "GLOSSY", CLEAR: "CLEAR" },
-          clearable: true,
-        },
-      },
-      { title: "Adhesive GSM", field: "tapeAdhesiveGsm" },
+      withTextFilter({ title: "Paper Code", field: "tapePaperCode" }),
+      withTextFilter({ title: "GSM", field: "tapeGsm" }),
+      withTextFilter({ title: "Paper Type", field: "tapePaperType" }),
+      withTextFilter({ title: "Width", field: "tapeWidth" }),
+      withTextFilter({ title: "Meters", field: "tapeMtrs" }),
+      withTextFilter({ title: "Core ID", field: "tapeCoreId" }),
+      withTextFilter({ title: "Finish", field: "tapeFinish" }),
+      withTextFilter({ title: "Adhesive GSM", field: "tapeAdhesiveGsm" }),
     ];
 
     // Initialize Tabulator

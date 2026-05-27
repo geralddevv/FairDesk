@@ -714,6 +714,8 @@ router.get("/ttr/view/:id", async (req, res) => {
       CSS: "tableDisp.css",
       JS: false,
       title: "TTR Display",
+      clientName: user.clientName || "",
+      userName: user.userName || "",
       notification: req.flash("notification"),
     });
   } catch (err) {
@@ -938,6 +940,30 @@ router.post("/ttr-vendor-binding/edit/:id", async (req, res) => {
       });
     }
     res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+router.post("/ttr-vendor-binding/delete/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const binding = await VendorTtrBinding.findById(id).select("vendorUserId").lean();
+
+    if (!binding) {
+      req.flash("notification", "Vendor TTR binding not found");
+      return res.redirect("back");
+    }
+
+    await VendorTtrBinding.deleteOne({ _id: id });
+    if (binding.vendorUserId) {
+      await VendorUser.updateOne({ _id: binding.vendorUserId }, { $pull: { ttr: id } });
+    }
+
+    req.flash("notification", "Vendor TTR binding removed successfully!");
+    return res.redirect(`/fairdesk/ttr-vendor/view?userId=${encodeURIComponent(binding.vendorUserId || "")}`);
+  } catch (err) {
+    console.error("VENDOR TTR BINDING DELETE ERROR:", err);
+    req.flash("notification", "Failed to remove Vendor TTR binding");
+    return res.redirect("back");
   }
 });
 

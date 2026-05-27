@@ -11,6 +11,13 @@ const vendorUserSchema = new mongoose.Schema({
   userDepartment: { type: String, required: true },
   userContact: { type: String, required: true },
   userEmail: { type: String, required: true },
+  locationsCount: { type: Number, default: 1 },
+  locationDetails: [
+    {
+      userLocation: { type: String },
+      dispatchAddress: { type: String },
+    },
+  ],
   dispatchAddress: { type: String, required: true },
   transportName: { type: String },
   transportContact: { type: String },

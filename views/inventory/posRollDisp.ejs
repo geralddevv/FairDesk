@@ -82,6 +82,12 @@
       _posMasterId: row.posRollId?._id || "",
     }));
 
+    const withTextFilter = (column) => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+      ...column,
+    });
+
     const table = new Tabulator("#master-table", {
       data: tableData,
       height: "100%",
@@ -130,7 +136,7 @@
           field: "status",
           hozAlign: "center",
           headerFilter: "input",
-          headerFilterPlaceholder: "Filter",
+          headerFilterPlaceholder: "Search",
           formatter: function (cell) {
             const val = cell.getValue() || "ACTIVE";
             const isActive = val === "ACTIVE";
@@ -142,6 +148,8 @@
           title: "Stock",
           field: "stock",
           hozAlign: "center",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
           formatter: (cell) => {
             const row = cell.getRow().getData();
             const stock = row.stock ?? "-";
@@ -162,26 +170,26 @@
             `;
           }
         },
-        { title: "Product ID", field: "_posProductId", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Paper Code", field: "_posPaperCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Paper Type", field: "_posPaperType", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Color", field: "_posColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Width", field: "_posWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "GSM", field: "_posGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs", field: "_posMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Core ID", field: "_posCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Client Paper Code", field: "posClientPaperCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Client GSM", field: "clientPosGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs Del", field: "posMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Rate Per Roll", field: "posRatePerRoll" },
-        { title: "Sale Cost", field: "posSaleCost" },
-        { title: "Min Qty", field: "posMinQty" },
-        { title: "Order Qty", field: "posOdrQty" },
-        { title: "Order Freq", field: "posOdrFreq" },
-        { title: "Credit Term", field: "posCreditTerm" },
-        { title: "User Name", field: "_userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "User Contact", field: "_userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Location", field: "_userLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
+        withTextFilter({ title: "Product ID", field: "_posProductId" }),
+        withTextFilter({ title: "Paper Code", field: "_posPaperCode" }),
+        withTextFilter({ title: "Paper Type", field: "_posPaperType" }),
+        withTextFilter({ title: "Color", field: "_posColor" }),
+        withTextFilter({ title: "Width", field: "_posWidth" }),
+        withTextFilter({ title: "GSM", field: "_posGsm" }),
+        withTextFilter({ title: "Mtrs", field: "_posMtrs" }),
+        withTextFilter({ title: "Core ID", field: "_posCoreId" }),
+        withTextFilter({ title: "Client Paper Code", field: "posClientPaperCode" }),
+        withTextFilter({ title: "Client GSM", field: "clientPosGsm" }),
+        withTextFilter({ title: "Mtrs Del", field: "posMtrsDel" }),
+        withTextFilter({ title: "Rate Per Roll", field: "posRatePerRoll" }),
+        withTextFilter({ title: "Sale Cost", field: "posSaleCost" }),
+        withTextFilter({ title: "Min Qty", field: "posMinQty" }),
+        withTextFilter({ title: "Order Qty", field: "posOdrQty" }),
+        withTextFilter({ title: "Order Freq", field: "posOdrFreq" }),
+        withTextFilter({ title: "Credit Term", field: "posCreditTerm" }),
+        withTextFilter({ title: "User Name", field: "_userName" }),
+        withTextFilter({ title: "User Contact", field: "_userContact" }),
+        withTextFilter({ title: "Location", field: "_userLocation" }),
       ],
     });
 
@@ -217,6 +225,7 @@
     const deleteForm = document.getElementById("deleteBindingForm");
     const deleteConfirmBtn = document.getElementById("deleteBindingConfirm");
     const deleteCancelBtn = document.getElementById("deleteBindingCancel");
+    const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
 
     window.promptDeleteBinding = function (bindingId) {
       bindingToDelete = String(bindingId || "");
@@ -234,8 +243,23 @@
     deleteModal.addEventListener("click", (e) => {
       if (e.target === deleteModal) closeDeleteModal();
     });
+    document.addEventListener("keydown", (e) => {
+      if (!deleteModal.classList.contains("show")) return;
+      if (e.key !== "Enter") return;
+      if (e.target && ["INPUT", "TEXTAREA"].includes(e.target.tagName) && e.target !== deleteConfirmBtn) return;
+      e.preventDefault();
+      deleteConfirmBtn.click();
+    });
     deleteConfirmBtn.addEventListener("click", () => {
       if (!bindingToDelete) return closeDeleteModal();
+      let csrfInput = deleteForm.querySelector('input[name="_csrf"]');
+      if (!csrfInput) {
+        csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        deleteForm.appendChild(csrfInput);
+      }
+      csrfInput.value = getCsrfToken();
       deleteForm.action = `/fairdesk/pos-roll-binding/delete/${bindingToDelete}`;
       deleteForm.submit();
     });

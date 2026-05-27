@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "backfill:master-signatures": "node scripts/backfill-master-signatures.js"
+    "backfill:master-signatures": "node scripts/backfill-master-signatures.js",
+    "sync:vendor-coordinators": "node scripts/sync_vendor_to_vendor_user.js"
   },
   "keywords": [],
   "author": "",

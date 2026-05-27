@@ -48,6 +48,20 @@
     resize: none;
   }
 
+  #username-client-type:disabled {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: none;
+    background-color: #e9ecef;
+  }
+
+  #user-client-id,
+  #username-ho-location,
+  #username-account-head {
+    background-color: #e9ecef;
+  }
+
 </style>
 
 <div class="main-content">
@@ -168,11 +182,12 @@
 
     <div class="span-six">
       <label for="client-name">Client Type</label>
-      <select name="clientType" id="username-client-type" class="form-control select-tag" required>
+      <select id="username-client-type" class="form-control select-tag" disabled>
         <option value="" selected disabled hidden>Select</option>
         <option value="DEALER">DEALER</option>
         <option value="CLIENT">CLIENT</option>
       </select>
+      <input type="hidden" name="clientType" id="username-client-type-hidden" />
     </div>
 
     <div class="span-seven">

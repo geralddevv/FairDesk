@@ -2,6 +2,65 @@
 <% layout('/layout/boilerplate') -%>
 
 <style>
+  .locations-headings {
+    margin-bottom: 0;
+    grid-column: span 32;
+    background-color: #044A78;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .locations-headings span {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    padding-left: 15px;
+  }
+
+  .locations-details {
+    grid-column: span 32;
+  }
+
+  .location-row {
+    margin-bottom: 10px;
+    padding: 6px;
+    border-radius: 5px;
+    border: 2px solid #044A78;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .location-row input,
+  .location-row textarea {
+    width: 100%;
+    border: 1px solid #044A78;
+    height: 38px;
+  }
+
+  .location-row textarea {
+    resize: none;
+  }
+
+  #coordinator-vendor-status:disabled {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: none;
+  }
+
+  #user-client-id,
+  #coordinator-ho-location,
+  #coordinator-warehouse-location {
+    background-color: #e9ecef;
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -188,13 +247,14 @@
     
     <div class="span-five">
       <label for="coordinator-vendor-status">Vendor Status</label>
-      <select name="vendorStatus" id="coordinator-vendor-status" class="form-control select-tag" required>
+      <select id="coordinator-vendor-status" class="form-control select-tag" disabled>
         <option value="" selected disabled hidden>Select</option>
         <option value="ACTIVE">ACTIVE</option>
         <option value="INACTIVE">INACTIVE</option>
         <option value="BLACKLISTED">BLACKLISTED</option>
         <option value="OTHERS">OTHERS</option>
       </select>
+      <input type="hidden" name="vendorStatus" id="coordinator-vendor-status-hidden" />
     </div>    
 
     <div class="span-seven">
@@ -236,9 +296,44 @@
       <input type="email" id="user-email" class="form-control" name="userEmail" placeholder="Enter Email" required />
     </div>
 
-    <div class="span-full">
-      <label for="dispatch-address">Pick Up Address</label>
-      <textarea  id="dispatch-address"  class="form-control input-tag"  name="dispatchAddress"  placeholder="Enter Pick Up Address" rows="3" style="border: 1px solid #044A78; resize: none;" required></textarea>
+    <div class="span-full form-subheading" style="display: flex; align-items: center; gap: 12px;">
+      <h1>Location Details</h1>
+      <div style="display: inline-flex; align-items: center; gap: 6px; margin-left: 10px;">
+        <button type="button" id="locations-minus" style="width: 30px; height: 30px; border: 1px solid #044A78; background: white; color: #044A78; border-radius: 4px; font-size: 18px; line-height: 1; cursor: pointer;">-</button>
+        <input
+          type="text"
+          id="locations-count"
+          style="width: 56px; height: 30px; text-align: center; border: 1px solid #044A78; border-radius: 4px;"
+          class="form-control"
+          name="locationsCount"
+          value="1"
+          readonly
+        />
+        <button type="button" id="locations-plus" style="width: 30px; height: 30px; border: 1px solid #044A78; background: white; color: #044A78; border-radius: 4px; font-size: 18px; line-height: 1; cursor: pointer;">+</button>
+      </div>
+    </div>
+
+    <div id="locations-details" class="locations-details">
+      <div class="location-row">
+        <input
+          type="text"
+          class="form-control input-tag"
+          name="locationDetails[0][userLocation]"
+          placeholder="Enter Location"
+          aria-label="Location 1"
+          oninput="this.value = this.value.toUpperCase()"
+          required
+        />
+        <input
+          type="text"
+          class="form-control input-tag"
+          name="locationDetails[0][dispatchAddress]"
+          placeholder="Enter Address"
+          aria-label="Address 1"
+          oninput="this.value = this.value.toUpperCase()"
+          required
+        />
+      </div>
     </div>
 
     <div class="span-full form-subheading">

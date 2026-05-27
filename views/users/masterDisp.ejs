@@ -29,17 +29,36 @@
       }
       .col-count-center .tabulator-col-content {
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
         justify-content: center;
+        gap: 3px;
+        padding: 4px 2px 6px;
       }
       .tabulator .tabulator-header .tabulator-col.col-count-center {
         justify-content: center;
       }
       .col-count-center .tabulator-col-title-holder {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100%;
+        height: auto;
+        width: 100%;
+      }
+      .col-count-center .tabulator-col-title {
+        width: 100%;
+        text-align: center;
+        white-space: nowrap;
+        line-height: 1.1;
+      }
+      .col-count-center .tabulator-header-filter {
+        width: 100%;
+        margin-top: 0;
+      }
+      .col-count-center .tabulator-header-filter input {
+        width: 100%;
+        box-sizing: border-box;
       }
       .tabulator-cell.col-count-center {
         text-align: center;
@@ -162,6 +181,12 @@
     let table; // MUST be global for download to work
     const requiredFields = ["clientName", "clientType", "accountHead", "userName", "userLocation"];
 
+    const withTextFilter = (column, placeholder = "Search") => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: placeholder,
+      ...column,
+    });
+
     function hasMissingDetails(row) {
       return requiredFields.some((field) => {
         const value = row?.[field];
@@ -188,33 +213,25 @@
           }
         },
         columns: [
-          {
+          withTextFilter({
             title: "Name",
             field: "clientName",
             headerSort: true,
-            headerFilter: "input",
-            headerFilterPlaceholder: "Search",
             widthGrow: 2,
-          },
-          {
+          }),
+          withTextFilter({
             title: "Type",
             field: "clientType",
             headerSort: true,
-            headerFilter: "select",
-            headerFilterParams: {
-              values: { "": "All", DEALER: "DEALER", CLIENT: "CLIENT" },
-            },
             width: 100,
-          },
-          {
+          }),
+          withTextFilter({
             title: "Account Head",
             field: "accountHead",
             headerSort: true,
-            headerFilter: "input",
-            headerFilterPlaceholder: "Search",
             widthGrow: 2,
-          },
-          {
+          }),
+          withTextFilter({
             title: "User Name",
             field: "userName",
             formatter: (cell) => {
@@ -229,19 +246,15 @@
               window.location.href = `/fairdesk/client/details/${row._id}`;
             },
             headerSort: true,
-            headerFilter: "input",
-            headerFilterPlaceholder: "Search",
             widthGrow: 2,
-          },
-          {
+          }),
+          withTextFilter({
             title: "Location",
             field: "userLocation",
             headerSort: true,
-            headerFilter: "input",
-            headerFilterPlaceholder: "Search",
             widthGrow: 2,
-          },
-          {
+          }),
+          withTextFilter({
             title: "Labels",
             field: "labelCount",
             width: 95,
@@ -260,8 +273,8 @@
               const row = cell.getRow().getData();
               window.location.href = `/fairdesk/labels/view/${row._id}`;
             },
-          },
-          {
+          }),
+          withTextFilter({
             title: "TTR's",
             field: "ttrCount",
             width: 95,
@@ -280,8 +293,8 @@
               const row = cell.getRow().getData();
               window.location.href = `/fairdesk/ttr/view/${row._id}`;
             },
-          },
-          {
+          }),
+          withTextFilter({
             title: "Tapes",
             field: "tapeCount",
             width: 95,
@@ -300,8 +313,8 @@
               const row = cell.getRow().getData();
               window.location.href = `/fairdesk/tape/view/${row._id}`;
             },
-          },
-          {
+          }),
+          withTextFilter({
             title: "POS Rolls",
             field: "posRollCount",
             width: 95,
@@ -320,8 +333,8 @@
               const row = cell.getRow().getData();
               window.location.href = `/fairdesk/pos-roll/view/${row._id}`;
             },
-          },
-          {
+          }),
+          withTextFilter({
             title: "Tafeta",
             field: "tafetaCount",
             width: 95,
@@ -340,7 +353,7 @@
               const row = cell.getRow().getData();
               window.location.href = `/fairdesk/tafeta/view/${row._id}`;
             },
-          },
+          }),
         ],
       });
     }

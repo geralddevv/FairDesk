@@ -234,6 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const userIdInput = document.getElementById("user-id");
   const userContactInput = document.getElementById("user-contact");
   const locationInput = document.getElementById("client-location");
+  const ttrMtrsInput = document.getElementById("ttr-mtrs");
+  const ttrMtrsDelInput = document.getElementById("ttr-mtrs-del-input");
 
   const ttrIdInput = document.getElementById("resolved-ttr-id");
   const ttrIdDisplay = document.getElementById("ttr-id");
@@ -324,6 +326,12 @@ document.addEventListener("DOMContentLoaded", () => {
     ttrIdDisplay.value = "";
     submitBtn.disabled = true;
     ttrIdDisplay.classList.remove("ttr-id-success", "ttr-id-error");
+  }
+
+  function syncDeliveredMeters() {
+    if (!ttrMtrsInput || !ttrMtrsDelInput) return;
+    const currentMtrs = ttrMtrsInput.value;
+    ttrMtrsDelInput.value = currentMtrs || "";
   }
 
   /* ================= SMART FILTER ================= */
@@ -459,6 +467,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ================= TTR RESOLVE ================= */
   async function resolveTtr() {
     resetResolvedTtr();
+    syncDeliveredMeters();
 
     const values = {};
     for (let id of ttrFields) {
@@ -582,6 +591,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (ratePerRollInput) {
     ratePerRollInput.addEventListener("input", calcSaleCost);
+  }
+
+  if (ttrMtrsInput) {
+    ttrMtrsInput.addEventListener("input", syncDeliveredMeters);
+    ttrMtrsInput.addEventListener("change", syncDeliveredMeters);
+    ttrMtrsInput.addEventListener("addItem", syncDeliveredMeters);
   }
 });
 

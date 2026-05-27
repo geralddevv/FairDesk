@@ -107,4 +107,55 @@
   <div title="Edit Coordinator" class="fab-item" onclick="window.location.href='/fairdesk/form/edit/vendor-user/<%= vendorUser._id %>'" style="cursor: pointer;">
     <i class="fa-solid fa-pen"></i>
   </div>
+  <div class="fab-divider"></div>
+  <div title="Remove Coordinator" class="fab-item" onclick="removeCoordinator()" style="cursor: pointer; color:#fff;">
+    <i class="fa-solid fa-trash"></i>
+  </div>
 </div>
+
+<div class="logout-modal" id="deleteCoordinatorModal" aria-hidden="true">
+  <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteCoordinatorTitle">
+    <h2 class="logout-title" id="deleteCoordinatorTitle">Delete coordinator?</h2>
+    <p class="logout-text">This will permanently delete this coordinator and remove it from the vendor.</p>
+    <div class="logout-actions">
+      <button class="logout-btn" type="button" id="deleteCoordinatorCancel">Cancel</button>
+      <button class="logout-btn primary" type="button" id="deleteCoordinatorConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<form id="deleteCoordinatorForm" method="POST" action="/fairdesk/vendor/coordinator/details/<%= vendorUser._id %>/delete" style="display:none;">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+</form>
+
+<script>
+  const deleteCoordinatorModal = document.getElementById("deleteCoordinatorModal");
+  const deleteCoordinatorCancel = document.getElementById("deleteCoordinatorCancel");
+  const deleteCoordinatorConfirm = document.getElementById("deleteCoordinatorConfirm");
+
+  function openRemoveCoordinatorModal() {
+    deleteCoordinatorModal.style.display = "flex";
+    deleteCoordinatorModal.classList.add("show");
+    deleteCoordinatorModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeRemoveCoordinatorModal() {
+    deleteCoordinatorModal.classList.remove("show");
+    deleteCoordinatorModal.setAttribute("aria-hidden", "true");
+    deleteCoordinatorModal.style.display = "none";
+  }
+
+  async function removeCoordinator() {
+    openRemoveCoordinatorModal();
+  }
+
+  deleteCoordinatorCancel.addEventListener("click", closeRemoveCoordinatorModal);
+  deleteCoordinatorModal.addEventListener("click", (e) => {
+    if (e.target === deleteCoordinatorModal) closeRemoveCoordinatorModal();
+  });
+
+  deleteCoordinatorConfirm.addEventListener("click", () => {
+    closeRemoveCoordinatorModal();
+    document.getElementById("deleteCoordinatorForm").submit();
+  });
+</script>

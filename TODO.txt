@@ -60,3 +60,18 @@ total item stock in the pending order (⭐) ✔️
 add item client item type in the tape binding and look out for other things also make a script to update the existing thing
 in the table by default show the items which are available (⭐) ✔️
 need to add a dashboard for each role (roles co1, co2, etc)
+
+
+vendor:
+if no coor binded show the row red
+after the edit of the form it should redirect to the main page not the edit page
+add user inactive/delete option
+extra address in vendor form
+add reordering option in the stock
+resolve the stock edit error
+ttr bind not deleting ✔️
+by def take the mtrs from the main ✔️
+resolve unplanned logout error (under observation) ✔️
+clear tsts in the pending logs
+make a purchase heading and store things related to that in that
+in one po there can we multiple orders with differernt date

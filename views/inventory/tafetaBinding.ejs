@@ -221,6 +221,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const userIdInput = document.getElementById("user-id");
   const userContactInput = document.getElementById("user-contact");
   const locationInput = document.getElementById("client-location");
+  const tafetaMtrsInput = document.getElementById("tafeta-mtrs");
+  const tafetaMtrsDelInput = document.getElementById("tafeta-mtrs-del");
 
   const tafetaIdInput = document.getElementById("resolved-tafeta-id");
   const tafetaIdDisplay = document.getElementById("tafeta-id");
@@ -306,6 +308,12 @@ document.addEventListener("DOMContentLoaded", () => {
     tafetaIdDisplay.value = "";
     submitBtn.disabled = true;
     tafetaIdDisplay.classList.remove("tafeta-id-success", "tafeta-id-error");
+  }
+
+  function syncDeliveredMeters() {
+    if (!tafetaMtrsInput || !tafetaMtrsDelInput) return;
+    const currentMtrs = tafetaMtrsInput.value;
+    tafetaMtrsDelInput.value = currentMtrs || "";
   }
 
   /* ================= SMART FILTER ================= */
@@ -422,6 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ================= TAFETA RESOLVE ================= */
   async function resolveTafeta() {
     resetResolvedTafeta();
+    syncDeliveredMeters();
 
     const values = {};
     for (let id of tafetaFields) {
@@ -520,19 +529,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ================= RATE CALC ================= */
   const widthInput = document.getElementById("tafeta-width");
-  const mtrsInput = document.getElementById("tafeta-mtrs");
   const ratePerRollInput = document.getElementById("tafeta-rate-per-roll");
   const saleCostInput = document.getElementById("tafeta-sale-cost");
 
   function calcSaleCost() {
-    if (!widthInput.value || !mtrsInput.value || !ratePerRollInput.value) return;
-    const area = (Number(widthInput.value) * Number(mtrsInput.value)) / 1000;
+    if (!widthInput.value || !tafetaMtrsInput.value || !ratePerRollInput.value) return;
+    const area = (Number(widthInput.value) * Number(tafetaMtrsInput.value)) / 1000;
     if (!area) return;
     saleCostInput.value = (Number(ratePerRollInput.value) / area).toFixed(4);
   }
 
   widthInput.addEventListener("input", calcSaleCost);
-  mtrsInput.addEventListener("input", calcSaleCost);
+  tafetaMtrsInput.addEventListener("input", () => {
+    syncDeliveredMeters();
+    calcSaleCost();
+  });
+  tafetaMtrsInput.addEventListener("change", syncDeliveredMeters);
+  tafetaMtrsInput.addEventListener("addItem", syncDeliveredMeters);
   ratePerRollInput.addEventListener("input", calcSaleCost);
 });
 

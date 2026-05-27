@@ -98,8 +98,11 @@
 
       window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('reason') === 'timeout') {
-          showToast('Session expired due to inactivity. Please login again.', 'warning');
+        const reason = urlParams.get('reason');
+        const sessionEndReasons = new Set(['timeout', 'session-ended', 'session-expired', 'expired']);
+
+        if (sessionEndReasons.has(reason)) {
+          showToast('Your session ended. Please sign in again to continue.', 'warning');
           // Clean up URL without refreshing
           const newUrl = window.location.pathname;
           window.history.replaceState({}, '', newUrl);

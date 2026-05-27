@@ -201,6 +201,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const userIdInput = document.getElementById("user-id");
   const userContactInput = document.getElementById("user-contact");
   const locationInput = document.getElementById("client-location");
+  const posMtrsInput = document.getElementById("pos-mtrs");
+  const posMtrsDelInput = document.getElementById("pos-mtrs-del");
 
   const posRollIdInput = document.getElementById("resolved-pos-roll-id");
   const posRollIdDisplay = document.getElementById("pos-roll-id");
@@ -280,6 +282,12 @@ document.addEventListener("DOMContentLoaded", () => {
     posRollIdDisplay.value = "";
     submitBtn.disabled = true;
     posRollIdDisplay.classList.remove("pos-roll-id-success", "pos-roll-id-error");
+  }
+
+  function syncDeliveredMeters() {
+    if (!posMtrsInput || !posMtrsDelInput) return;
+    const currentMtrs = posMtrsInput.value;
+    posMtrsDelInput.value = currentMtrs || "";
   }
 
   /* ================= SMART FILTER ================= */
@@ -396,6 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ================= POS ROLL RESOLVE ================= */
   async function resolvePosRoll() {
     resetResolvedPosRoll();
+    syncDeliveredMeters();
 
     const values = {};
     for (let id of posRollFields) {
@@ -492,19 +501,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* ================= RATE CALC ================= */
   const widthInput = document.getElementById("pos-width");
-  const mtrsInput = document.getElementById("pos-mtrs");
   const ratePerRollInput = document.getElementById("pos-rate-per-roll");
   const saleCostInput = document.getElementById("pos-sale-cost");
 
   function calcSaleCost() {
-    if (!widthInput.value || !mtrsInput.value || !ratePerRollInput.value) return;
-    const area = (Number(widthInput.value) * Number(mtrsInput.value)) / 1000;
+    if (!widthInput.value || !posMtrsInput.value || !ratePerRollInput.value) return;
+    const area = (Number(widthInput.value) * Number(posMtrsInput.value)) / 1000;
     if (!area) return;
     saleCostInput.value = (Number(ratePerRollInput.value) / area).toFixed(4);
   }
 
   widthInput.addEventListener("input", calcSaleCost);
-  mtrsInput.addEventListener("input", calcSaleCost);
+  posMtrsInput.addEventListener("input", () => {
+    syncDeliveredMeters();
+    calcSaleCost();
+  });
+  posMtrsInput.addEventListener("change", syncDeliveredMeters);
+  posMtrsInput.addEventListener("addItem", syncDeliveredMeters);
   ratePerRollInput.addEventListener("input", calcSaleCost);
 });
 

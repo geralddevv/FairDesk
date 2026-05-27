@@ -199,18 +199,23 @@
     return String(value ?? "").trim().toUpperCase();
   }
 
+  const withTextFilter = (column, placeholder = "Search") => ({
+    headerFilter: "input",
+    headerFilterPlaceholder: placeholder,
+    ...column,
+  });
+
   const table = new Tabulator("#master-table", {
     data: tableData,
     height: "100%",
     layout: "fitColumns",
     initialSort: [{ column: "clientName", dir: "asc" }],
 
-    columns: [
-      {
+      columns: [
+      withTextFilter({
         title: "Client Name",
         field: "clientName",
         minWidth: 220,
-        headerFilter: true,
 
         formatter: (cell) => {
           const row = cell.getRow().getData();
@@ -226,8 +231,8 @@
           const row = cell.getRow().getData();
           openClientModal(row._id);
         },
-      },
-      {
+      }),
+      withTextFilter({
         title: "Users",
         field: "userCount",
         width: 90,
@@ -238,46 +243,26 @@
           const value = Number(cell.getValue() || 0);
           return `<span style="font-weight:600;color:#044a78">${value}</span>`;
         },
-      },
-      {
+      }),
+      withTextFilter({
         title: "Type",
         field: "clientType",
         headerSort: true,
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", DEALER: "DEALER", CLIENT: "CLIENT" },
-        },
         width: 100,
-      },
-      { title: "HO Location", field: "hoLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      { title: "Account Head", field: "accountHead", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      {
+      }),
+      withTextFilter({ title: "HO Location", field: "hoLocation" }),
+      withTextFilter({ title: "Account Head", field: "accountHead" }),
+      withTextFilter({
         title: "Status",
         field: "clientStatus",
         headerSort: true,
-        headerFilter: "select",
-        headerFilterFunc: (headerValue, rowValue) => {
-          if (!headerValue) return true;
-          return normalizeStatus(rowValue) === normalizeStatus(headerValue);
-        },
-        headerFilterParams: {
-          values: {
-            "": "All",
-            ACTIVE: "ACTIVE",
-            INACTIVE: "INACTIVE",
-            "FOLLOW UP": "FOLLOW UP",
-            BLACKLISTED: "BLACKLISTED",
-            ADVANCED: "ADVANCED",
-            OTHERS: "OTHERS",
-          },
-        },
         formatter: (cell) => {
           const v = cell.getValue();
           const status = normalizeStatus(v);
           const color = status === "ACTIVE" ? "#28a745" : "#dc3545";
           return `<span style="font-weight:600;color:${color}">${v || "-"}</span>`;
         },
-      },
+      }),
     ],
   });
 

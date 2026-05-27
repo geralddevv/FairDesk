@@ -83,6 +83,12 @@
     // Parse data from Express
     const tableData = <%- safeJson(jsonData) %>;
 
+    const withTextFilter = (column) => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+      ...column,
+    });
+
     // Initialize Tabulator
     const baseColumns = [
       {
@@ -112,6 +118,8 @@
         field: "stock",
         hozAlign: "left",
         headerHozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         width: 90,
         minWidth: 80,
         maxWidth: 100,
@@ -137,47 +145,14 @@
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
       },
-      {
-        title: "Color",
-        field: "ttrColor",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: {
-            "": "All",
-            BLACK: "BLACK",
-            RED: "RED",
-            GREEN: "GREEN",
-            BLUE: "BLUE",
-            YELLOW: "YELLOW",
-            GOLD: "GOLD",
-            SILVER: "SILVER",
-          },
-          clearable: true,
-        },
-      },
-      { title: "Width", field: "ttrWidth" },
-      { title: "Mtrs", field: "ttrMtrs" },
-      { title: "Ink Face", field: "ttrInkFace" },
-      {
-        title: "Core ID",
-        field: "ttrCoreId",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", 0.5: "0.5", 1: "1" },
-          clearable: true,
-        },
-      },
-      { title: "Core Len", field: "ttrCoreLength" },
-      {
-        title: "Notch",
-        field: "ttrNotch",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", NO: "NO", YES: "YES" },
-          clearable: true,
-        },
-      },
-      { title: "Winding", field: "ttrWinding" },
+      withTextFilter({ title: "Color", field: "ttrColor" }),
+      withTextFilter({ title: "Width", field: "ttrWidth" }),
+      withTextFilter({ title: "Mtrs", field: "ttrMtrs" }),
+      withTextFilter({ title: "Ink Face", field: "ttrInkFace" }),
+      withTextFilter({ title: "Core ID", field: "ttrCoreId" }),
+      withTextFilter({ title: "Core Len", field: "ttrCoreLength" }),
+      withTextFilter({ title: "Notch", field: "ttrNotch" }),
+      withTextFilter({ title: "Winding", field: "ttrWinding" }),
     ];
 
     const normalizedBaseColumns = baseColumns.map((column, index) =>

@@ -2574,7 +2574,7 @@ router.get("/form/vendor", async (req, res) => {
   let userCount = await VendorUser.countDocuments();
   let vendorCount = vendors.length;
   res.render("users/vendorForm.ejs", {
-    JS: "vendorForm.js?v=2",
+    JS: "vendorForm.js?v=3",
     CSS: "tabOpt.css",
     title: "Vendor Form",
     vendorCount,
@@ -2622,13 +2622,23 @@ function normalizeVendorUserContact(value) {
 }
 
 function buildVendorUserSignature(source, vendorId) {
+  const locationDetails = normalizeLocationDetails(
+    source.locationDetails,
+    source.userLocation,
+    source.dispatchAddress,
+  );
+
   return [
     normalizeVendorPart(vendorId),
     normalizeVendorUserName(source.userName),
     normalizeVendorUserEmail(source.userEmail),
     normalizeVendorUserContact(source.userContact),
-    normalizeVendorPart(source.userLocation),
-    normalizeVendorPart(source.dispatchAddress),
+    locationDetails
+      .map(
+        (entry) =>
+          `${normalizeVendorPart(entry.userLocation)}::${normalizeVendorPart(entry.dispatchAddress)}`,
+      )
+      .join("||"),
     normalizeVendorPart(source.transportName),
     normalizeVendorPart(source.transportContact),
     normalizeVendorPart(source.dropLocation),
@@ -2639,6 +2649,18 @@ function buildVendorUserSignature(source, vendorId) {
     normalizeVendorPart(source.vendorPayment),
     normalizeVendorPart(source.SelfDispatch),
   ].join("||");
+}
+
+function getVendorSnapshot(vendor, fallback = {}) {
+  return {
+    vendorId: String(vendor?.vendorId ?? fallback.vendorId ?? "").trim(),
+    vendorName: String(vendor?.vendorName ?? fallback.vendorName ?? "").trim(),
+    vendorStatus: String(vendor?.vendorStatus ?? fallback.vendorStatus ?? "").trim(),
+    hoLocation: String(vendor?.hoLocation ?? fallback.hoLocation ?? "").trim(),
+    warehouseLocation: String(vendor?.warehouseLocation ?? fallback.warehouseLocation ?? "").trim(),
+    vendorGst: String(vendor?.vendorGst ?? fallback.vendorGst ?? "").trim(),
+    vendorMsme: String(vendor?.vendorMsme ?? fallback.vendorMsme ?? "").trim(),
+  };
 }
 
 // Route to handle VENDOR form submission
@@ -2730,6 +2752,10 @@ router.post("/vendor/edit/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Vendor not found" });
     }
 
+    const linkedVendorUsers = await VendorUser.find({ vendorId: vendor.vendorId })
+      .select("_id userName userEmail userContact")
+      .lean();
+
     const updatedData = {
       vendorId: String(req.body.vendorId || "").trim(),
       vendorName: String(req.body.vendorName || "").trim(),
@@ -2759,6 +2785,24 @@ router.post("/vendor/edit/:id", async (req, res) => {
     }
 
     await Vendor.findByIdAndUpdate(req.params.id, updatedData, { runValidators: true });
+
+    const vendorSnapshot = getVendorSnapshot(updatedData, updatedData);
+    if (linkedVendorUsers.length) {
+      const bulkOps = linkedVendorUsers.map((vendorUser) => ({
+        updateOne: {
+          filter: { _id: vendorUser._id },
+          update: {
+            $set: {
+              ...vendorSnapshot,
+              vendorUserSignature: hashSignature(buildVendorUserSignature(vendorUser, vendorSnapshot.vendorId)),
+            },
+          },
+        },
+      }));
+
+      await VendorUser.bulkWrite(bulkOps);
+    }
+
     req.flash("notification", "Vendor updated successfully!");
     res.json({ success: true, redirect: "/fairdesk/vendor/view" });
   } catch (err) {
@@ -2774,17 +2818,33 @@ router.post("/vendor/edit/:id", async (req, res) => {
 router.post("/form/vendor-user", async (req, res) => {
   try {
     const { objectId } = req.body;
-    const vendor = await Vendor.findOne({ _id: objectId });
+    const vendor = await Vendor.findOne({ _id: objectId }).lean();
     if (!vendor) {
       return res.status(400).json({ success: false, message: "Invalid vendor selected" });
     }
 
-    const vendorId = String(req.body.vendorId || "").trim();
+    const vendorSnapshot = getVendorSnapshot(vendor);
+    const vendorId = vendorSnapshot.vendorId;
     const userName = String(req.body.userName || "").trim();
     const userContact = String(req.body.userContact || "").trim();
     const userEmail = String(req.body.userEmail || "")
       .trim()
       .toLowerCase();
+    const locationDetails = normalizeLocationDetails(
+      req.body.locationDetails,
+      req.body.userLocation,
+      req.body.dispatchAddress,
+    ).map((entry) => ({
+      userLocation: String(entry.userLocation || "").toUpperCase(),
+      dispatchAddress: String(entry.dispatchAddress || "").toUpperCase(),
+    }));
+    if (!locationDetails.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Please add at least one location and address",
+      });
+    }
+    const primaryLocation = locationDetails[0];
     const vendorUserSignature = hashSignature(buildVendorUserSignature(req.body, vendorId));
 
     // Prevent duplicates only on full identity tuple within the same vendor.
@@ -2809,10 +2869,15 @@ router.post("/form/vendor-user", async (req, res) => {
 
     const newUser = await VendorUser.create({
       ...req.body,
+      ...vendorSnapshot,
       vendorId,
       userName,
       userContact,
       userEmail,
+      locationsCount: locationDetails.length,
+      locationDetails,
+      userLocation: primaryLocation.userLocation,
+      dispatchAddress: primaryLocation.dispatchAddress,
       dropLocation: String(req.body.dropLocation || "").trim(),
       dropLocation1: String(req.body.dropLocation1 || "").trim(),
       deliveryLocation: String(req.body.deliveryLocation || "").trim(),
@@ -2820,8 +2885,7 @@ router.post("/form/vendor-user", async (req, res) => {
       vendorUserSignature,
     });
 
-    vendor.users.push(newUser);
-    await vendor.save();
+    await Vendor.updateOne({ _id: vendor._id }, { $push: { users: newUser._id } });
 
     req.flash("notification", "Vendor user created successfully!");
     res.json({ success: true, redirect: "/fairdesk/form/vendor?tab=user" });
@@ -4923,6 +4987,32 @@ router.get("/vendor/coordinator/details/:userId", async (req, res) => {
   }
 });
 
+router.post("/vendor/coordinator/details/:userId/delete", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const vendorUser = await VendorUser.findById(userId).lean();
+
+    if (!vendorUser) {
+      req.flash("notification", "Vendor coordinator not found");
+      return res.redirect("/fairdesk/vendor/coordinator/view");
+    }
+
+    await Vendor.updateOne(
+      { vendorId: vendorUser.vendorId },
+      { $pull: { users: vendorUser._id } },
+    );
+
+    await VendorUser.deleteOne({ _id: vendorUser._id });
+
+    req.flash("notification", `Coordinator ${vendorUser.userName} removed successfully`);
+    return res.redirect("/fairdesk/vendor/coordinator/view");
+  } catch (err) {
+    console.error("VENDOR COORDINATOR DELETE ERROR:", err);
+    req.flash("notification", "Failed to remove coordinator");
+    return res.redirect("/fairdesk/vendor/coordinator/details/" + req.params.userId);
+  }
+});
+
 // ----------------------------------Vendor coordinator edit----------------------------------
 router.get("/form/edit/vendor-user/:userId", async (req, res) => {
   try {
@@ -4932,11 +5022,14 @@ router.get("/form/edit/vendor-user/:userId", async (req, res) => {
       return res.redirect("/fairdesk/vendor/coordinator/view");
     }
 
+    const vendor = await Vendor.findOne({ vendorId: user.vendorId }).lean();
+
     res.render("users/editVendorUser.ejs", {
       title: "Edit Vendor Coordinator",
       CSS: "tabOpt.css",
       JS: false,
       user,
+      vendor,
       notification: req.flash("notification"),
     });
   } catch (err) {
@@ -4954,24 +5047,43 @@ router.post("/form/edit/vendor-user/:userId", async (req, res) => {
       return res.status(404).json({ success: false, message: "Vendor coordinator not found" });
     }
 
-    const vendorId = String(req.body.vendorId || user.vendorId || "").trim();
+    const vendorId = String(user.vendorId || "").trim();
     const userName = String(req.body.userName || "").trim();
     const userContact = String(req.body.userContact || "").trim();
     const userEmail = String(req.body.userEmail || "")
       .trim()
       .toLowerCase();
+    const locationDetails = normalizeLocationDetails(
+      req.body.locationDetails,
+      req.body.userLocation,
+      req.body.dispatchAddress,
+    ).map((entry) => ({
+      userLocation: String(entry.userLocation || "").toUpperCase(),
+      dispatchAddress: String(entry.dispatchAddress || "").toUpperCase(),
+    }));
+    if (!locationDetails.length) {
+      return res.status(400).json({ success: false, message: "Please add at least one location and address" });
+    }
+    const primaryLocation = locationDetails[0];
+
+    const vendor = await Vendor.findOne({ vendorId: user.vendorId }).lean();
+    const vendorSnapshot = getVendorSnapshot(vendor, user);
 
     const updatedData = {
+      ...vendorSnapshot,
       vendorId,
-      vendorName: String(req.body.vendorName || "").trim(),
-      hoLocation: String(req.body.hoLocation || "").trim(),
-      warehouseLocation: String(req.body.warehouseLocation || "").trim(),
+      vendorName: vendorSnapshot.vendorName,
+      vendorStatus: vendorSnapshot.vendorStatus,
+      hoLocation: vendorSnapshot.hoLocation,
+      warehouseLocation: vendorSnapshot.warehouseLocation,
       userName,
-      userLocation: String(req.body.userLocation || "").trim(),
       userDepartment: String(req.body.userDepartment || "").trim(),
       userContact,
       userEmail,
-      dispatchAddress: String(req.body.dispatchAddress || "").trim(),
+      locationsCount: locationDetails.length,
+      locationDetails,
+      userLocation: primaryLocation.userLocation,
+      dispatchAddress: primaryLocation.dispatchAddress,
       transportName: String(req.body.transportName || "").trim(),
       transportContact: String(req.body.transportContact || "").trim(),
       dropLocation: String(req.body.dropLocation || "").trim(),
@@ -4981,12 +5093,12 @@ router.post("/form/edit/vendor-user/:userId", async (req, res) => {
       deliveryLocation1: String(req.body.deliveryLocation1 || "").trim(),
       vendorPayment: String(req.body.vendorPayment || "").trim(),
       SelfDispatch: String(req.body.SelfDispatch || "").trim(),
-      vendorStatus: String(req.body.vendorStatus || "").trim(),
+      vendorStatus: vendorSnapshot.vendorStatus,
       ownerName: String(req.body.ownerName || "").trim(),
       ownerMobNo: String(req.body.ownerMobNo || "").trim(),
       ownerEmail: String(req.body.ownerEmail || "").trim(),
-      vendorGst: String(req.body.vendorGst || "").trim(),
-      vendorMsme: String(req.body.vendorMsme || "").trim(),
+      vendorGst: vendorSnapshot.vendorGst,
+      vendorMsme: vendorSnapshot.vendorMsme,
     };
 
     updatedData.vendorUserSignature = hashSignature(buildVendorUserSignature(updatedData, vendorId));

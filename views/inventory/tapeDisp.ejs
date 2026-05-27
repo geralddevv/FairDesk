@@ -79,6 +79,12 @@
       _tapeMasterId: row.tapeId?._id || "",
     }));
 
+    const withTextFilter = (column) => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+      ...column,
+    });
+
     // Initialize Tabulator
     const table = new Tabulator("#master-table", {
       data: tableData,
@@ -128,7 +134,7 @@
           field: "status",
           hozAlign: "center",
           headerFilter: "input",
-          headerFilterPlaceholder: "Filter",
+          headerFilterPlaceholder: "Search",
           formatter: function (cell) {
             const val = cell.getValue() || "ACTIVE";
             const isActive = val === "ACTIVE";
@@ -140,6 +146,8 @@
           title: "Stock",
           field: "stock",
           hozAlign: "center",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Search",
           formatter: (cell) => {
             const row = cell.getRow().getData();
             const stock = row.stock ?? "-";
@@ -160,19 +168,19 @@
             `;
           }
         },
-        { title: "User Name", field: "_userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Client Item Type", field: "itemClientItemType", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "User Contact", field: "_userContact", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Location", field: "_userLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Client GSM", field: "clientTapeGsm", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Paper Type", field: "_tapePaperType", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Width", field: "_tapeWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs", field: "_tapeMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs Del", field: "tapeMtrsDel", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Core ID", field: "_tapeCoreId", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Rate Per Roll", field: "tapeRatePerRoll" },
-        { title: "Min Qty", field: "tapeMinQty" },
-        { title: "Order Qty", field: "tapeOdrQty" },
+        withTextFilter({ title: "User Name", field: "_userName" }),
+        withTextFilter({ title: "Client Item Type", field: "itemClientItemType" }),
+        withTextFilter({ title: "User Contact", field: "_userContact" }),
+        withTextFilter({ title: "Location", field: "_userLocation" }),
+        withTextFilter({ title: "Client GSM", field: "clientTapeGsm" }),
+        withTextFilter({ title: "Paper Type", field: "_tapePaperType" }),
+        withTextFilter({ title: "Width", field: "_tapeWidth" }),
+        withTextFilter({ title: "Mtrs", field: "_tapeMtrs" }),
+        withTextFilter({ title: "Mtrs Del", field: "tapeMtrsDel" }),
+        withTextFilter({ title: "Core ID", field: "_tapeCoreId" }),
+        withTextFilter({ title: "Rate Per Roll", field: "tapeRatePerRoll" }),
+        withTextFilter({ title: "Min Qty", field: "tapeMinQty" }),
+        withTextFilter({ title: "Order Qty", field: "tapeOdrQty" }),
       ]
     });
 
@@ -212,6 +220,7 @@
     const deleteForm = document.getElementById("deleteBindingForm");
     const deleteConfirmBtn = document.getElementById("deleteBindingConfirm");
     const deleteCancelBtn = document.getElementById("deleteBindingCancel");
+    const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
 
     window.promptDeleteBinding = function (bindingId) {
       bindingToDelete = String(bindingId || "");
@@ -229,8 +238,23 @@
     deleteModal.addEventListener("click", (e) => {
       if (e.target === deleteModal) closeDeleteModal();
     });
+    document.addEventListener("keydown", (e) => {
+      if (!deleteModal.classList.contains("show")) return;
+      if (e.key !== "Enter") return;
+      if (e.target && ["INPUT", "TEXTAREA"].includes(e.target.tagName) && e.target !== deleteConfirmBtn) return;
+      e.preventDefault();
+      deleteConfirmBtn.click();
+    });
     deleteConfirmBtn.addEventListener("click", () => {
       if (!bindingToDelete) return closeDeleteModal();
+      let csrfInput = deleteForm.querySelector('input[name="_csrf"]');
+      if (!csrfInput) {
+        csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        deleteForm.appendChild(csrfInput);
+      }
+      csrfInput.value = getCsrfToken();
       deleteForm.action = `/fairdesk/tape-binding/delete/${bindingToDelete}`;
       deleteForm.submit();
     });

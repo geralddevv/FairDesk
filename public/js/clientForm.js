@@ -273,6 +273,7 @@ function feedClientData(data) {
   console.log(data._id);
   document.getElementById("user-client-id").value = data.clientId;
   document.getElementById("username-client-type").value = data.clientType;
+  document.getElementById("username-client-type-hidden").value = data.clientType || "";
   document.getElementById("username-ho-location").value = data.hoLocation;
   document.getElementById("username-account-head").value = data.accountHead;
   document.getElementById("object-id").value = data._id;

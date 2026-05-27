@@ -83,6 +83,12 @@
     // Parse data from Express
     const tableData = <%- safeJson(jsonData) %>;
 
+    const withTextFilter = (column) => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+      ...column,
+    });
+
     const baseColumns = [
       {
         title: "",
@@ -101,12 +107,14 @@
             `;
         },
       },
-      { title: "Product ID", field: "tafetaProductId", minWidth: 160, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      withTextFilter({ title: "Product ID", field: "tafetaProductId", minWidth: 160 }),
       {
         title: "Stock",
         field: "stock",
         hozAlign: "left",
         headerHozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
         width: 90,
         minWidth: 80,
         maxWidth: 100,
@@ -120,46 +128,15 @@
           return `<a href="/fairdesk/tafeta/profile/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
         },
       },
-      { title: "Material Code", field: "tafetaMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      {
-        title: "Type",
-        field: "tafetaMaterialType",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: {
-            "": "All",
-            "WASH CARE (NYLON TAFETA)": "WASH CARE (NYLON TAFETA)",
-            "SATIN FAST EDGE": "SATIN FAST EDGE",
-            "NARROW WOVEN": "NARROW WOVEN",
-            "POLYESTER (IRON ON)": "POLYESTER (IRON ON)",
-            TYVEK: "TYVEK",
-          },
-          clearable: true,
-        },
-      },
-      { title: "Color", field: "tafetaColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      { title: "GSM", field: "tafetaGsm" },
-      { title: "Width", field: "tafetaWidth" },
-      { title: "Mtrs", field: "tafetaMtrs" },
-      { title: "Core Len", field: "tafetaCoreLen" },
-      {
-        title: "Notch",
-        field: "tafetaNotch",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", NO: "NO", YES: "YES" },
-          clearable: true,
-        },
-      },
-      {
-        title: "Core ID",
-        field: "tafetaCoreId",
-        headerFilter: "select",
-        headerFilterParams: {
-          values: { "": "All", 1.5: "1.5", 1: "1", 3: "3" },
-          clearable: true,
-        },
-      },
+      withTextFilter({ title: "Material Code", field: "tafetaMaterialCode" }),
+      withTextFilter({ title: "Type", field: "tafetaMaterialType" }),
+      withTextFilter({ title: "Color", field: "tafetaColor" }),
+      withTextFilter({ title: "GSM", field: "tafetaGsm" }),
+      withTextFilter({ title: "Width", field: "tafetaWidth" }),
+      withTextFilter({ title: "Mtrs", field: "tafetaMtrs" }),
+      withTextFilter({ title: "Core Len", field: "tafetaCoreLen" }),
+      withTextFilter({ title: "Notch", field: "tafetaNotch" }),
+      withTextFilter({ title: "Core ID", field: "tafetaCoreId" }),
     ];
 
     // Initialize Tabulator

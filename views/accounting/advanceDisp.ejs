@@ -184,8 +184,14 @@
     advanceHeadingEl.innerHTML = `Advance <span class="loan-highlight active" style="margin-left: 8px;">Total: ${formatINRCurrency(total)}</span>`;
   }
 
+  const withTextFilter = (column, placeholder = "Search") => ({
+    headerFilter: "input",
+    headerFilterPlaceholder: placeholder,
+    ...column,
+  });
+
   const baseColumns = [
-    {
+    withTextFilter({
       title: "Employee Name",
       field: "employeeName",
       formatter: function (cell) {
@@ -196,11 +202,15 @@
                   ${data.employeeName}
                 </a>`;
       }
-    },
-    { title: "Employee ID", field: "empId" },
-    { title: "Current Balance", field: "currentBalance", formatter: (c) => formatINRCurrency(c.getValue()) },
-    { title: "Status", field: "status" },
-    { title: "Last Updated", field: "updatedAt" },
+    }),
+    withTextFilter({ title: "Employee ID", field: "empId" }),
+    withTextFilter({
+      title: "Current Balance",
+      field: "currentBalance",
+      formatter: (c) => formatINRCurrency(c.getValue()),
+    }),
+    withTextFilter({ title: "Status", field: "status" }),
+    withTextFilter({ title: "Last Updated", field: "updatedAt" }),
   ];
 
   const table = new Tabulator("#master-table", {

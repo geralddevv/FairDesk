@@ -195,6 +195,12 @@
     return commodities || "-";
   };
 
+  const withTextFilter = (column, placeholder = "Search") => ({
+    headerFilter: "input",
+    headerFilterPlaceholder: placeholder,
+    ...column,
+  });
+
   /* ===== Table ===== */
   const tableData = <%- safeJson(jsonData) %>;
 
@@ -205,11 +211,10 @@
     initialSort: [{ column: "vendorName", dir: "asc" }],
 
     columns: [
-      {
+      withTextFilter({
         title: "Vendor Name",
         field: "vendorName",
         minWidth: 240,
-        headerFilter: true,
 
         formatter: (cell) => {
           const row = cell.getRow().getData();
@@ -222,29 +227,19 @@
           const row = cell.getRow().getData();
           openVendorModal(row.vendorName);
         },
-      },
-      {
+      }),
+      withTextFilter({
         title: "Status",
         field: "vendorStatus",
         headerSort: true,
-        headerFilter: "select",
-        headerFilterParams: {
-          values: {
-            "": "All",
-            ACTIVE: "ACTIVE",
-            INACTIVE: "INACTIVE",
-            BLACKLISTED: "BLACKLISTED",
-            OTHERS: "OTHERS",
-          },
-        },
         width: 120,
         formatter: (cell) => {
           const v = cell.getValue();
           const color = v === "ACTIVE" ? "#28a745" : "#dc3545";
           return `<span style="font-weight:600;color:${color}">${v}</span>`;
         },
-      },
-      {
+      }),
+      withTextFilter({
         title: "Users",
         field: "userCount",
         hozAlign: "center",
@@ -252,19 +247,17 @@
         width: 110,
         sorter: "number",
         formatter: (cell) => Number(cell.getValue() || 0),
-      },
-      { title: "H/O Location", field: "hoLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      { title: "Warehouse Location", field: "warehouseLocation", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      {
+      }),
+      withTextFilter({ title: "H/O Location", field: "hoLocation" }),
+      withTextFilter({ title: "Warehouse Location", field: "warehouseLocation" }),
+      withTextFilter({
         title: "Commodities",
         field: "commodities",
-        headerFilter: "input",
-        headerFilterPlaceholder: "Search",
         formatter: (cell) => formatCommodityValue(cell.getValue()),
-      },
-      { title: "GST", field: "vendorGst", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      { title: "MSME", field: "vendorMsme", headerFilter: "input", headerFilterPlaceholder: "Search" },
-      { title: "PAN", field: "vendorPan", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      }),
+      withTextFilter({ title: "GST", field: "vendorGst" }),
+      withTextFilter({ title: "MSME", field: "vendorMsme" }),
+      withTextFilter({ title: "PAN", field: "vendorPan" }),
     ],
   });
 

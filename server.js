@@ -106,18 +106,31 @@ app.use(
   }),
 );
 
+const getSessionExpiresAt = () => new Date(Date.now() + SESSION_TTL_MS).toISOString();
+
 /* CSRF PROTECTION SETUP */
 const csrfProtection = csrf({ cookie: false });
 
 /* FLASH */
 app.use(flash());
 
+/* AUTH SESSION EXPIRY HELPERS */
+app.use((req, res, next) => {
+  if (req.session?.authUser) {
+    const sessionExpiresAt = getSessionExpiresAt();
+    res.locals.sessionExpiresAt = sessionExpiresAt;
+    res.setHeader("X-Session-Expires-At", sessionExpiresAt);
+  }
+
+  next();
+});
+
 /* GLOBAL LOCALS (EARLY) */
 app.use((req, res, next) => {
   res.locals.notification = req.session.flash?.notification || [];
   res.locals.error = req.session.flash?.error || [];
   res.locals.authUser = req.session?.authUser || null;
-  res.locals.sessionExpiresAt = req.session?.cookie?.expires ? new Date(req.session.cookie.expires).toISOString() : null;
+  res.locals.sessionExpiresAt = res.locals.sessionExpiresAt || null;
   res.locals.safeJson = safeJson;
 
   next();
@@ -130,7 +143,7 @@ app.get("/favicon.ico", (req, res) => res.status(204).end());
 app.get("/check-session", (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   if (req.session?.authUser) {
-    return res.json({ authenticated: true });
+    return res.json({ authenticated: true, expiresAt: getSessionExpiresAt() });
   }
   return res.status(401).json({ authenticated: false });
 });
@@ -162,13 +175,6 @@ app.get("/", (req, res) => {
 
 app.get("/login", (req, res) => {
   if (req.session?.authUser) {
-    const remaining = req.session.cookie.maxAge;
-    // LOOP BREAKER: If session is about to expire (less than 1 minute), 
-    // force logout instead of redirecting back to dashboard.
-    if (!remaining || remaining < 60000) {
-       return res.redirect("/logout");
-    }
-
     const role = req.session.authUser.role;
     if (role === "hr") return res.redirect("/fairdesk/employee/view");
     if (role === "sales") return res.redirect("/fairdesk/sales/order");
@@ -299,13 +305,13 @@ const requireAuth = (req, res, next) => {
     }
     return next();
   }
-  return res.redirect("/login?reason=timeout");
+  return res.redirect("/login?reason=session-ended");
 };
 
 const requireRole = (roles) => (req, res, next) => {
   const role = req.session?.authUser?.role;
   if (roles.includes(role)) return next();
-  return res.redirect("/login?reason=timeout");
+  return res.redirect("/login?reason=session-ended");
 };
 
 app.use("/fairdesk/payroll", requireAuth, requireRole(["admin", "hr"]), payrollRoute);
@@ -367,9 +373,9 @@ app.use((err, req, res, next) => {
   if (err.code === "EBADCSRFTOKEN") {
     console.warn(`[CSRF] Invalid token on ${req.method} ${req.originalUrl} from ${req.ip}`);
     if (req.xhr || req.headers.accept?.includes("json")) {
-      return res.status(403).json({ success: false, message: "Session expired" });
+      return res.status(403).json({ success: false, message: "Your session ended. Please sign in again." });
     }
-    return res.redirect("/login");
+    return res.redirect("/login?reason=session-ended");
   }
   console.error("[Error Handler]", err);
   const status = err.statusCode || 500;

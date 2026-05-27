@@ -483,7 +483,9 @@
   </div>
 </div>
 
-<form id="deleteUserForm" method="POST" action="/fairdesk/client/details/<%= userData._id %>/delete" style="display:none;"></form>
+<form id="deleteUserForm" method="POST" action="/fairdesk/client/details/<%= userData._id %>/delete" style="display:none;">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+</form>
 <div class="logout-modal" id="deleteUserModal" aria-hidden="true">
   <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteUserTitle">
     <h2 class="logout-title" id="deleteUserTitle">Delete user?</h2>
@@ -500,6 +502,7 @@
   const deleteUserConfirm = document.getElementById("deleteUserConfirm");
 
   function confirmDeleteUser() {
+    deleteUserModal.style.display = "flex";
     deleteUserModal.classList.add("show");
     deleteUserModal.setAttribute("aria-hidden", "false");
   }
@@ -507,6 +510,7 @@
   function closeDeleteUserModal() {
     deleteUserModal.classList.remove("show");
     deleteUserModal.setAttribute("aria-hidden", "true");
+    deleteUserModal.style.display = "none";
   }
 
   deleteUserCancel.addEventListener("click", closeDeleteUserModal);

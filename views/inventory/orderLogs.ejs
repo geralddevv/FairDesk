@@ -62,7 +62,60 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
-  const logsData = <%- safeJson(logs) %>;
+  const rawLogsData = <%- safeJson(logs) %>;
+
+  const logsData = rawLogsData.map((log) => {
+    const order = log.orderId || {};
+    const item = order.tapeId || {};
+    const action = log.action || "";
+    let actionLabel = action || "-";
+    if (action === "DELIVERED" || action === "CONFIRMED") actionLabel = "Delivered";
+    else if (action === "CANCELLED") actionLabel = "Cancelled";
+    else if (action === "CREATED") actionLabel = "Created";
+
+    let itemTypeLabel = "Tape";
+    if (order.onModel === "PosRoll") itemTypeLabel = "POS Roll";
+    else if (order.onModel === "Tafeta") itemTypeLabel = "Tafeta";
+    else if (order.onModel === "Ttr") itemTypeLabel = "TTR";
+    else if (order.onModel === "Label") itemTypeLabel = "Label";
+
+    let itemName = "";
+    if (order.onModel === "Tape" || !order.onModel) {
+      if (item.tapePaperCode) itemName = `${item.tapePaperCode} ${item.tapeGsm ?? ""}gsm`.trim();
+      else if (item.tapeProductId) itemName = String(item.tapeProductId);
+    } else if (order.onModel === "PosRoll") {
+      if (item.posPaperCode) itemName = `${item.posPaperCode} ${item.posGsm ?? ""}gsm`.trim();
+      else if (item.posProductId) itemName = String(item.posProductId);
+    } else if (order.onModel === "Tafeta") {
+      if (item.tafetaMaterialCode) itemName = `${item.tafetaMaterialCode} ${item.tafetaGsm ?? ""}gsm`.trim();
+      else if (item.tafetaProductId) itemName = String(item.tafetaProductId);
+    } else if (order.onModel === "Ttr") {
+      if (item.ttrType || item.ttrWidth || item.ttrMtrs) {
+        itemName = `${item.ttrType || ""} ${item.ttrWidth || ""}mm x ${item.ttrMtrs || ""}m`.replace(/\s+/g, " ").trim();
+      } else if (item.ttrProductId) {
+        itemName = String(item.ttrProductId);
+      }
+    } else if (order.onModel === "Label") {
+      if (item.labelWidth || item.labelHeight) itemName = `${item.labelWidth || ""}x${item.labelHeight || ""}`;
+    }
+    if (!itemName) itemName = order.onModel ? `${order.onModel} Item` : "N/A";
+
+    const performedAtDate = log.performedAt ? new Date(log.performedAt) : null;
+    const performedAtText = performedAtDate && !Number.isNaN(performedAtDate.getTime())
+      ? performedAtDate.toLocaleDateString("en-IN") + " " + performedAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+      : "-";
+
+    return {
+      ...log,
+      performedAtText,
+      actionLabel,
+      clientName: order.userId?.clientName || "N/A",
+      itemTypeLabel,
+      itemName,
+      invoiceDisplay: log.invoiceNumber || "-",
+      cancelReasonDisplay: log.cancelReason || "-",
+    };
+  });
 
   const table = new Tabulator("#master-table", {
     data: logsData,
@@ -73,22 +126,22 @@
     columns: [
       {
         title: "Date",
-        field: "performedAt",
+        field: "performedAtText",
         width: 160,
-        formatter: (cell) => {
-          const d = new Date(cell.getValue());
-          return d.toLocaleDateString("en-IN") + " " + d.toLocaleTimeString("en-IN", { hour: '2-digit', minute: '2-digit' });
-        },
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search date",
       },
       {
         title: "Action",
-        field: "action",
+        field: "actionLabel",
         width: 120,
         hozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search action",
         formatter: (cell) => {
-          const action = cell.getValue();
+          const action = cell.getRow().getData().action;
           let bg = "#6b7280";
-          let label = action;
+          let label = cell.getValue();
           if (action === "DELIVERED" || action === "CONFIRMED") { bg = "#10b981"; label = "Delivered"; }
           else if (action === "CANCELLED") { bg = "#ef4444"; label = "Cancelled"; }
           else if (action === "CREATED") { bg = "#3b82f6"; label = "Created"; }
@@ -97,58 +150,25 @@
       },
       {
         title: "Client",
-        field: "orderId",
-        formatter: (cell) => {
-          const order = cell.getValue();
-          return order?.userId?.clientName || "N/A";
-        },
+        field: "clientName",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search client",
       },
       {
         title: "Item Type",
-        field: "orderId",
+        field: "itemTypeLabel",
         width: 100,
-        formatter: (cell) => {
-          const val = cell.getValue()?.onModel;
-          if (val === "PosRoll") return "POS Roll";
-          if (val === "Tafeta") return "Tafeta";
-          if (val === "Ttr") return "TTR";
-          if (val === "Label") return "Label";
-          return "Tape";
-        },
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search type",
       },
       {
         title: "Item",
-        field: "orderId",
+        field: "itemName",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search item",
         formatter: (cell) => {
-          const order = cell.getValue();
-          if (!order?.tapeId) return "N/A";
-
-          const t = order.tapeId;
-          const onModel = order.onModel;
-
-          let name = "";
-          if (onModel === "Tape" || !onModel) {
-            if (t.tapePaperCode) name = `${t.tapePaperCode} ${t.tapeGsm ?? ""}gsm`.trim();
-            else if (t.tapeProductId) name = String(t.tapeProductId);
-          } else if (onModel === "PosRoll") {
-            if (t.posPaperCode) name = `${t.posPaperCode} ${t.posGsm ?? ""}gsm`.trim();
-            else if (t.posProductId) name = String(t.posProductId);
-          } else if (onModel === "Tafeta") {
-            if (t.tafetaMaterialCode) name = `${t.tafetaMaterialCode} ${t.tafetaGsm ?? ""}gsm`.trim();
-            else if (t.tafetaProductId) name = String(t.tafetaProductId);
-          } else if (onModel === "Ttr") {
-            if (t.ttrType || t.ttrWidth || t.ttrMtrs) {
-              name = `${t.ttrType || ""} ${t.ttrWidth || ""}mm x ${t.ttrMtrs || ""}m`.replace(/\s+/g, " ").trim();
-            } else if (t.ttrProductId) name = String(t.ttrProductId);
-          } else if (onModel === "Label") {
-            if (t.labelWidth || t.labelHeight) name = `${t.labelWidth || ""}x${t.labelHeight || ""}`;
-          }
-
-          if (!name) name = onModel ? `${onModel} Item` : "N/A";
-
-
           return `<span style="color:#044A78; font-weight:600; display:block;">
-                    ${name}
+                    ${cell.getValue() || "N/A"}
                   </span>`;
         },
       },
@@ -156,16 +176,21 @@
         title: "Qty",
         field: "quantity",
         hozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search qty",
       },
       {
         title: "Invoice #",
-        field: "invoiceNumber",
+        field: "invoiceDisplay",
         hozAlign: "center",
-        formatter: (cell) => cell.getValue() || "-",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search invoice",
       },
       {
         title: "Cancel Reason",
-        field: "cancelReason",
+        field: "cancelReasonDisplay",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search reason",
         formatter: (cell) => {
           const val = cell.getValue();
           if (!val) return "-";

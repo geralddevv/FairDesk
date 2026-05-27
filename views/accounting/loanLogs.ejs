@@ -81,6 +81,12 @@
     }).format(Number(value) || 0);
   }
 
+  const withTextFilter = (column, placeholder = "Search") => ({
+    headerFilter: "input",
+    headerFilterPlaceholder: placeholder,
+    ...column,
+  });
+
   const table = new Tabulator("#master-table", {
     data: logsData,
     layout: "fitColumns",
@@ -90,30 +96,26 @@
     movableColumns: true,
     placeholder: "No loan logs found",
     columns: [
-      {
+      withTextFilter({
         title: "Date",
         field: "date",
         width: 130,
-      },
-      {
+      }, "Search date"),
+      withTextFilter({
         title: "Time",
         field: "time",
         width: 100,
-      },
-      {
+      }, "Search time"),
+      withTextFilter({
         title: "Employee Name",
         field: "employeeName",
-        headerFilter: "input",
-        headerFilterPlaceholder: "Search",
-      },
-      {
+      }, "Search employee"),
+      withTextFilter({
         title: "Employee ID",
         field: "empId",
         width: 140,
-        headerFilter: "input",
-        headerFilterPlaceholder: "Search",
-      },
-      {
+      }, "Search id"),
+      withTextFilter({
         title: "Action",
         field: "action",
         width: 150,
@@ -127,8 +129,8 @@
 
           return `<span style="display:inline-block; padding:2px 10px; background:${bg}; color:white; border-radius:12px; font-size:11px; font-weight:600; letter-spacing:0.4px;">${action}</span>`;
         },
-      },
-      {
+      }, "Search action"),
+      withTextFilter({
         title: "Amount",
         field: "amount",
         hozAlign: "right",
@@ -140,46 +142,46 @@
           const color = row.type === "DEBIT" ? "#b91c1c" : "#047857";
           return `<span style="font-weight:700; color:${color};">${sign} ${formatINR(value)}</span>`;
         },
-      },
-      {
+      }, "Search amount"),
+      withTextFilter({
         title: "Opening Balance",
         field: "openingBalance",
         hozAlign: "right",
         width: 130,
         formatter: (cell) => formatINR(cell.getValue()),
-      },
-      {
+      }, "Search opening"),
+      withTextFilter({
         title: "Closing Balance",
         field: "closingBalance",
         hozAlign: "right",
         width: 130,
         formatter: (cell) => formatINR(cell.getValue()),
-      },
-      {
+      }, "Search closing"),
+      withTextFilter({
         title: "Loan Status",
         field: "loanStatus",
         hozAlign: "center",
         width: 110,
-      },
-      {
+      }, "Search status"),
+      withTextFilter({
         title: "Type",
         field: "type",
         width: 100,
         hozAlign: "center",
-      },
-      {
+      }, "Search type"),
+      withTextFilter({
         title: "Source",
         field: "source",
         width: 110,
         hozAlign: "center",
-      },
-      {
+      }, "Search source"),
+      withTextFilter({
         title: "Loan Balance",
         field: "loanBalance",
         hozAlign: "right",
         width: 120,
         formatter: (cell) => formatINR(cell.getValue()),
-      },
+      }, "Search balance"),
     ],
   });
 

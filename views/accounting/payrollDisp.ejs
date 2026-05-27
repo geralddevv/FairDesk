@@ -87,6 +87,12 @@
     const tableData = <%- safeJson(jsonData) %>;
     const snapshotData = [...tableData];
 
+    const withTextFilter = (column, placeholder = "Search") => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: placeholder,
+      ...column,
+    });
+
     const table = new Tabulator("#master-table", {
       data: tableData,
       height: "100%",
@@ -100,6 +106,8 @@
       field: "employeeName",
       minWidth: 180,
       maxWidth: 240,
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
       formatter: function (cell) {
         const data = cell.getRow().getData();
         return `
@@ -116,17 +124,19 @@
               overflow:hidden;
               text-overflow:ellipsis;
             "
-          >
-            ${data.employeeName}
-          </span>
-        `;
+        >
+          ${data.employeeName}
+        </span>
+      `;
       }
     },
-    { title: "Employee ID", field: "empId", minWidth: 160 },
+    { title: "Employee ID", field: "empId", minWidth: 160, headerFilter: "input", headerFilterPlaceholder: "Search" },
     {
     title: "Month",
     field: "month",
     minWidth: 90,
+    headerFilter: "input",
+    headerFilterPlaceholder: "Search",
     formatter: function (cell) {
       const months = [
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -137,16 +147,16 @@
       return months[value - 1] || value;
     }
   },
-    { title: "Year", field: "year", minWidth: 80 },
-    { title: "Present", field: "presentDays", minWidth: 80 },
-    { title: "Absent", field: "absentDays", minWidth: 80 },
-    { title: "OT hrs", field: "otHours", minWidth: 80 },
-    { title: "Salary", field: "basicSalary", minWidth: 110 },
-    { title: "Total Additions", field: "totalAdditions", minWidth: 140 },
-    { title: "Incentive", field: "incentive", minWidth: 100 },
-    { title: "Gross Salary", field: "grossSalary", minWidth: 130 },
-    { title: "Deduction", field: "totalDeduction", minWidth: 120 },
-    { title: "Take Away", field: "takeAway", minWidth: 120 },
+    { title: "Year", field: "year", minWidth: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Present", field: "presentDays", minWidth: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Absent", field: "absentDays", minWidth: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "OT hrs", field: "otHours", minWidth: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Salary", field: "basicSalary", minWidth: 110, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Total Additions", field: "totalAdditions", minWidth: 140, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Incentive", field: "incentive", minWidth: 100, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Gross Salary", field: "grossSalary", minWidth: 130, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Deduction", field: "totalDeduction", minWidth: 120, headerFilter: "input", headerFilterPlaceholder: "Search" },
+    { title: "Take Away", field: "takeAway", minWidth: 120, headerFilter: "input", headerFilterPlaceholder: "Search" },
   ]
 
     });

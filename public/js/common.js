@@ -7,59 +7,49 @@
 
   // Storage key
   const STORAGE_KEY_NAV = "fd_navExpanded";
+  const SESSION_EXPIRES_HEADER = "x-session-expires-at";
 
   // CSRF Protection Helpers
   const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
   const getSessionExpiresAt = () => document.querySelector('meta[name="session-expires-at"]')?.getAttribute("content");
+  let sessionTimeoutId = null;
+
   const redirectToLogin = () => {
     if (window.location.pathname === "/login") return;
-    window.location.replace("/logout");
+    window.location.replace("/login?reason=session-ended");
+  };
+
+  const clearSessionTimer = () => {
+    if (sessionTimeoutId) {
+      clearTimeout(sessionTimeoutId);
+      sessionTimeoutId = null;
+    }
+  };
+
+  const scheduleSessionLogout = (expiresAt) => {
+    if (!expiresAt) return;
+
+    const expiresDate = new Date(expiresAt);
+    if (Number.isNaN(expiresDate.getTime())) return;
+
+    clearSessionTimer();
+
+    const delay = expiresDate.getTime() - Date.now();
+    if (delay <= 0) {
+      redirectToLogin();
+      return;
+    }
+
+    sessionTimeoutId = setTimeout(() => {
+      redirectToLogin();
+    }, delay + 250);
   };
 
   const startSessionWatchdog = () => {
     if (window.location.pathname === "/login") return;
 
     const sessionExpiresAt = getSessionExpiresAt();
-    if (!sessionExpiresAt) {
-      return;
-    }
-
-    const expiresAt = new Date(sessionExpiresAt);
-    if (Number.isNaN(expiresAt.getTime())) {
-      return;
-    }
-
-    const redirectAt = expiresAt.getTime() + 250;
-    let timer = null;
-
-    const scheduleRedirect = () => {
-      const now = Date.now();
-      const delay = redirectAt - now;
-
-      // SAFETY: Wait until it's definitely expired (5s buffer)
-      if (delay <= -5000) {
-        redirectToLogin();
-        return;
-      }
-
-      if (timer) clearTimeout(timer);
-      
-      // If it's "recently" expired but within buffer, wait the buffer
-      const actualDelay = Math.max(delay, 5000);
-
-      timer = setTimeout(() => {
-        redirectToLogin();
-      }, delay);
-    };
-
-    scheduleRedirect();
-
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") {
-        scheduleRedirect();
-      }
-    });
-    window.addEventListener("focus", scheduleRedirect);
+    scheduleSessionLogout(sessionExpiresAt);
   };
 
   startSessionWatchdog();
@@ -88,7 +78,13 @@
     return originalFetch(url, options).then((response) => {
       const isSessionCheck =
         requestUrl.includes("/check-session") || requestUrl.includes("/login") || requestUrl.includes("/logout");
-      const looksLikeLoginRedirect = response.redirected || (response.url && response.url.includes("/login"));
+      const looksLikeLoginRedirect = response.redirected && response.url && response.url.includes("/login");
+
+      const sessionExpiresAt = response.headers?.get?.(SESSION_EXPIRES_HEADER);
+      if (sessionExpiresAt) {
+        scheduleSessionLogout(sessionExpiresAt);
+      }
+
       if (!isSessionCheck && (response.status === 401 || looksLikeLoginRedirect)) {
         redirectToLogin();
       }

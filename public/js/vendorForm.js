@@ -13,6 +13,10 @@
     ownerMobNo: document.querySelector("#owner-mob-no"),
     vendorNameSelect: document.getElementById("userform-client-name"),
     userContactNo: document.querySelector("#user-contact-no"),
+    locationCountInput: document.getElementById("locations-count"),
+    locationContainer: document.getElementById("locations-details"),
+    locationMinusBtn: document.getElementById("locations-minus"),
+    locationPlusBtn: document.getElementById("locations-plus"),
   };
 
   // Initialize Choices only once
@@ -62,6 +66,10 @@
     // Initialize Choices
     if (dom.vendorNameSelect) {
       initChoicesSelect();
+    }
+
+    if (dom.locationCountInput && dom.locationContainer) {
+      initLocationRepeater();
     }
 
     // Set up MutationObserver to watch for display changes
@@ -163,15 +171,79 @@
     }
   }
 
+  function normalizeLocationCount(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) return 1;
+    return Math.min(parsed, 20);
+  }
+
+  function setLocationCount(value) {
+    if (!dom.locationCountInput || !dom.locationContainer) return;
+    const safeCount = normalizeLocationCount(value);
+    dom.locationCountInput.value = String(safeCount);
+    renderLocationRows(safeCount);
+  }
+
+  function renderLocationRows(count) {
+    if (!dom.locationContainer) return;
+
+    const safeCount = normalizeLocationCount(count);
+    dom.locationContainer.innerHTML = "";
+
+    for (let i = 0; i < safeCount; i += 1) {
+      dom.locationContainer.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="location-row">
+            <input
+              type="text"
+              class="form-control input-tag"
+              name="locationDetails[${i}][userLocation]"
+              placeholder="Enter Location"
+              aria-label="Location ${i + 1}"
+              oninput="this.value = this.value.toUpperCase()"
+              required
+            />
+            <input
+              type="text"
+              class="form-control input-tag"
+              name="locationDetails[${i}][dispatchAddress]"
+              placeholder="Enter Address"
+              aria-label="Address ${i + 1}"
+              oninput="this.value = this.value.toUpperCase()"
+              required
+            />
+          </div>
+        `,
+      );
+    }
+  }
+
+  function initLocationRepeater() {
+    setLocationCount(dom.locationCountInput.value || 1);
+
+    dom.locationMinusBtn?.addEventListener("click", () => {
+      const current = normalizeLocationCount(dom.locationCountInput.value || 1);
+      setLocationCount(Math.max(1, current - 1));
+    });
+
+    dom.locationPlusBtn?.addEventListener("click", () => {
+      const current = normalizeLocationCount(dom.locationCountInput.value || 1);
+      setLocationCount(Math.min(20, current + 1));
+    });
+  }
+
   function handleVendorChange(vendorName) {
     if (!vendorName) {
       const hoEl = document.getElementById("coordinator-ho-location");
       const whEl = document.getElementById("coordinator-warehouse-location");
       const statusEl = document.getElementById("coordinator-vendor-status");
+      const statusHiddenEl = document.getElementById("coordinator-vendor-status-hidden");
       const idEl = document.getElementById("object-id");
       if (hoEl) hoEl.value = "";
       if (whEl) whEl.value = "";
       if (statusEl) statusEl.value = "";
+      if (statusHiddenEl) statusHiddenEl.value = "";
       if (idEl) idEl.value = "";
       return;
     }
@@ -201,11 +273,13 @@ function feedVendorData(data) {
   const hoEl = document.getElementById("coordinator-ho-location");
   const whEl = document.getElementById("coordinator-warehouse-location");
   const statusEl = document.getElementById("coordinator-vendor-status");
+  const statusHiddenEl = document.getElementById("coordinator-vendor-status-hidden");
   const objEl = document.getElementById("object-id");
 
   if (idEl) idEl.value = data.vendorId || "";
   if (hoEl) hoEl.value = data.hoLocation || "";
   if (whEl) whEl.value = data.warehouseLocation || data.hoLocation || "";
   if (statusEl) statusEl.value = data.vendorStatus || "";
+  if (statusHiddenEl) statusHiddenEl.value = data.vendorStatus || "";
   if (objEl) objEl.value = data._id || "";
 }
