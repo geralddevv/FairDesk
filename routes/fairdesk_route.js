@@ -1019,6 +1019,13 @@ function normalizeTtrPart(value) {
   return String(value).trim();
 }
 
+function normalizeTtrCoreId(value) {
+  const raw = normalizeTtrPart(value);
+  if (!raw) return "";
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? String(numeric) : raw;
+}
+
 function buildTtrSignature(source) {
   return [
     normalizeTtrPart(source.ttrType),
@@ -1027,11 +1034,10 @@ function buildTtrSignature(source) {
     normalizeTtrPart(source.ttrWidth),
     normalizeTtrPart(source.ttrMtrs),
     normalizeTtrPart(source.ttrInkFace),
-    normalizeTtrPart(source.ttrCoreId),
+    normalizeTtrCoreId(source.ttrCoreId),
     normalizeTtrPart(source.ttrCoreLength),
     normalizeTtrPart(source.ttrNotch),
     normalizeTtrPart(source.ttrWinding),
-    normalizeTtrPart(source.ttrMinQty),
   ].join("||");
 }
 
@@ -1043,14 +1049,12 @@ const DEFAULT_TTR_SPECS = {
   ttrCoreLength: 0,
   ttrNotch: "NO",
   ttrWinding: "NORMAL",
-  ttrMinQty: 1,
 };
 
 const DEFAULT_VENDOR_TTR_OVERRIDES = {
   ttrMtrsDel: "0",
   ttrRatePerRoll: 0,
   ttrSaleCost: 0,
-  ttrMinQty: 1,
   ttrOdrQty: 1,
   ttrOdrFreq: "N/A",
   ttrCreditTerm: "N/A",
@@ -1128,10 +1132,9 @@ router.get("/form/ttr/exists", async (req, res) => {
       ttrColor: trimOr(req.query.ttrColor, "BLACK"),
       ttrMaterialCode: trimOr(req.query.ttrMaterialCode),
       ttrInkFace: "OUT",
-      ttrMinQty: numOr(req.query.ttrMinQty, DEFAULT_TTR_SPECS.ttrMinQty),
     };
 
-    if ([normalized.ttrType, normalized.ttrColor, normalized.ttrMaterialCode, req.query.ttrMinQty].some((v) => trimOr(v) === "")) {
+    if ([normalized.ttrType, normalized.ttrColor, normalized.ttrMaterialCode].some((v) => trimOr(v) === "")) {
       return res.json({ exists: false });
     }
 
@@ -1152,7 +1155,6 @@ router.get("/form/ttr/exists", async (req, res) => {
       ttrCoreLength: numOr(signatureSource.ttrCoreLength),
       ttrNotch: flexTtrValue(signatureSource.ttrNotch),
       ttrWinding: flexTtrValue(signatureSource.ttrWinding),
-      ttrMinQty: numOr(signatureSource.ttrMinQty),
     };
 
     const existingTtr = await Ttr.findOne({
@@ -1204,18 +1206,12 @@ router.post("/form/ttr", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const ttrCoreId = normalizeTtrCoreId(req.body.ttrCoreId);
     const coreLengthNum = Number(req.body.ttrCoreLength);
-    const minQtyNum = Number(req.body.ttrMinQty);
     if (!Number.isFinite(coreLengthNum)) {
       return res.status(400).json({
         success: false,
         message: "Core Length must be a valid number.",
-      });
-    }
-    if (!Number.isFinite(minQtyNum) || minQtyNum < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Minimum Qty must be a valid number.",
       });
     }
 
@@ -1229,11 +1225,10 @@ router.post("/form/ttr", async (req, res) => {
           ttrWidth: flexTtrValue(widthVal),
           ttrMtrs: Number(req.body.ttrMtrs),
           ttrInkFace: flexTtrValue(req.body.ttrInkFace),
-          ttrCoreId: flexTtrValue(req.body.ttrCoreId),
+          ttrCoreId: flexTtrValue(ttrCoreId),
           ttrCoreLength: Number(req.body.ttrCoreLength),
           ttrNotch: flexTtrValue(req.body.ttrNotch),
           ttrWinding: flexTtrValue(req.body.ttrWinding),
-          ttrMinQty: minQtyNum,
         },
       ],
     };
@@ -1253,11 +1248,10 @@ router.post("/form/ttr", async (req, res) => {
       ttrWidth: widthVal,
       ttrMtrs: Number(req.body.ttrMtrs),
       ttrInkFace: "OUT",
-      ttrCoreId: String(req.body.ttrCoreId).trim(),
+      ttrCoreId,
       ttrCoreLength: coreLengthNum,
       ttrNotch: String(req.body.ttrNotch).trim(),
       ttrWinding: String(req.body.ttrWinding).trim(),
-      ttrMinQty: minQtyNum,
       ttrSignature,
       createdBy: req.user?.username || "SYSTEM",
     };
@@ -1371,6 +1365,7 @@ router.post("/form/tape-master", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const tapeCoreId = normalizeTapeCoreId(req.body.tapeCoreId);
 
     const duplicateTapeQuery = {
       $or: [
@@ -1381,7 +1376,7 @@ router.post("/form/tape-master", async (req, res) => {
           tapePaperType: flexTapeValue(req.body.tapePaperType),
           tapeWidth: flexTapeValue(widthVal),
           tapeMtrs: flexTapeValue(Number(req.body.tapeMtrs)),
-          tapeCoreId: flexTapeValue(Number(req.body.tapeCoreId)),
+          tapeCoreId: flexTapeValue(Number(tapeCoreId)),
           tapeAdhesiveGsm: flexTapeValue(req.body.tapeAdhesiveGsm),
           tapeFinish: flexTapeValue(req.body.tapeFinish),
         },
@@ -1402,7 +1397,7 @@ router.post("/form/tape-master", async (req, res) => {
       tapePaperType: String(req.body.tapePaperType).trim(),
       tapeWidth: widthVal,
       tapeMtrs: Number(req.body.tapeMtrs),
-      tapeCoreId: Number(req.body.tapeCoreId),
+      tapeCoreId: Number(tapeCoreId),
       tapeAdhesiveGsm: String(req.body.tapeAdhesiveGsm).trim(),
       tapeFinish: String(req.body.tapeFinish).trim(),
       tapeSignature,
@@ -1591,6 +1586,7 @@ router.post("/form/pos-roll-master", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const posCoreId = normalizePosCoreId(req.body.posCoreId);
 
     const duplicatePosQuery = {
       $or: [
@@ -1602,7 +1598,7 @@ router.post("/form/pos-roll-master", async (req, res) => {
           posGsm: flexPosValue(Number(req.body.posGsm)),
           posWidth: flexPosValue(widthVal),
           posMtrs: flexPosValue(Number(req.body.posMtrs)),
-          posCoreId: flexPosValue(Number(req.body.posCoreId)),
+          posCoreId: flexPosValue(Number(posCoreId)),
         },
       ],
     };
@@ -1622,7 +1618,7 @@ router.post("/form/pos-roll-master", async (req, res) => {
       posGsm: Number(req.body.posGsm),
       posWidth: widthVal,
       posMtrs: Number(req.body.posMtrs),
-      posCoreId: Number(req.body.posCoreId),
+      posCoreId: Number(posCoreId),
       posSignature,
     };
 
@@ -1706,6 +1702,7 @@ router.post("/form/tafeta-master", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const tafetaCoreId = normalizeTafetaCoreId(req.body.tafetaCoreId);
 
     const duplicateTafetaQuery = {
       $or: [
@@ -1719,7 +1716,7 @@ router.post("/form/tafeta-master", async (req, res) => {
           tafetaMtrs: flexTafetaValue(req.body.tafetaMtrs),
           tafetaCoreLen: flexTafetaValue(req.body.tafetaCoreLen),
           tafetaNotch: flexTafetaValue(req.body.tafetaNotch),
-          tafetaCoreId: flexTafetaValue(req.body.tafetaCoreId),
+          tafetaCoreId: flexTafetaValue(tafetaCoreId),
         },
       ],
     };
@@ -1741,7 +1738,7 @@ router.post("/form/tafeta-master", async (req, res) => {
       tafetaMtrs: String(req.body.tafetaMtrs).trim(),
       tafetaCoreLen: String(req.body.tafetaCoreLen).trim(),
       tafetaNotch: String(req.body.tafetaNotch).trim(),
-      tafetaCoreId: String(req.body.tafetaCoreId).trim(),
+      tafetaCoreId,
       tafetaSignature,
     };
 
@@ -1892,6 +1889,13 @@ function normalizeTafetaPart(value) {
   return String(value).trim();
 }
 
+function normalizeTafetaCoreId(value) {
+  const raw = normalizeTafetaPart(value);
+  if (!raw) return "";
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? String(numeric) : raw;
+}
+
 function buildTafetaSignature(source) {
   return [
     normalizeTafetaPart(source.tafetaMaterialCode),
@@ -1902,7 +1906,7 @@ function buildTafetaSignature(source) {
     normalizeTafetaPart(source.tafetaMtrs),
     normalizeTafetaPart(source.tafetaCoreLen),
     normalizeTafetaPart(source.tafetaNotch),
-    normalizeTafetaPart(source.tafetaCoreId),
+    normalizeTafetaCoreId(source.tafetaCoreId),
   ].join("||");
 }
 
@@ -2061,6 +2065,13 @@ function normalizePosPart(value) {
   return String(value).trim();
 }
 
+function normalizePosCoreId(value) {
+  const raw = normalizePosPart(value);
+  if (!raw) return "";
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? String(numeric) : raw;
+}
+
 function buildPosSignature(source) {
   return [
     normalizePosPart(source.posPaperCode),
@@ -2069,7 +2080,7 @@ function buildPosSignature(source) {
     normalizePosPart(source.posGsm),
     normalizePosPart(source.posWidth),
     normalizePosPart(source.posMtrs),
-    normalizePosPart(source.posCoreId),
+    normalizePosCoreId(source.posCoreId),
   ].join("||");
 }
 
@@ -2092,6 +2103,13 @@ function normalizeTapePart(value) {
   return String(value).trim();
 }
 
+function normalizeTapeCoreId(value) {
+  const raw = normalizeTapePart(value);
+  if (!raw) return "";
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? String(numeric) : raw;
+}
+
 function buildTapeSignature(source) {
   return [
     normalizeTapePart(source.tapePaperCode),
@@ -2099,7 +2117,7 @@ function buildTapeSignature(source) {
     normalizeTapePart(source.tapeGsm),
     normalizeTapePart(source.tapeWidth),
     normalizeTapePart(source.tapeMtrs),
-    normalizeTapePart(source.tapeCoreId),
+    normalizeTapeCoreId(source.tapeCoreId),
     normalizeTapePart(source.tapeAdhesiveGsm),
     normalizeTapePart(source.tapeFinish),
   ].join("||");
@@ -2139,6 +2157,7 @@ router.post("/tape/edit/:id", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const tapeCoreId = normalizeTapeCoreId(req.body.tapeCoreId);
 
     const updateData = {
       tapePaperCode: String(req.body.tapePaperCode || "").trim(),
@@ -2146,7 +2165,7 @@ router.post("/tape/edit/:id", async (req, res) => {
       tapePaperType: String(req.body.tapePaperType || "").trim(),
       tapeWidth: widthVal,
       tapeMtrs: Number(req.body.tapeMtrs),
-      tapeCoreId: Number(req.body.tapeCoreId),
+      tapeCoreId: Number(tapeCoreId),
       tapeAdhesiveGsm: String(req.body.tapeAdhesiveGsm || "").trim(),
       tapeFinish: String(req.body.tapeFinish || "").trim(),
     };
@@ -2286,6 +2305,7 @@ router.post("/pos-roll/edit/:id", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const posCoreId = normalizePosCoreId(req.body.posCoreId);
 
     const updateData = {
       posPaperCode: String(req.body.posPaperCode || "").trim(),
@@ -2294,7 +2314,7 @@ router.post("/pos-roll/edit/:id", async (req, res) => {
       posGsm: Number(req.body.posGsm),
       posWidth: widthVal,
       posMtrs: Number(req.body.posMtrs),
-      posCoreId: Number(req.body.posCoreId),
+      posCoreId: Number(posCoreId),
     };
     updateData.posSignature = hashSignature(buildPosSignature(updateData));
 
@@ -2433,6 +2453,7 @@ router.post("/tafeta/edit/:id", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const tafetaCoreId = normalizeTafetaCoreId(req.body.tafetaCoreId);
 
     const updateData = {
       tafetaMaterialCode: String(req.body.tafetaMaterialCode || "").trim(),
@@ -2443,7 +2464,7 @@ router.post("/tafeta/edit/:id", async (req, res) => {
       tafetaMtrs: String(req.body.tafetaMtrs || "").trim(),
       tafetaCoreLen: String(req.body.tafetaCoreLen || "").trim(),
       tafetaNotch: String(req.body.tafetaNotch || "").trim(),
-      tafetaCoreId: String(req.body.tafetaCoreId || "").trim(),
+      tafetaCoreId,
     };
     updateData.tafetaSignature = hashSignature(buildTafetaSignature(updateData));
 
@@ -2921,6 +2942,7 @@ router.post("/ttr/edit/:id", async (req, res) => {
     const widthNum = typeof widthTrim === "string" ? Number(widthTrim) : Number(widthTrim);
     const widthVal =
       typeof widthTrim === "string" && widthTrim !== "" && !Number.isNaN(widthNum) ? widthNum : widthTrim;
+    const ttrCoreId = normalizeTtrCoreId(req.body.ttrCoreId);
 
     const updateData = {
       ttrType: String(req.body.ttrType || "").trim(),
@@ -2929,7 +2951,7 @@ router.post("/ttr/edit/:id", async (req, res) => {
       ttrWidth: widthVal,
       ttrMtrs: Number(req.body.ttrMtrs),
       ttrInkFace: "OUT",
-      ttrCoreId: String(req.body.ttrCoreId || "").trim(),
+      ttrCoreId,
       ttrCoreLength: Number(req.body.ttrCoreLength),
       ttrNotch: String(req.body.ttrNotch || "").trim(),
       ttrWinding: String(req.body.ttrWinding || "").trim(),

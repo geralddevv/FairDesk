@@ -52,7 +52,7 @@ const posRollSchema = new mongoose.Schema(
 
     posCoreId: {
       type: Number,
-      enum: [0.5, 1, 3],
+      enum: [0.5, 1, 2, 3],
       required: true,
       index: true,
     },

@@ -56,7 +56,7 @@ const ttrSchema = new mongoose.Schema(
     ttrCoreId: {
       type: String,
       required: true,
-      enum: ["1", "0.5", '0.5"with extra core'],
+      enum: ["1", "0.5", "2", '0.5"with extra core'],
     },
 
     ttrCoreLength: {
@@ -76,13 +76,6 @@ const ttrSchema = new mongoose.Schema(
       required: true,
       enum: ["NORMAL", "LEFT", "CENTER"],
       default: "NORMAL",
-    },
-
-    ttrMinQty: {
-      type: Number,
-      required: true,
-      min: 1,
-      default: 1,
     },
 
     ttrSignature: {
