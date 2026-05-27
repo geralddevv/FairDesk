@@ -8,11 +8,15 @@
   // Storage key
   const STORAGE_KEY_NAV = "fd_navExpanded";
   const SESSION_EXPIRES_HEADER = "x-session-expires-at";
+  const SESSION_KEEPALIVE_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
   // CSRF Protection Helpers
   const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
   const getSessionExpiresAt = () => document.querySelector('meta[name="session-expires-at"]')?.getAttribute("content");
   let sessionTimeoutId = null;
+  let sessionKeepAliveTimerId = null;
+  let keepAliveInFlight = false;
+  let lastKeepAliveAt = 0;
 
   const redirectToLogin = () => {
     if (window.location.pathname === "/login") return;
@@ -36,12 +40,12 @@
 
     const delay = expiresDate.getTime() - Date.now();
     if (delay <= 0) {
-      redirectToLogin();
+      keepSessionAlive({ force: true });
       return;
     }
 
     sessionTimeoutId = setTimeout(() => {
-      redirectToLogin();
+      keepSessionAlive({ force: true });
     }, delay + 250);
   };
 
@@ -52,7 +56,66 @@
     scheduleSessionLogout(sessionExpiresAt);
   };
 
+  const keepSessionAlive = async ({ force = false } = {}) => {
+    if (window.location.pathname === "/login") return;
+    if (!force && document.visibilityState === "hidden") return;
+    if (keepAliveInFlight) return;
+
+    const now = Date.now();
+    if (!force && now - lastKeepAliveAt < SESSION_KEEPALIVE_MIN_INTERVAL_MS) {
+      return;
+    }
+
+    keepAliveInFlight = true;
+
+    try {
+      const response = await window.fetch("/check-session", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (response.status === 401) {
+        redirectToLogin();
+        return;
+      }
+
+      lastKeepAliveAt = now;
+
+      const sessionExpiresAt = response.headers?.get?.(SESSION_EXPIRES_HEADER);
+      if (sessionExpiresAt) {
+        scheduleSessionLogout(sessionExpiresAt);
+      } else {
+        const payload = await response.json().catch(() => null);
+        if (payload?.expiresAt) {
+          scheduleSessionLogout(payload.expiresAt);
+        }
+      }
+    } catch (err) {
+      // Ignore transient connectivity issues and retry on the next activity pulse.
+    } finally {
+      keepAliveInFlight = false;
+    }
+  };
+
+  const restartSessionKeepAlive = () => {
+    if (sessionKeepAliveTimerId) {
+      clearInterval(sessionKeepAliveTimerId);
+      sessionKeepAliveTimerId = null;
+    }
+
+    if (window.location.pathname === "/login") return;
+
+    sessionKeepAliveTimerId = setInterval(() => {
+      keepSessionAlive();
+    }, SESSION_KEEPALIVE_MIN_INTERVAL_MS);
+  };
+
   startSessionWatchdog();
+  restartSessionKeepAlive();
 
   // Global Fetch Wrapper to include CSRF token
   const originalFetch = window.fetch;
@@ -105,6 +168,18 @@
         input.value = token;
         form.appendChild(input);
       }
+    }
+  });
+
+  ["pointerdown", "keydown", "focus"].forEach((eventName) => {
+    window.addEventListener(eventName, () => {
+      keepSessionAlive({ force: eventName === "focus" });
+    });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      keepSessionAlive({ force: true });
     }
   });
 

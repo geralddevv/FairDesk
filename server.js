@@ -106,7 +106,22 @@ app.use(
   }),
 );
 
-const getSessionExpiresAt = () => new Date(Date.now() + SESSION_TTL_MS).toISOString();
+const getSessionExpiresAt = (req) => {
+  const maxAge = Number(req.session?.cookie?.maxAge ?? req.session?.cookie?.originalMaxAge);
+  if (Number.isFinite(maxAge) && maxAge > 0) {
+    return new Date(Date.now() + maxAge).toISOString();
+  }
+
+  const expires = req.session?.cookie?.expires;
+  if (expires) {
+    const expiresDate = new Date(expires);
+    if (!Number.isNaN(expiresDate.getTime())) {
+      return expiresDate.toISOString();
+    }
+  }
+
+  return new Date(Date.now() + SESSION_TTL_MS).toISOString();
+};
 
 /* CSRF PROTECTION SETUP */
 const csrfProtection = csrf({ cookie: false });
@@ -117,7 +132,7 @@ app.use(flash());
 /* AUTH SESSION EXPIRY HELPERS */
 app.use((req, res, next) => {
   if (req.session?.authUser) {
-    const sessionExpiresAt = getSessionExpiresAt();
+    const sessionExpiresAt = getSessionExpiresAt(req);
     res.locals.sessionExpiresAt = sessionExpiresAt;
     res.setHeader("X-Session-Expires-At", sessionExpiresAt);
   }
@@ -143,7 +158,10 @@ app.get("/favicon.ico", (req, res) => res.status(204).end());
 app.get("/check-session", (req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   if (req.session?.authUser) {
-    return res.json({ authenticated: true, expiresAt: getSessionExpiresAt() });
+    req.session.touch();
+    const expiresAt = getSessionExpiresAt(req);
+    res.setHeader("X-Session-Expires-At", expiresAt);
+    return res.json({ authenticated: true, expiresAt });
   }
   return res.status(401).json({ authenticated: false });
 });

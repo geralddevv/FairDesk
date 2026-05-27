@@ -2,6 +2,11 @@ import session from "express-session";
 import SessionModel from "../models/system/Session.js";
 
 function resolveExpiry(sessionData, fallbackMs) {
+  const maxAge = Number(sessionData?.cookie?.maxAge ?? sessionData?.cookie?.originalMaxAge);
+  if (Number.isFinite(maxAge) && maxAge > 0) {
+    return new Date(Date.now() + maxAge);
+  }
+
   const expires = sessionData?.cookie?.expires;
   if (expires) {
     const date = new Date(expires);
@@ -60,7 +65,10 @@ class MongoSessionStore extends session.Store {
       .updateOne(
         { _id: sid },
         {
-          $set: { expiresAt },
+          $set: {
+            session: sessionData,
+            expiresAt,
+          },
         },
       )
       .then(() => callback?.(null))

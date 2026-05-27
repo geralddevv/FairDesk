@@ -188,9 +188,19 @@
     if (!dom.locationContainer) return;
 
     const safeCount = normalizeLocationCount(count);
+    const existingRows = Array.from(dom.locationContainer.querySelectorAll(".location-row"));
+    const currentValues = existingRows.map((row) => {
+      const inputs = row.querySelectorAll("input");
+      return {
+        userLocation: inputs[0]?.value || "",
+        dispatchAddress: inputs[1]?.value || "",
+      };
+    });
+
     dom.locationContainer.innerHTML = "";
 
     for (let i = 0; i < safeCount; i += 1) {
+      const values = currentValues[i] || { userLocation: "", dispatchAddress: "" };
       dom.locationContainer.insertAdjacentHTML(
         "beforeend",
         `
@@ -201,6 +211,7 @@
               name="locationDetails[${i}][userLocation]"
               placeholder="Enter Location"
               aria-label="Location ${i + 1}"
+              value="${escapeAttr(values.userLocation.toUpperCase())}"
               oninput="this.value = this.value.toUpperCase()"
               required
             />
@@ -210,6 +221,7 @@
               name="locationDetails[${i}][dispatchAddress]"
               placeholder="Enter Address"
               aria-label="Address ${i + 1}"
+              value="${escapeAttr(values.dispatchAddress.toUpperCase())}"
               oninput="this.value = this.value.toUpperCase()"
               required
             />
@@ -231,6 +243,15 @@
       const current = normalizeLocationCount(dom.locationCountInput.value || 1);
       setLocationCount(Math.min(20, current + 1));
     });
+  }
+
+  function escapeAttr(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   function handleVendorChange(vendorName) {

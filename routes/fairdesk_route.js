@@ -1439,6 +1439,9 @@ router.get("/form/edit/user/:userId", async (req, res) => {
       title: "Edit User",
       JS: false,
       user,
+      initialLocationDetails: Array.isArray(user.locationDetails) && user.locationDetails.length
+        ? user.locationDetails
+        : [{ userLocation: user.userLocation || "", dispatchAddress: user.dispatchAddress || "" }],
       notification: req.flash("notification"),
       error: req.flash("error"),
     });
@@ -1461,13 +1464,11 @@ router.post("/form/edit/user/:userId", async (req, res) => {
 
     const updateData = {
       userName: String(req.body.userName || "").trim(),
-      userLocation: String(req.body.userLocation || "").trim(),
       userDepartment: String(req.body.userDepartment || "").trim(),
       userContact: String(req.body.userContact || "").trim(),
       userEmail: String(req.body.userEmail || "")
         .trim()
         .toLowerCase(),
-      dispatchAddress: String(req.body.dispatchAddress || "").trim(),
       transportName: String(req.body.transportName || "").trim(),
       transportContact: String(req.body.transportContact || "").trim(),
       dropLocation: String(req.body.dropLocation || "").trim(),
@@ -1476,6 +1477,26 @@ router.post("/form/edit/user/:userId", async (req, res) => {
       clientPayment: String(req.body.clientPayment || "").trim(),
       SelfDispatch: String(req.body.SelfDispatch || "").trim(),
     };
+
+    const locationDetails = normalizeLocationDetails(
+      req.body.locationDetails,
+      req.body.userLocation,
+      req.body.dispatchAddress,
+    ).map((entry) => ({
+      userLocation: String(entry.userLocation || "").trim().toUpperCase(),
+      dispatchAddress: String(entry.dispatchAddress || "").trim().toUpperCase(),
+    }));
+
+    if (!locationDetails.length) {
+      return res.status(400).json({ success: false, message: "Please add at least one location and address" });
+    }
+
+    const primaryLocation = locationDetails[0];
+    updateData.userLocation = primaryLocation.userLocation;
+    updateData.dispatchAddress = primaryLocation.dispatchAddress;
+    updateData.locationsCount = locationDetails.length;
+    updateData.locationDetails = locationDetails;
+
     updateData.userSignature = hashSignature(buildUserSignature(updateData, currentUser.clientId));
 
     // Cleanup if self dispatch is enabled, ensure transport fields are empty
@@ -1500,6 +1521,12 @@ router.post("/form/edit/user/:userId", async (req, res) => {
       userContact: new RegExp(`^${escapeRegex(updateData.userContact)}$`, "i"),
       userEmail: new RegExp(`^${escapeRegex(updateData.userEmail)}$`, "i"),
       dispatchAddress: new RegExp(`^${escapeRegex(updateData.dispatchAddress)}$`, "i"),
+      locationDetails: {
+        $elemMatch: {
+          userLocation: new RegExp(`^${escapeRegex(primaryLocation.userLocation)}$`, "i"),
+          dispatchAddress: new RegExp(`^${escapeRegex(primaryLocation.dispatchAddress)}$`, "i"),
+        },
+      },
       transportName: new RegExp(`^${escapeRegex(updateData.transportName)}$`, "i"),
       transportContact: new RegExp(`^${escapeRegex(updateData.transportContact)}$`, "i"),
       dropLocation: new RegExp(`^${escapeRegex(updateData.dropLocation)}$`, "i"),
@@ -2595,7 +2622,7 @@ router.get("/form/vendor", async (req, res) => {
   let userCount = await VendorUser.countDocuments();
   let vendorCount = vendors.length;
   res.render("users/vendorForm.ejs", {
-    JS: "vendorForm.js?v=3",
+    JS: "vendorForm.js?v=5",
     CSS: "tabOpt.css",
     title: "Vendor Form",
     vendorCount,

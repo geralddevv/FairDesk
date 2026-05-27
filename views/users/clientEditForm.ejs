@@ -7,13 +7,10 @@
 %>
 
 <div class="main-content">
-  <div class="span-full form-subheading gap">
-    <div class="client-switch active">
+  <form class="client-content span-full needs-validation" action="/fairdesk/client/edit/<%= client._id %>" method="post" autocomplete="off" novalidate>
+    <div class="span-full form-heading">
       <h1>Edit Client</h1>
     </div>
-  </div>
-
-  <form class="client-content span-full needs-validation" action="/fairdesk/client/edit/<%= client._id %>" method="post" autocomplete="off" novalidate >
 
     <div class="span-four">
       <label>Client Id</label>

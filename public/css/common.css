@@ -759,6 +759,21 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
+/* Location counter should stay plain, without Bootstrap valid-state ticks */
+#locations-count,
+#locations-count:valid,
+#locations-count:invalid,
+#locations-count.is-valid,
+#locations-count.is-invalid,
+.was-validated #locations-count:valid,
+.was-validated #locations-count:invalid {
+  background-image: none !important;
+  background-position: initial !important;
+  background-repeat: no-repeat !important;
+  background-size: auto !important;
+  padding-right: 0.75rem !important;
+}
+
 /* span vertically for specific fields */
 .span-row-2 {
   grid-row: span 2;
