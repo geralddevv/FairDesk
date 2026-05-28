@@ -280,6 +280,7 @@
             <option value="" <%= !user.vendorPayment ? "selected" : "" %> disabled hidden>Select</option>
             <option value="PAY" <%= user.vendorPayment === "PAY" ? "selected" : "" %>>PAY</option>
             <option value="TO PAY" <%= user.vendorPayment === "TO PAY" ? "selected" : "" %>>TO PAY</option>
+            <option value="NA" <%= user.vendorPayment === "NA" ? "selected" : "" %>>NA</option>
           </select>
         </div>
       </div>

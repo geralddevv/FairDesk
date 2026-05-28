@@ -1,9 +1,4 @@
 HR:
-total value in loan and advance and comma in lakhs ✔️
-total expense in current month in pettycash ✔️
-filtering in every column in everything ✔️
-if one field is incomplete show red line employee ✔️
-pettycash total in heading ✔️
 active/inactive in employee form
 request form - given (pending)
 
@@ -11,14 +6,11 @@ Advance:
 in adavance keep date from 11 to 10 on 10 deduct from the salary
 
 Loan:
-add loan log ✔️
 loan approval when entry (hold with reason)
 filtering option like (active, request, hold, closed)
 on top of the loan view show request total and active total
 
 Petty Cash:
-total expense also outside the internal view ✔️
-add a current button near view transaction which will show the current month ✔️
 need a year/month selector, person and a from/to slector in the view transaction
 month wise export (like a statement)
 
@@ -27,51 +19,26 @@ add logs for commercial changes in the employee edit
 when employee name is edited it should reflect all over the application
 
 Am Main:
-solve problem in the ttr stock entry ✔️
-if user dont put the po number dont allow to submit ✔️
-vendor coord edit form ✔️
-add a edit button in the pending page to edit the items (ttr/tape) ✔️ 
-show the whole details of the item in the sales order page ✔️
-add a view page for the stocks available in the items ✔️
-seperate vendor and client in navbar ✔️
-add option to delete the things in the platform (added in the user and client bindings) ✔️
-add seamless scroll in the list ✔️
-
-main stock count and then detailed view ✔️
-same style stock indicator in stock entry (sales order) ✔️
-view location change after editing (error in editing) in user ✔️
-drop down in the client page for the item edit (added bt need to test) ✔️
-in the pending page show the total value and the selected item value ✔️
-add option to add additional address in the vendor coordinator/client username (partially done) ✔️
-add a seperate stock summary for clear view of the stocks available ✔️
-show client code and type in the sales order page ✔️
 
 rate and current rate in the sales order
-add that 3 columns active inactive and stocks in details page
 consider item combo options in the sales order page (hold)
 if single digit add a 0 before the number
 allow the location editing in the sales order edit form
-user based login and permission to to every task (implemented) ✔️
 add a pop up message when logged out default (partial need to check)
 want to add daily log⬇️
 (it should be more like an automated activity log (showing things like "Order #123 created by Gerald")?)
 add a specific date and qty for the sales order
-total item stock in the pending order (⭐) ✔️
 add item client item type in the tape binding and look out for other things also make a script to update the existing thing
-in the table by default show the items which are available (⭐) ✔️
 need to add a dashboard for each role (roles co1, co2, etc)
 
 
 vendor:
-if no coor binded show the row red
 after the edit of the form it should redirect to the main page not the edit page
 add user inactive/delete option
 extra address in vendor form
 add reordering option in the stock
 resolve the stock edit error
-ttr bind not deleting ✔️
-by def take the mtrs from the main ✔️
-resolve unplanned logout error (under observation) ✔️
 clear tsts in the pending logs
 make a purchase heading and store things related to that in that
 in one po there can we multiple orders with differernt date
+fix the booked stock problem

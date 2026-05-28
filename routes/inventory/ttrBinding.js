@@ -169,16 +169,31 @@ router.get("/form/ttr-binding", async (req, res) => {
 /* GET : Load Vendor TTR Binding Form */
 router.get("/form/ttr-vendor-binding", async (req, res) => {
   try {
-    const [vendors, previewSampleId] = await Promise.all([
-      Vendor.distinct("vendorName"),
-      getNextTtrProductIdPreview(),
-    ]);
+    const [vendors, fsRows] = await Promise.all([Vendor.distinct("vendorName"), loadFsTtrRows()]);
+    const types = distinctValues(fsRows, "ttrType");
+    const colors = distinctValues(fsRows, "ttrColor");
+    const materialCodes = distinctValues(fsRows, "ttrMaterialCode");
+    const widths = distinctValues(fsRows, "ttrWidth");
+    const mtrsList = distinctValues(fsRows, "ttrMtrs");
+    const inkFaces = distinctValues(fsRows, "ttrInkFace");
+    const coreIds = distinctValues(fsRows, "ttrCoreId");
+    const coreLengths = distinctValues(fsRows, "ttrCoreLength");
+    const notches = distinctValues(fsRows, "ttrNotch");
+    const windings = distinctValues(fsRows, "ttrWinding");
 
     res.render("inventory/ttrVendorBinding.ejs", {
       title: "Vendor TTR",
       vendors,
-      previewSampleId,
-      previewTtrProductId: previewSampleId,
+      types,
+      colors,
+      materialCodes,
+      widths,
+      mtrsList,
+      inkFaces,
+      coreIds,
+      coreLengths,
+      notches,
+      windings,
       CSS: false,
       JS: false,
       notification: req.flash("notification"),
@@ -206,7 +221,6 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
     const ttrNotch = trimOr(req.body.ttrNotch);
     const ttrWinding = trimOr(req.body.ttrWinding);
     const ttrMinQty = numOr(req.body.ttrMinQty, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty);
-    const vendorColor = trimOr(req.body.vendorTtrColor || ttrColor);
 
     if (!vendorUserId) {
       return res.status(400).json({ success: false, message: "Vendor user is required" });
@@ -225,10 +239,12 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid TTR master selected" });
     }
 
-    // Global rule: one vendor code can map to only one FS TTR across the system.
-    const incomingVendorCode = normalizeCode(ttrMaterialCode);
+    const vendorMaterialCode = trimOr(req.body.vendorTtrMaterialCode || ttrMaterialCode || ttr.ttrMaterialCode);
+    const incomingVendorCode = normalizeCode(vendorMaterialCode);
     const incomingFsCode = normalizeCode(ttr.ttrMaterialCode);
     const incomingFsId = String(ttr._id);
+
+    // Global rule: one vendor code can map to only one FS TTR across the system.
     const existingMappings = await VendorTtrBinding.find({
       vendorTtrMaterialCode: new RegExp(`^${escapeRegex(incomingVendorCode)}$`, "i"),
     })
@@ -274,23 +290,30 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
       return res.status(400).json({ success: false, message: "Please complete all required TTR fields" });
     }
 
+    const vendorType = trimOr(req.body.vendorTtrType || ttrType || ttr.ttrType);
+    const vendorColor = trimOr(req.body.vendorTtrColor || ttrColor || ttr.ttrColor || "BLACK");
+    const ttrMtrsDel = trimOr(req.body.ttrMtrsDel ?? req.body.tapeMtrsDel, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMtrsDel);
+    const ttrRatePerRoll = numOr(req.body.ttrRatePerRoll ?? req.body.tapeRatePerRoll, DEFAULT_VENDOR_TTR_OVERRIDES.ttrRatePerRoll);
+    const ttrSaleCost = numOr(req.body.ttrSaleCost ?? req.body.tapeSaleCost, DEFAULT_VENDOR_TTR_OVERRIDES.ttrSaleCost);
     const minimumOrderQty = numOr(
-      req.body.minimumOrderQty || req.body.tapeOdrQty || req.body.ttrMinQty,
+      req.body.ttrOdrQty ?? req.body.minimumOrderQty ?? req.body.tapeOdrQty,
       DEFAULT_VENDOR_TTR_OVERRIDES.minimumOrderQty,
     );
+    const ttrOdrFreq = trimOr(req.body.ttrOdrFreq ?? req.body.tapeOdrFreq, DEFAULT_VENDOR_TTR_OVERRIDES.ttrOdrFreq);
+    const ttrCreditTerm = trimOr(req.body.ttrCreditTerm ?? req.body.tapeCreditTerm, DEFAULT_VENDOR_TTR_OVERRIDES.ttrCreditTerm);
     const vendorBindingData = {
       vendorUserId,
       ttrId: ttr._id,
       vendorTtrMaterialCode: incomingVendorCode,
-      vendorTtrType: ttrType,
+      vendorTtrType: vendorType,
       vendorTtrColor: vendorColor,
-      ttrMtrsDel: trimOr(req.body.tapeMtrsDel, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMtrsDel),
-      ttrRatePerRoll: numOr(req.body.tapeRatePerRoll, DEFAULT_VENDOR_TTR_OVERRIDES.ttrRatePerRoll),
-      ttrSaleCost: numOr(req.body.tapeSaleCost, DEFAULT_VENDOR_TTR_OVERRIDES.ttrSaleCost),
-      ttrMinQty,
+      ttrMtrsDel,
+      ttrRatePerRoll,
+      ttrSaleCost,
+      ttrMinQty: ttrMinQty || ttr.ttrMinQty || DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty,
       ttrOdrQty: minimumOrderQty,
-      ttrOdrFreq: trimOr(req.body.tapeOdrFreq, DEFAULT_VENDOR_TTR_OVERRIDES.ttrOdrFreq),
-      ttrCreditTerm: trimOr(req.body.tapeCreditTerm, DEFAULT_VENDOR_TTR_OVERRIDES.ttrCreditTerm),
+      ttrOdrFreq,
+      ttrCreditTerm,
     };
 
     const vendorTtrBinding = await VendorTtrBinding.create({
@@ -460,7 +483,13 @@ router.get("/form/ttr-vendor-binding/resolve-ttr", async (req, res) => {
 
     res.status(200).json({
       ttrId: ttr._id,
+      ttrProductId: ttr.ttrProductId || "",
       ttrMaterialCode: ttr.ttrMaterialCode,
+      ttrType: ttr.ttrType || "",
+      ttrColor: ttr.ttrColor || "",
+      ttrWidth: ttr.ttrWidth ?? "",
+      ttrMtrs: ttr.ttrMtrs ?? "",
+      ttrMinQty: ttr.ttrMinQty ?? "",
     });
   } catch (err) {
     console.error("VENDOR TTR RESOLVE ERROR:", err);
