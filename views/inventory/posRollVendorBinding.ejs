@@ -142,17 +142,17 @@
     </div>
 
     <div class="span-full form-subheading">
-      <h1>FS Overrides</h1>
+      <h1>Vendor Overrides</h1>
     </div>
 
     <div class="span-six">
-      <label for="vendor-pos-paper-code">FS Paper Code</label>
-      <input type="text" id="vendor-pos-paper-code" class="form-control" name="vendorPosPaperCode" placeholder="Enter FS Paper Code" required />
+      <label for="vendor-pos-paper-code">Vendor Paper Code</label>
+      <input type="text" id="vendor-pos-paper-code" class="form-control" name="vendorPosPaperCode" placeholder="Enter Vendor Paper Code" required />
     </div>
 
     <div class="span-six">
-      <label for="vendor-pos-gsm">FS GSM</label>
-      <input type="number" id="vendor-pos-gsm" class="form-control" name="vendorPosGsm" placeholder="Enter FS GSM" required />
+      <label for="vendor-pos-gsm">Vendor GSM</label>
+      <input type="number" id="vendor-pos-gsm" class="form-control" name="vendorPosGsm" placeholder="Enter Vendor GSM" required />
     </div>
 
     <div class="span-seven">
@@ -211,23 +211,47 @@ document.addEventListener("DOMContentLoaded", () => {
   const itemIdInput = document.getElementById("resolved-item-id");
   const itemDisplayInput = document.getElementById("resolved-item-display");
 
-  const posPaperCodeEl = document.getElementById("pos-paper-code");
-  const posPaperTypeEl = document.getElementById("pos-paper-type");
-  const posGsmEl = document.getElementById("pos-gsm");
-  const posWidthEl = document.getElementById("pos-width");
-  const posMtrsEl = document.getElementById("pos-mtrs");
-  const posCoreIdEl = document.getElementById("pos-core-id");
-  const posColorEl = document.getElementById("pos-color");
+  const posFields = [
+    "pos-paper-code",
+    "pos-paper-type",
+    "pos-gsm",
+    "pos-width",
+    "pos-mtrs",
+    "pos-core-id",
+    "pos-color",
+  ];
+
+  const fieldToApiKey = {
+    "pos-paper-code": "posPaperCode",
+    "pos-paper-type": "posPaperType",
+    "pos-gsm": "posGsm",
+    "pos-width": "posWidth",
+    "pos-mtrs": "posMtrs",
+    "pos-core-id": "posCoreId",
+    "pos-color": "posColor",
+  };
+
+  const fieldToParam = {
+    "pos-paper-code": "posPaperCode",
+    "pos-paper-type": "posPaperType",
+    "pos-gsm": "posGsm",
+    "pos-width": "posWidth",
+    "pos-mtrs": "posMtrs",
+    "pos-core-id": "posCoreId",
+    "pos-color": "posColor",
+  };
 
   const vendorChoices = new Choices(vendorSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
   const userChoices = new Choices(userSelect, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posPaperCodeChoices = new Choices(posPaperCodeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posPaperTypeChoices = new Choices(posPaperTypeEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posGsmChoices = new Choices(posGsmEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posWidthChoices = new Choices(posWidthEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posMtrsChoices = new Choices(posMtrsEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posCoreIdChoices = new Choices(posCoreIdEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
-  const posColorChoices = new Choices(posColorEl, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+
+  const specChoices = {};
+  posFields.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      specChoices[id] = new Choices(el, { searchEnabled: true, shouldSort: false, itemSelectText: "" });
+    }
+  });
+
   const vendorPosPaperCodeEl = document.getElementById("vendor-pos-paper-code");
   const vendorPosGsmEl = document.getElementById("vendor-pos-gsm");
   const posMtrsDelEl = document.getElementById("pos-mtrs-del-input");
@@ -237,6 +261,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const posOdrQtyEl = document.getElementById("pos-odr-qty");
   const posOdrFreqEl = document.getElementById("pos-odr-freq");
   const posCreditTermEl = document.getElementById("pos-credit-term");
+
+  let smartFilterBusy = false;
 
   function resetUserFields() {
     contactInput.value = "";
@@ -258,96 +284,137 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function resetSelect(instance) {
+    if (!instance) return;
     instance.clearStore();
     instance.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
   }
 
-  function setSelectChoices(instance, values, currentValue) {
-    const choiceValues = values.map((value) => ({ value: String(value), label: String(value), selected: String(value) === currentValue }));
-    instance.clearStore();
-    instance.setChoices(
-      [{ value: "", label: "Search", disabled: true, selected: !choiceValues.some((choice) => choice.selected) }, ...choiceValues],
-      "value",
-      "label",
-      true,
-    );
-    return choiceValues.length === 1 && !currentValue ? String(values[0]) : "";
+  function prefillVendorOverrides(data) {
+    if (vendorPosPaperCodeEl && !vendorPosPaperCodeEl.value) {
+      vendorPosPaperCodeEl.value = data.posPaperCode || "";
+    }
+    if (vendorPosGsmEl && !vendorPosGsmEl.value) {
+      vendorPosGsmEl.value = data.posGsm || "";
+    }
+    if (posMinQtyEl && !posMinQtyEl.value && data[pageConfig.minQtyField]) {
+      posMinQtyEl.value = data[pageConfig.minQtyField];
+    }
   }
 
   async function populateVendorUsers(vendorName) {
     resetUserChoices();
     if (!vendorName) return;
 
-    const response = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/vendor/${encodeURIComponent(vendorName)}`);
-    const vendorData = await response.json();
-    const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
-    if (!users.length) return;
+    try {
+      const response = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/vendor/${encodeURIComponent(vendorName)}`);
+      const vendorData = await response.json();
+      const users = Array.isArray(vendorData?.users) ? vendorData.users : [];
+      if (!users.length) return;
 
-    userChoices.setChoices(
-      users.map((user, index) => ({
-        value: user._id,
-        label: user.userName || "",
-        selected: index === 0,
-        customProperties: {
-          contact: user.userContact || "",
-          location: user.userLocation || "",
-        },
-      })),
-      "value",
-      "label",
-      true,
-    );
+      userChoices.setChoices(
+        users.map((user, index) => ({
+          value: user._id,
+          label: user.userName || "",
+          selected: index === 0,
+          customProperties: {
+            contact: user.userContact || "",
+            location: user.userLocation || "",
+          },
+        })),
+        "value",
+        "label",
+        true,
+      );
 
-    contactInput.value = users[0].userContact || "";
-    locationInput.value = users[0].userLocation || "";
+      contactInput.value = users[0].userContact || "";
+      locationInput.value = users[0].userLocation || "";
+    } catch (err) {
+      console.error("Vendor users fetch failed:", err);
+      resetUserChoices();
+    }
   }
 
   async function filterSpecs(changedFieldId) {
     const params = new URLSearchParams();
-    if (posPaperCodeEl.value) params.set("posPaperCode", posPaperCodeEl.value);
-    if (posPaperTypeEl.value) params.set("posPaperType", posPaperTypeEl.value);
-    if (posGsmEl.value) params.set("posGsm", posGsmEl.value);
-    if (posWidthEl.value) params.set("posWidth", posWidthEl.value);
-    if (posMtrsEl.value) params.set("posMtrs", posMtrsEl.value);
-    if (posCoreIdEl.value) params.set("posCoreId", posCoreIdEl.value);
-    if (posColorEl.value) params.set("posColor", posColorEl.value);
+    posFields.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el && el.value) {
+        params.set(fieldToParam[id], el.value);
+      }
+    });
 
     const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/filter-specs?${params}`);
     const data = await res.json();
-    if (!data) return false;
+    if (!data) return;
 
-    let autoSelectedField = "";
-    if (changedFieldId !== "pos-paper-code") autoSelectedField = setSelectChoices(posPaperCodeChoices, data.posPaperCode || [], posPaperCodeEl.value);
-    if (changedFieldId !== "pos-paper-type") autoSelectedField = autoSelectedField || setSelectChoices(posPaperTypeChoices, data.posPaperType || [], posPaperTypeEl.value);
-    if (changedFieldId !== "pos-gsm") autoSelectedField = autoSelectedField || setSelectChoices(posGsmChoices, data.posGsm || [], posGsmEl.value);
-    if (changedFieldId !== "pos-width") autoSelectedField = autoSelectedField || setSelectChoices(posWidthChoices, data.posWidth || [], posWidthEl.value);
-    if (changedFieldId !== "pos-mtrs") autoSelectedField = autoSelectedField || setSelectChoices(posMtrsChoices, data.posMtrs || [], posMtrsEl.value);
-    if (changedFieldId !== "pos-core-id") autoSelectedField = autoSelectedField || setSelectChoices(posCoreIdChoices, data.posCoreId || [], posCoreIdEl.value);
-    if (changedFieldId !== "pos-color") autoSelectedField = autoSelectedField || setSelectChoices(posColorChoices, data.posColor || [], posColorEl.value);
+    const autoSelected = [];
 
-    if (autoSelectedField) {
-      await filterSpecs(autoSelectedField);
-      await resolveItem();
-      return true;
+    posFields.forEach((id) => {
+      if (id === changedFieldId) return;
+      const apiKey = fieldToApiKey[id];
+      const filteredValues = data[apiKey] || [];
+      const currentValue = document.getElementById(id)?.value || "";
+      const filteredValueSet = new Set(filteredValues.map((v) => String(v)));
+      const choicesInstance = specChoices[id];
+
+      if (choicesInstance) {
+        const newChoices = filteredValues.map((v) => ({
+          value: String(v),
+          label: String(v),
+          selected: String(v) === currentValue,
+        }));
+
+        if (changedFieldId !== "reset-all" && filteredValues.length === 1 && !currentValue) {
+          newChoices[0].selected = true;
+          autoSelected.push(id);
+        }
+
+        choicesInstance.clearStore();
+        choicesInstance.setChoices(
+          [{ value: "", label: "Search", disabled: true, selected: !newChoices.some((c) => c.selected) }, ...newChoices],
+          "value",
+          "label",
+          true,
+        );
+
+        if (currentValue && filteredValueSet.has(String(currentValue))) {
+          choicesInstance.setChoiceByValue(String(currentValue));
+        } else if (changedFieldId !== "reset-all" && filteredValues.length === 1 && !currentValue) {
+          choicesInstance.setChoiceByValue(String(filteredValues[0]));
+        } else if (!filteredValues.length) {
+          const el = document.getElementById(id);
+          if (el) el.value = "";
+        }
+      }
+    });
+
+    if (autoSelected.length > 0) {
+      await filterSpecs(autoSelected[0]);
     }
-    return false;
+  }
+
+  async function handleSmartFilterChange(changedFieldId) {
+    if (smartFilterBusy) return;
+    smartFilterBusy = true;
+    try {
+      await filterSpecs(changedFieldId);
+      await resolveItem();
+    } finally {
+      smartFilterBusy = false;
+    }
   }
 
   async function resolveItem() {
     resetResolvedItem();
-    if (!posPaperCodeEl.value || !posPaperTypeEl.value || !posGsmEl.value || !posWidthEl.value || !posMtrsEl.value || !posCoreIdEl.value || !posColorEl.value) {
-      return;
+    const values = {};
+    for (const id of posFields) {
+      const el = document.getElementById(id);
+      if (!el || !el.value) return;
+      values[id] = el.value;
     }
 
-    const params = new URLSearchParams({
-      posPaperCode: posPaperCodeEl.value,
-      posPaperType: posPaperTypeEl.value,
-      posGsm: posGsmEl.value,
-      posWidth: posWidthEl.value,
-      posMtrs: posMtrsEl.value,
-      posCoreId: posCoreIdEl.value,
-      posColor: posColorEl.value,
-    });
+    const params = new URLSearchParams();
+    posFields.forEach(id => params.set(fieldToParam[id], values[id]));
 
     const res = await fetch(`/fairdesk/form/vendor-item-binding/${pageConfig.key}/resolve?${params}`);
     if (!res.ok) {
@@ -361,6 +428,8 @@ document.addEventListener("DOMContentLoaded", () => {
     itemDisplayInput.value = data.displayValue;
     itemDisplayInput.classList.add("item-id-success");
     submitBtn.disabled = false;
+
+    prefillVendorOverrides(data);
   }
 
   vendorSelect.addEventListener("change", async () => {
@@ -381,33 +450,11 @@ document.addEventListener("DOMContentLoaded", () => {
     locationInput.value = selectedUser?.customProperties?.location || "";
   });
 
-  posPaperCodeEl.addEventListener("change", async () => {
-    await filterSpecs("pos-paper-code");
-    await resolveItem();
-  });
-  posPaperTypeEl.addEventListener("change", async () => {
-    await filterSpecs("pos-paper-type");
-    await resolveItem();
-  });
-  posGsmEl.addEventListener("change", async () => {
-    await filterSpecs("pos-gsm");
-    await resolveItem();
-  });
-  posWidthEl.addEventListener("change", async () => {
-    await filterSpecs("pos-width");
-    await resolveItem();
-  });
-  posMtrsEl.addEventListener("change", async () => {
-    await filterSpecs("pos-mtrs");
-    await resolveItem();
-  });
-  posCoreIdEl.addEventListener("change", async () => {
-    await filterSpecs("pos-core-id");
-    await resolveItem();
-  });
-  posColorEl.addEventListener("change", async () => {
-    await filterSpecs("pos-color");
-    await resolveItem();
+  posFields.forEach((id) => {
+    const field = document.getElementById(id);
+    if (!field) return;
+    field.addEventListener("change", () => handleSmartFilterChange(id));
+    field.addEventListener("addItem", () => handleSmartFilterChange(id));
   });
 
   const widthField = document.getElementById(pageConfig.widthField);
@@ -430,20 +477,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetSpecsBtn = document.getElementById("reset-specs-btn");
   if (resetSpecsBtn) {
     resetSpecsBtn.addEventListener("click", async () => {
-      posPaperCodeEl.value = "";
-      posPaperTypeEl.value = "";
-      posGsmEl.value = "";
-      posWidthEl.value = "";
-      posMtrsEl.value = "";
-      posCoreIdEl.value = "";
-      posColorEl.value = "";
-      resetSelect(posPaperCodeChoices);
-      resetSelect(posPaperTypeChoices);
-      resetSelect(posGsmChoices);
-      resetSelect(posWidthChoices);
-      resetSelect(posMtrsChoices);
-      resetSelect(posCoreIdChoices);
-      resetSelect(posColorChoices);
+      posFields.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+        if (specChoices[id]) {
+          specChoices[id].setChoiceByValue("");
+        }
+      });
       resetResolvedItem();
       vendorPosPaperCodeEl.value = "";
       vendorPosGsmEl.value = "";
@@ -460,6 +500,7 @@ document.addEventListener("DOMContentLoaded", () => {
       await filterSpecs("reset-all");
     });
   }
+
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

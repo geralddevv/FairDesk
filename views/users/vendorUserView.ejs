@@ -274,7 +274,7 @@
           cellClick: (e, cell) => {
             const row = cell.getRow().getData();
             if (!row.tapeCount || !row._id) return;
-            window.location.href = `/fairdesk/tape/view/${row._id}`;
+            window.location.href = `/fairdesk/vendor-item/view/tape?userId=${row._id}`;
           },
         }),
         withTextFilter({
@@ -293,7 +293,7 @@
           cellClick: (e, cell) => {
             const row = cell.getRow().getData();
             if (!row.posRollCount || !row._id) return;
-            window.location.href = `/fairdesk/pos-roll/view/${row._id}`;
+            window.location.href = `/fairdesk/vendor-item/view/pos?userId=${row._id}`;
           },
         }),
         withTextFilter({
@@ -312,7 +312,7 @@
           cellClick: (e, cell) => {
             const row = cell.getRow().getData();
             if (!row.tafetaCount || !row._id) return;
-            window.location.href = `/fairdesk/tafeta/view/${row._id}`;
+            window.location.href = `/fairdesk/vendor-item/view/tafeta?userId=${row._id}`;
           },
         }),
       ],

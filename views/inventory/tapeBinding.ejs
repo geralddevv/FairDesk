@@ -18,6 +18,7 @@
       <!-- The main content -->
       <div class="main-content">
         <form action="/fairdesk/form/tape-binding" method="post" onsubmit="return validateTapeBeforeSubmit()" class="needs-validation" autocomplete="off" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="span-full form-heading">
             <h1>Client Tape</h1>
           </div>

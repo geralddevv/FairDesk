@@ -21,7 +21,7 @@ const ITEM_CONFIGS = {
     bindingField: "tapeId",
     vendorArrayField: "tape",
     masterModel: Tape,
-    displayValueKey: "tapePaperCode",
+    displayValueKey: "tapeProductId",
     widthField: "tapeWidth",
     mtrsField: "tapeMtrs",
     rateField: "tapeRatePerRoll",
@@ -38,15 +38,11 @@ const ITEM_CONFIGS = {
       { id: "tape-finish", name: "tapeFinish", label: "Finish", type: "select" },
     ],
     overrideFields: [
-      { id: "vendor-tape-paper-code", name: "vendorTapePaperCode", label: "FS Paper Code", type: "text" },
-      { id: "vendor-tape-gsm", name: "vendorTapeGsm", label: "FS GSM", type: "number" },
-      { id: "tape-mtrs-del-input", name: "tapeMtrsDel", label: "MTRS Delivered", type: "number" },
-      { id: "tape-rate-per-roll", name: "tapeRatePerRoll", label: "Rate Per Roll", type: "number" },
-      { id: "tape-sale-cost", name: "tapeSaleCost", label: "Sales sq mtrs Cost", type: "number", readonly: true },
-      { id: "tape-min-qty", name: "tapeMinQty", label: "Minimum Order QTY", type: "number" },
-      { id: "tape-odr-qty", name: "tapeOdrQty", label: "Order QTY", type: "number" },
-      { id: "tape-odr-freq", name: "tapeOdrFreq", label: "Repeat Order Freq", type: "text" },
-      { id: "tape-credit-term", name: "tapeCreditTerm", label: "CR", type: "text" },
+      { id: "vendor-tape-paper-code", name: "vendorTapePaperCode", label: "Vendor Paper Code", type: "text" },
+      { id: "vendor-tape-gsm", name: "vendorTapeGsm", label: "Vendor GSM", type: "number" },
+      { id: "vendor-tape-paper-type", name: "vendorTapePaperType", label: "Vendor Paper Type", type: "text" },
+
+      { id: "tape-min-qty", name: "tapeMinQty", label: "MSQ", type: "number" },
     ],
   },
   pos: {
@@ -59,7 +55,7 @@ const ITEM_CONFIGS = {
     bindingField: "posRollId",
     vendorArrayField: "posRoll",
     masterModel: PosRoll,
-    displayValueKey: "posPaperCode",
+    displayValueKey: "posProductId",
     widthField: "posWidth",
     mtrsField: "posMtrs",
     rateField: "posRatePerRoll",
@@ -76,8 +72,8 @@ const ITEM_CONFIGS = {
       { id: "pos-color", name: "posColor", label: "Color", type: "select" },
     ],
     overrideFields: [
-      { id: "vendor-pos-paper-code", name: "vendorPosPaperCode", label: "FS Paper Code", type: "text" },
-      { id: "vendor-pos-gsm", name: "vendorPosGsm", label: "FS GSM", type: "number" },
+      { id: "vendor-pos-paper-code", name: "vendorPosPaperCode", label: "Vendor Paper Code", type: "text" },
+      { id: "vendor-pos-gsm", name: "vendorPosGsm", label: "Vendor GSM", type: "number" },
       { id: "pos-mtrs-del-input", name: "posMtrsDel", label: "MTRS Delivered", type: "number" },
       { id: "pos-rate-per-roll", name: "posRatePerRoll", label: "Rate Per Roll", type: "number" },
       { id: "pos-sale-cost", name: "posSaleCost", label: "Sales sq mtrs Cost", type: "number", readonly: true },
@@ -97,7 +93,7 @@ const ITEM_CONFIGS = {
     bindingField: "tafetaId",
     vendorArrayField: "tafeta",
     masterModel: Tafeta,
-    displayValueKey: "tafetaMaterialCode",
+    displayValueKey: "tafetaProductId",
     widthField: "tafetaWidth",
     mtrsField: "tafetaMtrs",
     rateField: "tafetaRatePerRoll",
@@ -116,8 +112,8 @@ const ITEM_CONFIGS = {
       { id: "tafeta-core-id", name: "tafetaCoreId", label: "Core ID", type: "select" },
     ],
     overrideFields: [
-      { id: "vendor-tafeta-material-code", name: "vendorTafetaMaterialCode", label: "FS Material Code", type: "text" },
-      { id: "vendor-tafeta-gsm", name: "vendorTafetaGsm", label: "FS GSM", type: "text" },
+      { id: "vendor-tafeta-material-code", name: "vendorTafetaMaterialCode", label: "Vendor Material Code", type: "text" },
+      { id: "vendor-tafeta-gsm", name: "vendorTafetaGsm", label: "Vendor GSM", type: "text" },
       { id: "tafeta-mtrs-del-input", name: "tafetaMtrsDel", label: "MTRS Delivered", type: "text" },
       { id: "tafeta-rate-per-roll", name: "tafetaRatePerRoll", label: "Rate Per Roll", type: "number" },
       { id: "tafeta-sale-cost", name: "tafetaSaleCost", label: "Sales sq mtrs Cost", type: "number", readonly: true },
@@ -210,11 +206,7 @@ async function saveBinding(req, res, kind) {
 
     if (config.bindingField === "tapeId") {
       createData.vendorTapeGsm = Number(req.body.vendorTapeGsm);
-      createData.tapeMtrsDel = Number(req.body.tapeMtrsDel || 0);
-      createData.tapeRatePerRoll = Number(req.body.tapeRatePerRoll);
-      createData.tapeSaleCost = Number(req.body.tapeSaleCost);
       createData.tapeMinQty = Number(req.body.tapeMinQty);
-      createData.tapeOdrQty = Number(req.body.tapeOdrQty);
     }
     if (config.bindingField === "posRollId") {
       createData.vendorPosGsm = Number(req.body.vendorPosGsm);
@@ -232,6 +224,13 @@ async function saveBinding(req, res, kind) {
     }
 
     const binding = await config.bindingModel.create(createData);
+
+    // Sync MSQ to master item
+    const minQtyValue = createData[config.minQtyField];
+    if (minQtyValue || minQtyValue === 0) {
+      await config.masterModel.updateOne({ _id: masterId }, { $set: { [config.minQtyField]: minQtyValue } });
+    }
+
     vendorUser[config.vendorArrayField].push(binding._id);
     await vendorUser.save();
 
@@ -239,6 +238,9 @@ async function saveBinding(req, res, kind) {
     res.json({ success: true, redirect: config.redirectTo });
   } catch (err) {
     console.error("VENDOR ITEM BINDING ERROR:", err);
+    if (err.code === 11000) {
+      return res.status(400).json({ success: false, message: "A vendor binding with this exact configuration already exists." });
+    }
     res.status(400).json({ success: false, message: err.message });
   }
 }
@@ -297,8 +299,10 @@ async function resolveMaster(req, res, kind) {
     if (!master) return res.status(404).json(null);
 
     res.json({
+      ...master,
       itemId: master._id,
-      displayValue: master[config.displayValueKey] || master._id,
+      displayValue: master[config.displayValueKey] || master.tapeProductId || master.posProductId || master.tafetaProductId || master._id,
+      [config.minQtyField]: master[config.minQtyField] || "",
     });
   } catch (err) {
     console.error("VENDOR RESOLVE ERROR:", err);
@@ -311,5 +315,261 @@ router.post("/form/vendor-item-binding/:kind", async (req, res) => saveBinding(r
 router.get("/form/vendor-item-binding/:kind/vendor/:name", fetchVendorByName);
 router.get("/form/vendor-item-binding/:kind/filter-specs", async (req, res) => filterSpecs(req, res, req.params.kind));
 router.get("/form/vendor-item-binding/:kind/resolve", async (req, res) => resolveMaster(req, res, req.params.kind));
+
+/* GET : Display Vendor Bound Items */
+router.get("/vendor-item/view/:kind", async (req, res) => {
+  try {
+    const { kind } = req.params;
+    const config = getConfig(kind);
+    if (!config) return res.status(404).send("Vendor binding type not found");
+
+    const userId =
+      typeof req.query.userId === "string" && /^[a-f\d]{24}$/i.test(req.query.userId.trim())
+        ? req.query.userId.trim()
+        : "";
+
+    const bindingFilter = userId ? { vendorUserId: userId } : {};
+    const vendorUser = userId ? await VendorUser.findById(userId).select("vendorName userName").lean() : null;
+
+    const bindings = await config.bindingModel
+      .find(bindingFilter)
+      .populate("vendorUserId")
+      .populate(config.bindingField)
+      .lean();
+
+    // Fetch stock for all bound items
+    const masterIds = bindings.map((b) => b[config.bindingField]?._id).filter(Boolean);
+    const stockMap = {};
+
+    if (masterIds.length) {
+      let StockModel;
+      let matchField;
+      if (kind === "tape") {
+        StockModel = (await import("../../models/inventory/TapeStock.js")).default;
+        matchField = "tape";
+      } else if (kind === "pos") {
+        StockModel = (await import("../../models/inventory/PosRollStock.js")).default;
+        matchField = "posRoll";
+      } else if (kind === "tafeta") {
+        StockModel = (await import("../../models/inventory/TafetaStock.js")).default;
+        matchField = "tafeta";
+      }
+
+      if (StockModel) {
+        const stockAgg = await StockModel.aggregate([
+          { $match: { [matchField]: { $in: masterIds } } },
+          { $group: { _id: `$${matchField}`, total: { $sum: "$quantity" } } },
+        ]);
+        stockAgg.forEach((row) => {
+          stockMap[row._id.toString()] = row.total;
+        });
+      }
+    }
+
+    const jsonData = bindings.map((binding) => {
+      const master = binding[config.bindingField];
+      const mid = master?._id?.toString();
+      return {
+        ...binding,
+        stock: stockMap[mid] || 0,
+        displayValue: master ? master[config.displayValueKey] : "",
+        vendorName: binding.vendorUserId?.vendorName || "",
+        userName: binding.vendorUserId?.userName || "",
+        userContact: binding.vendorUserId?.userContact || "",
+      };
+    });
+
+    const displayTemplates = {
+      tape: "inventory/tapeVendorDisp.ejs",
+      pos: "inventory/posRollVendorDisp.ejs",
+      tafeta: "inventory/tafetaVendorDisp.ejs",
+    };
+
+    res.render(displayTemplates[kind] || "inventory/itemVendorDisp.ejs", {
+      jsonData,
+      CSS: "tableDisp.css",
+      JS: false,
+      title: `Vendor ${kind.toUpperCase()} Display`,
+      vendorUser,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error(`VENDOR ${req.params.kind.toUpperCase()} VIEW ERROR:`, err);
+    req.flash("notification", `Failed to load Vendor ${req.params.kind} view`);
+    res.redirect("/fairdesk/vendor/coordinator/view");
+  }
+});
+
+/* GET : Edit Vendor Binding */
+router.get("/vendor-item/edit/:kind/:id", async (req, res) => {
+  try {
+    const { kind, id } = req.params;
+    const config = getConfig(kind);
+    if (!config) return res.status(404).send("Type not found");
+
+    const binding = await config.bindingModel.findById(id).populate("vendorUserId").populate(config.bindingField).lean();
+
+    if (!binding) {
+      req.flash("notification", "Binding not found");
+      return res.redirect("back");
+    }
+
+    res.render(`inventory/${kind}VendorBindingEdit.ejs`, {
+      title: `Edit Vendor ${kind.toUpperCase()} Binding`,
+      binding,
+      returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR EDIT GET ERROR:", err);
+    res.redirect("back");
+  }
+});
+
+/* POST : Update Vendor Binding */
+router.post("/vendor-item/edit/:kind/:id", async (req, res) => {
+  try {
+    const { kind, id } = req.params;
+    const config = getConfig(kind);
+    if (!config) return res.status(404).json({ success: false, message: "Type not found" });
+
+    const { returnTo } = req.body;
+    const updateData = { ...req.body };
+
+    // Numerical conversions based on kind
+    if (kind === "tape") {
+      updateData.vendorTapeGsm = Number(req.body.vendorTapeGsm);
+      updateData.tapeMinQty = Number(req.body.tapeMinQty);
+    } else if (kind === "pos") {
+      updateData.vendorPosGsm = Number(req.body.vendorPosGsm);
+      updateData.posMinQty = Number(req.body.posMinQty);
+    } else if (kind === "tafeta") {
+      updateData.tafetaMinQty = Number(req.body.tafetaMinQty);
+    }
+
+    const binding = await config.bindingModel.findByIdAndUpdate(id, updateData, { new: true });
+    if (!binding) return res.status(404).json({ success: false, message: "Binding not found" });
+
+    // Also sync MinQty to master
+    if (updateData[config.minQtyField] || updateData[config.minQtyField] === 0) {
+      await config.masterModel.updateOne(
+        { _id: binding[config.bindingField] },
+        { $set: { [config.minQtyField]: Number(updateData[config.minQtyField]) } },
+      );
+    }
+
+    req.flash("notification", "Binding updated successfully!");
+    res.json({ success: true, redirect: returnTo || `/fairdesk/vendor-item/view/${kind}?userId=${binding.vendorUserId}` });
+  } catch (err) {
+    console.error("VENDOR EDIT POST ERROR:", err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+/* GET : Compare Vendor Binding */
+router.get("/vendor-item/compare/:kind/:id", async (req, res) => {
+  try {
+    const { kind, id } = req.params;
+    const config = getConfig(kind);
+    if (!config) return res.status(404).send("Type not found");
+
+    const binding = await config.bindingModel.findById(id).populate("vendorUserId").populate(config.bindingField).lean();
+
+    if (!binding) {
+      req.flash("notification", "Binding not found");
+      return res.redirect("back");
+    }
+
+    const master = binding[config.bindingField] || {};
+    const vendorUser = binding.vendorUserId || {};
+
+    // Build comparison rows based on kind
+    let compareRows = [];
+    if (kind === "tape") {
+      compareRows = [
+        { field: "Paper Code", orgValue: binding.vendorTapePaperCode || "N/A", clientValue: master.tapePaperCode || "N/A" },
+        { field: "Paper Type", orgValue: binding.vendorTapePaperType || "N/A", clientValue: master.tapePaperType || "N/A" },
+        { field: "GSM", orgValue: binding.vendorTapeGsm ?? "N/A", clientValue: master.tapeGsm ?? "N/A" },
+        { field: "Sample ID", orgValue: "-", clientValue: master.tapeProductId || "N/A" },
+        { field: "Width", orgValue: "-", clientValue: master.tapeWidth || "N/A" },
+        { field: "Meters", orgValue: "-", clientValue: master.tapeMtrs || "N/A" },
+        { field: "Finish", orgValue: "-", clientValue: master.tapeFinish || "N/A" },
+        { field: "Core ID", orgValue: "-", clientValue: master.tapeCoreId || "N/A" },
+        { field: "MSQ", orgValue: "-", clientValue: master.tapeMinQty ?? binding.tapeMinQty ?? "N/A" },
+        { field: "Status", orgValue: binding.status || "ACTIVE", clientValue: "-" },
+      ];
+    } else if (kind === "pos") {
+      compareRows = [
+        { field: "Paper Code", orgValue: binding.vendorPosPaperCode || "N/A", clientValue: master.posPaperCode || "N/A" },
+        { field: "GSM", orgValue: binding.vendorPosGsm ?? "N/A", clientValue: master.posGsm ?? "N/A" },
+        { field: "Sample ID", orgValue: "-", clientValue: master.posProductId || "N/A" },
+        { field: "Paper Type", orgValue: "-", clientValue: master.posPaperType || "N/A" },
+        { field: "Width", orgValue: "-", clientValue: master.posWidth || "N/A" },
+        { field: "Meters", orgValue: "-", clientValue: master.posMtrs || "N/A" },
+        { field: "Core ID", orgValue: "-", clientValue: master.posCoreId || "N/A" },
+        { field: "Color", orgValue: "-", clientValue: master.posColor || "N/A" },
+        { field: "MSQ", orgValue: "-", clientValue: master.posMinQty ?? binding.posMinQty ?? "N/A" },
+        { field: "Status", orgValue: binding.status || "ACTIVE", clientValue: "-" },
+      ];
+    } else if (kind === "tafeta") {
+      compareRows = [
+        { field: "Material Code", orgValue: binding.vendorTafetaMaterialCode || "N/A", clientValue: master.tafetaMaterialCode || "N/A" },
+        { field: "GSM", orgValue: binding.vendorTafetaGsm ?? "N/A", clientValue: master.tafetaGsm ?? "N/A" },
+        { field: "Sample ID", orgValue: "-", clientValue: master.tafetaProductId || "N/A" },
+        { field: "Material Type", orgValue: "-", clientValue: master.tafetaMaterialType || "N/A" },
+        { field: "Color", orgValue: "-", clientValue: master.tafetaColor || "N/A" },
+        { field: "Width", orgValue: "-", clientValue: master.tafetaWidth || "N/A" },
+        { field: "Meters", orgValue: "-", clientValue: master.tafetaMtrs || "N/A" },
+        { field: "Core Len", orgValue: "-", clientValue: master.tafetaCoreLen || "N/A" },
+        { field: "Notch", orgValue: "-", clientValue: master.tafetaNotch || "N/A" },
+        { field: "Core ID", orgValue: "-", clientValue: master.tafetaCoreId || "N/A" },
+        { field: "MSQ", orgValue: "-", clientValue: master.tafetaMinQty ?? binding.tafetaMinQty ?? "N/A" },
+        { field: "Status", orgValue: binding.status || "ACTIVE", clientValue: "-" },
+      ];
+    }
+
+    res.render("inventory/itemCompare.ejs", {
+      title: `Vendor ${kind.toUpperCase()} Compare`,
+      CSS: false,
+      JS: false,
+      itemTitle: `${kind.toUpperCase()} Details`,
+      sectionTitle: `${kind.toUpperCase()} Details (Fairtech - Vendor)`,
+      orgLabel: "Fairtech",
+      clientLabel: "Vendor",
+      editBindingUrl: `/fairdesk/vendor-item/edit/${kind}/${binding._id}`,
+      clientName: vendorUser?.vendorName || "",
+      userName: vendorUser?.userName || "",
+      compareRows,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR COMPARE ERROR:", err);
+    res.redirect("back");
+  }
+});
+
+/* POST : Delete Vendor Binding */
+router.post("/vendor-item/delete/:kind/:id", async (req, res) => {
+  try {
+    const { kind, id } = req.params;
+    const config = getConfig(kind);
+    if (!config) return res.status(404).json({ success: false, message: "Type not found" });
+
+    const binding = await config.bindingModel.findById(id).lean();
+    if (!binding) return res.status(404).json({ success: false, message: "Binding not found" });
+
+    await config.bindingModel.deleteOne({ _id: id });
+    await VendorUser.updateOne({ _id: binding.vendorUserId }, { $pull: { [config.vendorArrayField]: id } });
+
+    req.flash("notification", "Binding removed successfully!");
+    res.redirect(`/fairdesk/vendor-item/view/${kind}?userId=${binding.vendorUserId}`);
+  } catch (err) {
+    console.error("VENDOR DELETE ERROR:", err);
+    res.redirect("back");
+  }
+});
+
 
 export default router;

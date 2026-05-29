@@ -615,6 +615,10 @@
           </div>
 
           <div class="nav-labels-opt">
+            <div title="TTR View" class="<%= title === 'TTR View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/ttr/view'" style="border-top: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>            
             <div title="Tape View" class="<%= title === 'Tape View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tape/view'" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
@@ -623,13 +627,9 @@
               <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
               <p class="nav-items-para">POS Roll</p>
             </div>                        
-            <div title="Tafeta View" class="<%= title === 'Tafeta View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tafeta/view'" >
+            <div title="Tafeta View" class="<%= title === 'Tafeta View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tafeta/view'" style="border-bottom: 2px solid #ffffff9d;" >
               <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
               <p class="nav-items-para">Tafeta</p>
-            </div>                        
-            <div title="TTR View" class="<%= title === 'TTR View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/ttr/view'" style="border-bottom: 2px solid #ffffff9d;" >
-              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
-              <p class="nav-items-para">TTR</p>
             </div>                        
           </div>
         </div>
@@ -694,7 +694,7 @@
         <div class="nav-opt-wrap">
           <div title="Vendor" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Vendor</p>
+            <p class="nav-items-para">Purchase</p>
           </div>
           
           <div class="nav-labels-opt">

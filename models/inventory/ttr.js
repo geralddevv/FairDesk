@@ -85,6 +85,10 @@ const ttrSchema = new mongoose.Schema(
       trim: true,
     },
 
+    ttrMinQty: {
+      type: Number,
+    },
+
     /* ================= AUDIT ================= */
     createdBy: {
       type: String,

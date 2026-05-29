@@ -65,6 +65,10 @@ const tafetaSchema = new Schema(
       sparse: true,
       trim: true,
     },
+
+    tafetaMinQty: {
+      type: Number,
+    },
   },
   {
     timestamps: true,

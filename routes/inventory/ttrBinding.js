@@ -48,6 +48,7 @@ const trimOr = (value, fallback = "") => {
 };
 
 const numOr = (value, fallback = 0) => {
+  if (value === "" || value === null || value === undefined) return fallback;
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
 };
@@ -310,15 +311,16 @@ router.post("/form/ttr-vendor-binding", async (req, res) => {
       ttrMtrsDel,
       ttrRatePerRoll,
       ttrSaleCost,
-      ttrMinQty: ttrMinQty || ttr.ttrMinQty || DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty,
+      ttrMinQty: ttrMinQty,
       ttrOdrQty: minimumOrderQty,
       ttrOdrFreq,
       ttrCreditTerm,
     };
 
-    const vendorTtrBinding = await VendorTtrBinding.create({
-      ...vendorBindingData,
-    });
+    const vendorTtrBinding = await VendorTtrBinding.create(vendorBindingData);
+
+    // Update master with latest MSQ if requested
+    await Ttr.updateOne({ _id: ttrId }, { $set: { ttrMinQty: ttrMinQty } });
 
     vendorUser.ttr.push(vendorTtrBinding._id);
     await vendorUser.save();
@@ -801,7 +803,7 @@ router.get("/ttr-vendor/view", async (req, res) => {
         vendorTtrMaterialCode: binding.vendorTtrMaterialCode || "",
         vendorTtrType: binding.vendorTtrType || "",
         vendorTtrColor: binding.vendorTtrColor || "",
-        ttrMinQty: binding.ttrId?.ttrMinQty ?? binding.ttrOdrQty ?? 0,
+        ttrMinQty: binding.ttrMinQty ?? 0,
         status: binding.status || "N/A",
       };
     });
@@ -849,7 +851,7 @@ router.get("/ttr-vendor/compare/:id", async (req, res) => {
       { field: "Core Length", orgValue: "-", clientValue: ttr.ttrCoreLength ?? "N/A" },
       { field: "Notch", orgValue: "-", clientValue: ttr.ttrNotch || "N/A" },
       { field: "Winding", orgValue: "-", clientValue: ttr.ttrWinding || "N/A" },
-      { field: "Minimum Qty", orgValue: "-", clientValue: ttr.ttrMinQty ?? "N/A" },
+      { field: "Minimum Qty", orgValue: "-", clientValue: ttr.ttrMinQty ?? binding.ttrMinQty ?? "N/A" },
       { field: "Status", orgValue: binding.status || "N/A", clientValue: "-" },
     ];
 
@@ -957,8 +959,12 @@ router.post("/ttr-vendor-binding/edit/:id", async (req, res) => {
     binding.vendorTtrMaterialCode = incomingVendorCode;
     binding.vendorTtrType = vendorTtrType;
     binding.vendorTtrColor = vendorTtrColor;
+    binding.ttrMinQty = Number(req.body.ttrMinQty || 1);
 
     await binding.save();
+
+    // Also update the master item's MSQ
+    await Ttr.updateOne({ _id: binding.ttrId }, { $set: { ttrMinQty: binding.ttrMinQty } });
 
     req.flash("notification", "Vendor TTR binding updated successfully!");
     res.json({

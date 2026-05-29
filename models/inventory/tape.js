@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
 
-const _create = mongoose.Model.create;
-
 const tapeSchema = new mongoose.Schema(
   {
     /* ================= IDENTIFICATION ================= */
@@ -69,6 +67,10 @@ const tapeSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       trim: true,
+    },
+
+    tapeMinQty: {
+      type: Number,
     },
 
     /* ================= AUDIT ================= */

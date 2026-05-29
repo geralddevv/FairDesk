@@ -18,6 +18,8 @@
       <!-- The main content -->
       <div class="main-content">
         <form action="/fairdesk/form/ttr-binding" method="post" onsubmit="return validateTtrBeforeSubmit()" class="needs-validation" autocomplete="off" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
           <div class="span-full form-heading">
             <h1>Client TTR</h1>
           </div>

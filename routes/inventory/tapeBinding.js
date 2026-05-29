@@ -40,7 +40,7 @@ router.get("/form/tape-binding", async (req, res) => {
   } catch (err) {
     console.error(err);
     req.flash("notification", "Failed to load Tape Binding");
-    res.redirect("back");
+    res.redirect(req.get("Referrer") || "/");
   }
 });
 
@@ -225,7 +225,7 @@ router.get("/tape/view/:id", async (req, res) => {
 
     if (!user) {
       req.flash("notification", "User not found");
-      return res.redirect("back");
+      return res.redirect(req.get("Referrer") || "/");
     }
 
     // Fetch stock for all bound tapes in one aggregation to avoid N+1 queries
@@ -257,7 +257,7 @@ router.get("/tape/view/:id", async (req, res) => {
     });
   } catch (err) {
     console.error("TAPE VIEW ERROR:", err);
-    res.redirect("back");
+    res.redirect(req.get("Referrer") || "/");
   }
 });
 
@@ -271,7 +271,7 @@ router.get("/tape/compare/:id", async (req, res) => {
 
     if (!binding) {
       req.flash("notification", "Tape binding not found");
-      return res.redirect("back");
+      return res.redirect(req.get("Referrer") || "/");
     }
 
     const tape = binding.tapeId || {};
@@ -313,7 +313,7 @@ router.get("/tape/compare/:id", async (req, res) => {
   } catch (err) {
     console.error("TAPE COMPARE ERROR:", err);
     req.flash("notification", "Failed to load Tape comparison");
-    res.redirect("back");
+    res.redirect(req.get("Referrer") || "/");
   }
 });
 
@@ -324,7 +324,7 @@ router.get("/tape-binding/edit/:id", async (req, res) => {
 
     if (!binding) {
       req.flash("notification", "Tape binding not found");
-      return res.redirect("back");
+      return res.redirect(req.get("Referrer") || "/");
     }
 
     res.render("inventory/tapeBindingEdit.ejs", {
@@ -338,7 +338,7 @@ router.get("/tape-binding/edit/:id", async (req, res) => {
   } catch (err) {
     console.error("EDIT BINDING GET ERROR:", err);
     req.flash("notification", "Failed to load Tape Binding Edit");
-    res.redirect("back");
+    res.redirect(req.get("Referrer") || "/");
   }
 });
 
@@ -364,7 +364,7 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
     const binding = await TapeBinding.findById(id);
     if (!binding) {
       req.flash("notification", "Binding not found");
-      return res.redirect("back");
+      return res.redirect(req.get("Referrer") || "/");
     }
 
     binding.tapeClientPaperCode = tapeClientPaperCode;
@@ -398,7 +398,7 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
     } else {
       req.flash("notification", "Failed to update Tape Binding");
     }
-    res.redirect("back");
+    res.redirect(req.get("Referrer") || "/");
   }
 });
 
@@ -409,7 +409,7 @@ router.post("/tape-binding/delete/:id", async (req, res) => {
 
     if (!binding) {
       req.flash("notification", "Tape binding not found");
-      return res.redirect("back");
+      return res.redirect(req.get("Referrer") || "/");
     }
 
     await TapeBinding.deleteOne({ _id: id });

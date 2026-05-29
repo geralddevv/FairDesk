@@ -1,15 +1,37 @@
 <% layout('/layout/boilerplate') %>
+<style>
+  .item-id-success {
+    border: 2px solid #28a745 !important;
+    background-color: #f3fff6;
+    color: #155724;
+    font-weight: 600;
+  }
+
+  .item-id-error {
+    border: 2px solid #dc3545 !important;
+    background-color: #fff5f5;
+    color: #721c24;
+    font-weight: 600;
+  }
+</style>
+
 <div class="main-content">
   <form id="vendor-ttr-form" action="/fairdesk/form/ttr-vendor-binding" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
     <div class="span-full form-heading">
       <h1>Vendor TTR</h1>
     </div>
 
     <div class="span-full form-subheading">
-      <h1>Vendor Info</h1>
+      <h1>FS Info</h1>
     </div>
 
-    <div class="span-dual">
+    <div class="span-six">
+      <label for="resolved-item-display">Item ID</label>
+      <input type="text" id="resolved-item-display" class="form-control" placeholder="Will appear here" readonly required />
+    </div>
+
+    <div class="span-seven">
       <div class="clientName-label">
         <label for="vendor-name">Vendor Name</label>
         <span class="asterisk" style="font-size: 14px;"></span>
@@ -22,19 +44,19 @@
       </select>
     </div>
 
-    <div class="span-dual">
+    <div class="span-seven">
       <label for="vendor-user-name">Vendor User</label>
       <select name="vendorUserId" id="vendor-user-name" class="form-control select-tag" required>
         <option value="" disabled selected hidden>Search</option>
       </select>
     </div>
 
-    <div class="span-dual">
+    <div class="span-six">
       <label for="vendor-user-contact">User Contact</label>
       <input type="text" id="vendor-user-contact" class="form-control" placeholder="Will appear here" readonly required />
     </div>
 
-    <div class="span-dual">
+    <div class="span-six">
       <label for="vendor-user-location">Location</label>
       <input type="text" id="vendor-user-location" class="form-control" placeholder="Will appear here" readonly required />
     </div>
@@ -196,7 +218,7 @@
     <input type="hidden" name="ttrMtrsDel" id="ttr-mtrs-del-input" />
     <input type="hidden" name="ttrRatePerRoll" id="ttr-rate-per-roll" />
     <input type="hidden" name="ttrSaleCost" id="ttr-sale-cost" />
-    <input type="hidden" name="ttrOdrQty" id="ttr-odr-qty" />
+    <input type="hidden" name="ttrOdrQty" id="ttr-odr-qty" value="1" />
     <input type="hidden" name="ttrOdrFreq" id="ttr-odr-freq" />
     <input type="hidden" name="ttrCreditTerm" id="ttr-credit-term" />
 
@@ -260,6 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const vendorTypeSelect = document.getElementById("vendor-ttr-type");
   const vendorColorSelect = document.getElementById("vendor-ttr-color");
   const minQtyInput = document.getElementById("ttr-min-qty");
+  const itemDisplayInput = document.getElementById("resolved-item-display");
 
   submitBtn.disabled = true;
 
@@ -308,6 +331,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function resetResolvedTtr() {
     const ttrIdInput = document.getElementById("resolved-ttr-id");
     if (ttrIdInput) ttrIdInput.value = "";
+    if (itemDisplayInput) {
+      itemDisplayInput.value = "";
+      itemDisplayInput.classList.remove("item-id-success", "item-id-error");
+    }
     submitBtn.disabled = true;
   }
 
@@ -321,8 +348,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (vendorColorSelect && !vendorColorSelect.value) {
       vendorColorSelect.value = resolvedData?.ttrColor || "BLACK";
     }
-    if (minQtyInput && !minQtyInput.value) {
-      minQtyInput.value = String(resolvedData?.ttrMinQty ?? "");
+    if (minQtyInput && !minQtyInput.value && resolvedData?.ttrMinQty) {
+      minQtyInput.value = String(resolvedData.ttrMinQty);
     }
   }
 
@@ -487,15 +514,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const ttrIdInput = document.getElementById("resolved-ttr-id");
 
     if (!res.ok) {
+      if (itemDisplayInput) {
+        itemDisplayInput.value = "No matching item found";
+        itemDisplayInput.classList.add("item-id-error");
+      }
       return;
     }
 
     const data = await res.json();
     if (!data?.ttrId) {
+      if (itemDisplayInput) {
+        itemDisplayInput.value = "No matching item found";
+        itemDisplayInput.classList.add("item-id-error");
+      }
       return;
     }
 
     if (ttrIdInput) ttrIdInput.value = data.ttrId;
+    if (itemDisplayInput) {
+      itemDisplayInput.value = data.ttrProductId || data.ttrId;
+      itemDisplayInput.classList.add("item-id-success");
+    }
     submitBtn.disabled = false;
 
     prefillVendorOverrides(data);
@@ -551,14 +590,20 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = true;
 
     try {
-      const body = new FormData(form);
+      const formData = new FormData(form);
       if (!vendorMaterialCodeInput.value) {
         vendorMaterialCodeInput.value = document.getElementById("ttr-material-code").value || "";
-        body.set("vendorTtrMaterialCode", vendorMaterialCodeInput.value);
+        formData.set("vendorTtrMaterialCode", vendorMaterialCodeInput.value);
       }
+
+      const body = new URLSearchParams(formData);
 
       const response = await fetch(form.action, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content"),
+        },
         body,
       });
       const result = await response.json();

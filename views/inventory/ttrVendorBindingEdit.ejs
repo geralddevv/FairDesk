@@ -83,12 +83,12 @@
       <h1>Vendor Specifications</h1>
     </div>
 
-    <div class="span-penta">
+    <div class="span-dual">
       <label>Vendor Material Code</label>
       <input type="text" name="vendorTtrMaterialCode" class="form-control" value="<%= binding.vendorTtrMaterialCode %>" required />
     </div>
 
-    <div class="span-hexa">
+    <div class="span-dual">
       <label>Vendor Type</label>
       <select name="vendorTtrType" class="form-control select-tag" required>
         <option value="WAX" <%= binding.vendorTtrType === "WAX" ? "selected" : "" %>>WAX</option>
@@ -105,7 +105,7 @@
       </select>
     </div>
 
-    <div class="span-penta">
+    <div class="span-dual">
       <label>Vendor Color</label>
       <select name="vendorTtrColor" class="form-control select-tag" required>
         <option value="BLACK" <%= binding.vendorTtrColor === "BLACK" ? "selected" : "" %>>BLACK</option>
@@ -116,6 +116,11 @@
         <option value="GOLD" <%= binding.vendorTtrColor === "GOLD" ? "selected" : "" %>>GOLD</option>
         <option value="SILVER" <%= binding.vendorTtrColor === "SILVER" ? "selected" : "" %>>SILVER</option>
       </select>
+    </div>
+    
+    <div class="span-dual">
+      <label>MSQ</label>
+      <input type="number" name="ttrMinQty" class="form-control" value="<%= binding.ttrMinQty %>" min="1" required />
     </div>
 
     <div class="span-full btn-grp" style="flex-direction: row-reverse">

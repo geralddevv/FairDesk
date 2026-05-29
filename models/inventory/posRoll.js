@@ -63,6 +63,10 @@ const posRollSchema = new mongoose.Schema(
       sparse: true,
       trim: true,
     },
+
+    posMinQty: {
+      type: Number,
+    },
   },
   {
     timestamps: true,
