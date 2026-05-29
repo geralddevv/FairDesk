@@ -165,50 +165,24 @@
       <h1>Vendor Overrides</h1>
     </div>
 
-    <div class="span-six">
+    <div class="span-dual">
       <label for="vendor-tafeta-material-code">Vendor Material Code</label>
       <input type="text" id="vendor-tafeta-material-code" class="form-control" name="vendorTafetaMaterialCode" placeholder="Enter Vendor Material Code" required />
     </div>
 
-    <div class="span-six">
+    <div class="span-dual">
+      <label for="vendor-tafeta-material-type">Vendor Material Type</label>
+      <input type="text" id="vendor-tafeta-material-type" class="form-control" name="vendorTafetaMaterialType" placeholder="Enter Vendor Material Type" required />
+    </div>
+
+    <div class="span-dual">
       <label for="vendor-tafeta-gsm">Vendor GSM</label>
       <input type="text" id="vendor-tafeta-gsm" class="form-control" name="vendorTafetaGsm" placeholder="Enter Vendor GSM" required />
     </div>
 
-    <div class="span-seven">
-      <label for="tafeta-mtrs-del-input">MTRS Delivered</label>
-      <input type="text" id="tafeta-mtrs-del-input" class="form-control" name="tafetaMtrsDel" placeholder="Enter MTRS Delivered" required />
-    </div>
-
-    <div class="span-six">
-      <label for="tafeta-rate-per-roll">Rate Per Roll</label>
-      <input type="number" id="tafeta-rate-per-roll" class="form-control" name="tafetaRatePerRoll" placeholder="Enter rate per roll" required />
-    </div>
-
-    <div class="span-seven">
-      <label for="tafeta-sale-cost">Sales sq mtrs Cost</label>
-      <input type="number" id="tafeta-sale-cost" class="form-control" name="tafetaSaleCost" placeholder="Enter Sales Cost" tabindex="-1" required readonly />
-    </div>
-
-    <div class="span-full form-subheading">
-      <h1>Pricing & Order Terms</h1>
-    </div>    
-
     <div class="span-dual">
-      <label for="tafeta-min-qty">Minimum Order QTY</label>
-      <input type="number" id="tafeta-min-qty" class="form-control" name="tafetaMinQty" placeholder="Enter minimum qty" required />
-    </div>
-    <div class="span-dual">
-      <label for="tafeta-odr-qty">Order QTY</label>
-      <input type="number" id="tafeta-odr-qty" class="form-control" name="tafetaOdrQty" placeholder="Enter order qty" required />
-    </div>
-    <div class="span-dual">
-      <label for="tafeta-odr-freq">Repeat Order Freq</label>
-      <input type="text" id="tafeta-odr-freq" class="form-control" name="tafetaOdrFreq" placeholder="Enter repeat order frequency" required />
-    </div>
-    <div class="span-dual">
-      <label for="tafeta-credit-term">CR</label>
-      <input type="text" id="tafeta-credit-term" class="form-control" name="tafetaCreditTerm" placeholder="Enter credit term" required />
+      <label for="tafeta-min-qty">MSQ</label>
+      <input type="number" id="tafeta-min-qty" class="form-control" name="tafetaMinQty" placeholder="Enter MSQ" required />
     </div>
 
     <input type="hidden" name="<%= cfg.bindingField %>" id="resolved-item-id" />
@@ -280,14 +254,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const vendorTafetaMaterialCodeEl = document.getElementById("vendor-tafeta-material-code");
+  const vendorTafetaMaterialTypeEl = document.getElementById("vendor-tafeta-material-type");
   const vendorTafetaGsmEl = document.getElementById("vendor-tafeta-gsm");
-  const tafetaMtrsDelEl = document.getElementById("tafeta-mtrs-del-input");
-  const tafetaRatePerRollEl = document.getElementById("tafeta-rate-per-roll");
-  const tafetaSaleCostEl = document.getElementById("tafeta-sale-cost");
   const tafetaMinQtyEl = document.getElementById("tafeta-min-qty");
-  const tafetaOdrQtyEl = document.getElementById("tafeta-odr-qty");
-  const tafetaOdrFreqEl = document.getElementById("tafeta-odr-freq");
-  const tafetaCreditTermEl = document.getElementById("tafeta-credit-term");
 
   let smartFilterBusy = false;
 
@@ -310,15 +279,12 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = true;
   }
 
-  function resetSelect(instance) {
-    if (!instance) return;
-    instance.clearStore();
-    instance.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
-  }
-
   function prefillVendorOverrides(data) {
     if (vendorTafetaMaterialCodeEl && !vendorTafetaMaterialCodeEl.value) {
       vendorTafetaMaterialCodeEl.value = data.tafetaMaterialCode || "";
+    }
+    if (vendorTafetaMaterialTypeEl && !vendorTafetaMaterialTypeEl.value) {
+      vendorTafetaMaterialTypeEl.value = data.tafetaMaterialType || "";
     }
     if (vendorTafetaGsmEl && !vendorTafetaGsmEl.value) {
       vendorTafetaGsmEl.value = data.tafetaGsm || "";
@@ -394,6 +360,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (changedFieldId !== "reset-all" && filteredValues.length === 1 && !currentValue) {
           newChoices[0].selected = true;
           autoSelected.push(id);
+          const autoValue = String(filteredValues[0]);
+          if (id === "tafeta-material-code" && vendorTafetaMaterialCodeEl) vendorTafetaMaterialCodeEl.value = autoValue;
+          if (id === "tafeta-material-type" && vendorTafetaMaterialTypeEl) vendorTafetaMaterialTypeEl.value = autoValue;
+          if (id === "tafeta-gsm" && vendorTafetaGsmEl) vendorTafetaGsmEl.value = autoValue;
         }
 
         choicesInstance.clearStore();
@@ -480,26 +450,23 @@ document.addEventListener("DOMContentLoaded", () => {
   tafetaFields.forEach((id) => {
     const field = document.getElementById(id);
     if (!field) return;
-    field.addEventListener("change", () => handleSmartFilterChange(id));
-    field.addEventListener("addItem", () => handleSmartFilterChange(id));
+
+    const syncToOverride = (val) => {
+      const v = val || "";
+      if (id === "tafeta-material-code" && vendorTafetaMaterialCodeEl) vendorTafetaMaterialCodeEl.value = v;
+      if (id === "tafeta-material-type" && vendorTafetaMaterialTypeEl) vendorTafetaMaterialTypeEl.value = v;
+      if (id === "tafeta-gsm" && vendorTafetaGsmEl) vendorTafetaGsmEl.value = v;
+    };
+
+    field.addEventListener("change", () => {
+      syncToOverride(field.value);
+      handleSmartFilterChange(id);
+    });
+    field.addEventListener("addItem", (e) => {
+      syncToOverride(e.detail.value);
+      handleSmartFilterChange(id);
+    });
   });
-
-  const widthField = document.getElementById(pageConfig.widthField);
-  const mtrsField = document.getElementById(pageConfig.mtrsField);
-  const rateField = document.getElementById(pageConfig.rateField);
-  const saleCostField = document.getElementById(pageConfig.saleCostField);
-
-  function calcSaleCost() {
-    if (!widthField || !mtrsField || !rateField || !saleCostField) return;
-    if (!widthField.value || !mtrsField.value || !rateField.value) return;
-    const area = (Number(widthField.value) * Number(mtrsField.value)) / 1000;
-    if (!area) return;
-    saleCostField.value = (Number(rateField.value) / area).toFixed(4);
-  }
-
-  widthField?.addEventListener("input", calcSaleCost);
-  mtrsField?.addEventListener("input", calcSaleCost);
-  rateField?.addEventListener("input", calcSaleCost);
 
   const resetSpecsBtn = document.getElementById("reset-specs-btn");
   if (resetSpecsBtn) {
@@ -512,15 +479,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
       resetResolvedItem();
-      vendorTafetaMaterialCodeEl.value = "";
-      vendorTafetaGsmEl.value = "";
-      tafetaMtrsDelEl.value = "";
-      tafetaRatePerRollEl.value = "";
-      tafetaSaleCostEl.value = "";
-      tafetaMinQtyEl.value = "";
-      tafetaOdrQtyEl.value = "";
-      tafetaOdrFreqEl.value = "";
-      tafetaCreditTermEl.value = "";
+      if (vendorTafetaMaterialCodeEl) vendorTafetaMaterialCodeEl.value = "";
+      if (vendorTafetaMaterialTypeEl) vendorTafetaMaterialTypeEl.value = "";
+      if (vendorTafetaGsmEl) vendorTafetaGsmEl.value = "";
+      if (tafetaMinQtyEl) tafetaMinQtyEl.value = "";
 
       vendorChoices.setChoiceByValue("");
       resetUserChoices();
@@ -537,13 +499,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (!itemIdInput.value) {
       showVendorItemToast("Please select a valid item specification.", true);
-      return;
-    }
-
-    const minQtyField = document.getElementById(pageConfig.minQtyField);
-    const odrQtyField = document.getElementById(pageConfig.odrQtyField);
-    if (minQtyField && odrQtyField && Number(minQtyField.value) >= Number(odrQtyField.value)) {
-      showVendorItemToast("Order Quantity must be greater than Minimum Order Quantity", true);
       return;
     }
 

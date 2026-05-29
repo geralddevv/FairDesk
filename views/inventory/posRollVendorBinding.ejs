@@ -145,49 +145,24 @@
       <h1>Vendor Overrides</h1>
     </div>
 
-    <div class="span-six">
+    <div class="span-dual">
       <label for="vendor-pos-paper-code">Vendor Paper Code</label>
       <input type="text" id="vendor-pos-paper-code" class="form-control" name="vendorPosPaperCode" placeholder="Enter Vendor Paper Code" required />
     </div>
 
-    <div class="span-six">
+    <div class="span-dual">
+      <label for="vendor-pos-paper-type">Vendor Paper Type</label>
+      <input type="text" id="vendor-pos-paper-type" class="form-control" name="vendorPosPaperType" placeholder="Enter Vendor Paper Type" required />
+    </div>
+
+    <div class="span-dual">
       <label for="vendor-pos-gsm">Vendor GSM</label>
       <input type="number" id="vendor-pos-gsm" class="form-control" name="vendorPosGsm" placeholder="Enter Vendor GSM" required />
     </div>
 
-    <div class="span-seven">
-      <label for="pos-mtrs-del-input">MTRS Delivered</label>
-      <input type="number" id="pos-mtrs-del-input" class="form-control" name="posMtrsDel" placeholder="Enter MTRS Delivered" required />
-    </div>
-
-    <div class="span-six">
-      <label for="pos-rate-per-roll">Rate Per Roll</label>
-      <input type="number" id="pos-rate-per-roll" class="form-control" name="posRatePerRoll" placeholder="Enter rate per roll" step="any" required />
-    </div>
-
-    <div class="span-seven">
-      <label for="pos-sale-cost">Sales sq mtrs Cost</label>
-      <input type="number" id="pos-sale-cost" class="form-control" name="posSaleCost" placeholder="Enter Sales Cost" tabindex="-1" step="any" required readonly />
-    </div>
-    <div class="span-full form-subheading">
-      <h1>Pricing & Order Terms</h1>
-    </div>    
-
     <div class="span-dual">
-      <label for="pos-min-qty">Minimum Order QTY</label>
-      <input type="number" id="pos-min-qty" class="form-control" name="posMinQty" placeholder="Enter minimum qty" required />
-    </div>
-    <div class="span-dual">
-      <label for="pos-odr-qty">Order QTY</label>
-      <input type="number" id="pos-odr-qty" class="form-control" name="posOdrQty" placeholder="Enter order qty" required />
-    </div>
-    <div class="span-dual">
-      <label for="pos-odr-freq">Repeat Order Freq</label>
-      <input type="text" id="pos-odr-freq" class="form-control" name="posOdrFreq" placeholder="Enter repeat order frequency" required />
-    </div>
-    <div class="span-dual">
-      <label for="pos-credit-term">CR</label>
-      <input type="text" id="pos-credit-term" class="form-control" name="posCreditTerm" placeholder="Enter credit term" required />
+      <label for="pos-min-qty">MSQ</label>
+      <input type="number" id="pos-min-qty" class="form-control" name="posMinQty" placeholder="Enter MSQ" required />
     </div>
 
     <input type="hidden" name="<%= cfg.bindingField %>" id="resolved-item-id" />
@@ -253,14 +228,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const vendorPosPaperCodeEl = document.getElementById("vendor-pos-paper-code");
+  const vendorPosPaperTypeEl = document.getElementById("vendor-pos-paper-type");
   const vendorPosGsmEl = document.getElementById("vendor-pos-gsm");
-  const posMtrsDelEl = document.getElementById("pos-mtrs-del-input");
-  const posRatePerRollEl = document.getElementById("pos-rate-per-roll");
-  const posSaleCostEl = document.getElementById("pos-sale-cost");
   const posMinQtyEl = document.getElementById("pos-min-qty");
-  const posOdrQtyEl = document.getElementById("pos-odr-qty");
-  const posOdrFreqEl = document.getElementById("pos-odr-freq");
-  const posCreditTermEl = document.getElementById("pos-credit-term");
 
   let smartFilterBusy = false;
 
@@ -283,15 +253,12 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = true;
   }
 
-  function resetSelect(instance) {
-    if (!instance) return;
-    instance.clearStore();
-    instance.setChoices([{ value: "", label: "Search", disabled: true, selected: true }], "value", "label", true);
-  }
-
   function prefillVendorOverrides(data) {
     if (vendorPosPaperCodeEl && !vendorPosPaperCodeEl.value) {
       vendorPosPaperCodeEl.value = data.posPaperCode || "";
+    }
+    if (vendorPosPaperTypeEl && !vendorPosPaperTypeEl.value) {
+      vendorPosPaperTypeEl.value = data.posPaperType || "";
     }
     if (vendorPosGsmEl && !vendorPosGsmEl.value) {
       vendorPosGsmEl.value = data.posGsm || "";
@@ -367,6 +334,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (changedFieldId !== "reset-all" && filteredValues.length === 1 && !currentValue) {
           newChoices[0].selected = true;
           autoSelected.push(id);
+          const autoValue = String(filteredValues[0]);
+          if (id === "pos-paper-code" && vendorPosPaperCodeEl) vendorPosPaperCodeEl.value = autoValue;
+          if (id === "pos-paper-type" && vendorPosPaperTypeEl) vendorPosPaperTypeEl.value = autoValue;
+          if (id === "pos-gsm" && vendorPosGsmEl) vendorPosGsmEl.value = autoValue;
         }
 
         choicesInstance.clearStore();
@@ -453,26 +424,23 @@ document.addEventListener("DOMContentLoaded", () => {
   posFields.forEach((id) => {
     const field = document.getElementById(id);
     if (!field) return;
-    field.addEventListener("change", () => handleSmartFilterChange(id));
-    field.addEventListener("addItem", () => handleSmartFilterChange(id));
+
+    const syncToOverride = (val) => {
+      const v = val || "";
+      if (id === "pos-paper-code" && vendorPosPaperCodeEl) vendorPosPaperCodeEl.value = v;
+      if (id === "pos-paper-type" && vendorPosPaperTypeEl) vendorPosPaperTypeEl.value = v;
+      if (id === "pos-gsm" && vendorPosGsmEl) vendorPosGsmEl.value = v;
+    };
+
+    field.addEventListener("change", () => {
+      syncToOverride(field.value);
+      handleSmartFilterChange(id);
+    });
+    field.addEventListener("addItem", (e) => {
+      syncToOverride(e.detail.value);
+      handleSmartFilterChange(id);
+    });
   });
-
-  const widthField = document.getElementById(pageConfig.widthField);
-  const mtrsField = document.getElementById(pageConfig.mtrsField);
-  const rateField = document.getElementById(pageConfig.rateField);
-  const saleCostField = document.getElementById(pageConfig.saleCostField);
-
-  function calcSaleCost() {
-    if (!widthField || !mtrsField || !rateField || !saleCostField) return;
-    if (!widthField.value || !mtrsField.value || !rateField.value) return;
-    const area = (Number(widthField.value) * Number(mtrsField.value)) / 1000;
-    if (!area) return;
-    saleCostField.value = (Number(rateField.value) / area).toFixed(4);
-  }
-
-  widthField?.addEventListener("input", calcSaleCost);
-  mtrsField?.addEventListener("input", calcSaleCost);
-  rateField?.addEventListener("input", calcSaleCost);
 
   const resetSpecsBtn = document.getElementById("reset-specs-btn");
   if (resetSpecsBtn) {
@@ -485,22 +453,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
       resetResolvedItem();
-      vendorPosPaperCodeEl.value = "";
-      vendorPosGsmEl.value = "";
-      posMtrsDelEl.value = "";
-      posRatePerRollEl.value = "";
-      posSaleCostEl.value = "";
-      posMinQtyEl.value = "";
-      posOdrQtyEl.value = "";
-      posOdrFreqEl.value = "";
-      posCreditTermEl.value = "";
+      if (vendorPosPaperCodeEl) vendorPosPaperCodeEl.value = "";
+      if (vendorPosPaperTypeEl) vendorPosPaperTypeEl.value = "";
+      if (vendorPosGsmEl) vendorPosGsmEl.value = "";
+      if (posMinQtyEl) posMinQtyEl.value = "";
 
       vendorChoices.setChoiceByValue("");
       resetUserChoices();
       await filterSpecs("reset-all");
     });
   }
-
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -510,13 +472,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (!itemIdInput.value) {
       showVendorItemToast("Please select a valid item specification.", true);
-      return;
-    }
-
-    const minQtyField = document.getElementById(pageConfig.minQtyField);
-    const odrQtyField = document.getElementById(pageConfig.odrQtyField);
-    if (minQtyField && odrQtyField && Number(minQtyField.value) >= Number(odrQtyField.value)) {
-      showVendorItemToast("Order Quantity must be greater than Minimum Order Quantity", true);
       return;
     }
 

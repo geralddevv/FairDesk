@@ -210,17 +210,45 @@ async function saveBinding(req, res, kind) {
     }
     if (config.bindingField === "posRollId") {
       createData.vendorPosGsm = Number(req.body.vendorPosGsm);
-      createData.posMtrsDel = Number(req.body.posMtrsDel || 0);
-      createData.posRatePerRoll = Number(req.body.posRatePerRoll);
-      createData.posSaleCost = Number(req.body.posSaleCost);
       createData.posMinQty = Number(req.body.posMinQty);
-      createData.posOdrQty = Number(req.body.posOdrQty);
+      // Only set optional fields if they were actually submitted
+      if (req.body.posMtrsDel !== undefined && req.body.posMtrsDel !== "") {
+        createData.posMtrsDel = Number(req.body.posMtrsDel);
+      }
+      if (req.body.posRatePerRoll !== undefined && req.body.posRatePerRoll !== "") {
+        createData.posRatePerRoll = Number(req.body.posRatePerRoll);
+      }
+      if (req.body.posSaleCost !== undefined && req.body.posSaleCost !== "") {
+        createData.posSaleCost = Number(req.body.posSaleCost);
+      }
+      if (req.body.posOdrQty !== undefined && req.body.posOdrQty !== "") {
+        createData.posOdrQty = Number(req.body.posOdrQty);
+      }
+      // Remove any empty-string values so Mongoose doesn't try to cast them
+      ["posRatePerRoll", "posSaleCost", "posOdrQty", "posMtrsDel"].forEach((key) => {
+        if (createData[key] !== undefined && isNaN(createData[key])) {
+          delete createData[key];
+        }
+      });
     }
     if (config.bindingField === "tafetaId") {
-      createData.tafetaRatePerRoll = Number(req.body.tafetaRatePerRoll);
-      createData.tafetaSaleCost = Number(req.body.tafetaSaleCost);
       createData.tafetaMinQty = Number(req.body.tafetaMinQty);
-      createData.tafetaOdrQty = Number(req.body.tafetaOdrQty);
+      // Only set optional numeric fields if present
+      if (req.body.tafetaRatePerRoll !== undefined && req.body.tafetaRatePerRoll !== "") {
+        createData.tafetaRatePerRoll = Number(req.body.tafetaRatePerRoll);
+      }
+      if (req.body.tafetaSaleCost !== undefined && req.body.tafetaSaleCost !== "") {
+        createData.tafetaSaleCost = Number(req.body.tafetaSaleCost);
+      }
+      if (req.body.tafetaOdrQty !== undefined && req.body.tafetaOdrQty !== "") {
+        createData.tafetaOdrQty = Number(req.body.tafetaOdrQty);
+      }
+      // Purge any NaN values
+      ["tafetaRatePerRoll", "tafetaSaleCost", "tafetaOdrQty"].forEach((key) => {
+        if (createData[key] !== undefined && isNaN(createData[key])) {
+          delete createData[key];
+        }
+      });
     }
 
     const binding = await config.bindingModel.create(createData);
@@ -414,7 +442,16 @@ router.get("/vendor-item/edit/:kind/:id", async (req, res) => {
       return res.redirect("back");
     }
 
-    res.render(`inventory/${kind}VendorBindingEdit.ejs`, {
+    const editTemplates = {
+      tape: "inventory/tapeVendorBindingEdit.ejs",
+      pos: "inventory/posRollVendorBindingEdit.ejs",
+      tafeta: "inventory/tafetaVendorBindingEdit.ejs",
+    };
+
+    const template = editTemplates[kind];
+    if (!template) return res.status(404).send("Page not found");
+
+    res.render(template, {
       title: `Edit Vendor ${kind.toUpperCase()} Binding`,
       binding,
       returnTo: typeof req.query.returnTo === "string" ? req.query.returnTo : "",

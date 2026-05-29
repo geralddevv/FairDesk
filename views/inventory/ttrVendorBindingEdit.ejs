@@ -15,6 +15,11 @@
     </div>
 
     <div class="span-five">
+      <label>Vendor TTR ID</label>
+      <input type="text" class="form-control input-tag" value="<%= binding.ttrId?.ttrProductId || 'N/A' %>" readonly />
+    </div>    
+
+    <div class="span-five">
       <label>Vendor Name</label>
       <input type="text" class="form-control input-tag" value="<%= binding.vendorUserId?.vendorName || '' %>" readonly />
     </div>
@@ -22,11 +27,6 @@
     <div class="span-five">
       <label>Vendor User</label>
       <input type="text" class="form-control input-tag" value="<%= binding.vendorUserId?.userName || '' %>" readonly />
-    </div>
-
-    <div class="span-five">
-      <label>Vendor TTR ID</label>
-      <input type="text" class="form-control input-tag" value="<%= binding.ttrId?.ttrProductId || 'N/A' %>" readonly />
     </div>
 
     <div class="span-five">
