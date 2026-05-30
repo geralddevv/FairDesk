@@ -174,8 +174,9 @@
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const pageConfig = <%- safeJson(cfg) %>;
+  const prefillData = <%- safeJson(prefillData) %>;
 
   const form = document.getElementById("vendor-item-form");
   const submitBtn = document.getElementById("vendor-item-submit");
@@ -447,6 +448,16 @@ document.addEventListener("DOMContentLoaded", () => {
       handleSmartFilterChange(id);
     });
   });
+
+  if (prefillData) {
+    tapeFields.forEach(id => {
+      const apiKey = fieldToApiKey[id];
+      if (prefillData[apiKey] !== undefined) {
+        specChoices[id].setChoiceByValue(String(prefillData[apiKey]));
+      }
+    });
+    await resolveItem();
+  }
 
 
 

@@ -19,6 +19,7 @@ import posRollBindingRoutes from "./routes/inventory/posRollBinding.js";
 import tafetaBindingRoutes from "./routes/inventory/tafetaBinding.js";
 import ttrBindingRoutes from "./routes/inventory/ttrBinding.js";
 import vendorItemBindingRoutes from "./routes/inventory/vendorItemBinding.js";
+import reorderRoutes from "./routes/inventory/reorder.js";
 import { configDotenv } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -379,6 +380,7 @@ app.use("/fairdesk/posrollstock", requireAuth, requireRole(["admin", "hod", "sal
 app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaStockRoutes);
 app.use("/fairdesk/ttrstock", requireAuth, requireRole(["admin", "hod", "sales"]), ttrStockRoutes);
 app.use("/fairdesk/stocks", requireAuth, requireRole(["admin", "hod", "sales"]), stockViewRoutes);
+app.use("/fairdesk/inventory", requireAuth, requireRole(["admin", "hod"]), reorderRoutes);
 app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales"]), clientFormRoute);
 
 /* 404 */

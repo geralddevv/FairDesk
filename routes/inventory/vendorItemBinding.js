@@ -156,6 +156,12 @@ async function renderBindingForm(req, res, kind) {
   const config = getConfig(kind);
   if (!config) return res.status(404).send("Vendor binding type not found");
 
+  const { itemId } = req.query;
+  let prefillData = null;
+  if (itemId && /^[a-f\d]{24}$/i.test(itemId)) {
+    prefillData = await config.masterModel.findById(itemId).lean();
+  }
+
   const distinctPromises = config.specFields.map((field) => config.masterModel.distinct(field.name));
   const specValues = await Promise.all(distinctPromises);
   const specOptions = {};
@@ -170,6 +176,7 @@ async function renderBindingForm(req, res, kind) {
     pageConfig: config,
     specOptions,
     vendors,
+    prefillData,
     CSS: false,
     JS: false,
     notification: req.flash("notification"),

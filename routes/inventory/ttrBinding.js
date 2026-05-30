@@ -170,6 +170,11 @@ router.get("/form/ttr-binding", async (req, res) => {
 /* GET : Load Vendor TTR Binding Form */
 router.get("/form/ttr-vendor-binding", async (req, res) => {
   try {
+    const { itemId } = req.query;
+    let prefillData = null;
+    if (itemId && /^[a-f\d]{24}$/i.test(itemId)) {
+      prefillData = await Ttr.findById(itemId).lean();
+    }
     const [vendors, fsRows] = await Promise.all([Vendor.distinct("vendorName"), loadFsTtrRows()]);
     const types = distinctValues(fsRows, "ttrType");
     const colors = distinctValues(fsRows, "ttrColor");
@@ -185,6 +190,7 @@ router.get("/form/ttr-vendor-binding", async (req, res) => {
     res.render("inventory/ttrVendorBinding.ejs", {
       title: "Vendor TTR",
       vendors,
+      prefillData,
       types,
       colors,
       materialCodes,

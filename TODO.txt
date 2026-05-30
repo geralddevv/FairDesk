@@ -42,3 +42,10 @@ clear tsts in the pending logs
 make a purchase heading and store things related to that in that
 in one po there can we multiple orders with differernt date
 fix the booked stock problem
+
+Booked stock problem:
+Booked in pending stock page
+if physical stock 100 and the 
+make the old order appear on top in pending order page
+
+multiple po (purhcase) should not be created for a specific item

@@ -709,14 +709,22 @@
               <i class="fa-solid fa-eye" style="color: #ffffff"></i>
               <p class="nav-items-para">Vendor Details</p>
             </div>
+            <div title="Re-Order" class="<%= title === 'Reorder List' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/inventory/reorder'">
+              <i class="fa-solid fa-cart-flatbed" style="color: #ffffff"></i>
+              <p class="nav-items-para">Re-Order</p>
+            </div>
+            <div title="Pending PO" class="<%= title === 'Pending Purchase Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/purchase/pending'">
+              <i class="fa-solid fa-clock-rotate-left" style="color: #ffffff"></i>
+              <p class="nav-items-para">Pending PO</p>
+            </div>
 
             <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">
               <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #b1d4e0; margin: 0;">Entry</p>
             </div>   
           
-            <div title="Vendor Data" class="<%= title === 'Vendor Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor'">
+            <div title="Vendor Create" class="<%= title === 'Vendor Form' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/form/vendor'">
               <i class="fa-solid fa-shop" style="color: #ffffff"></i>
-              <p class="nav-items-para">Vendor Data</p>
+              <p class="nav-items-para">Vendor Create</p>
             </div>
 
             <div style="margin: 16px 12px 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.35); cursor: default; pointer-events: none;">

@@ -621,6 +621,24 @@ document.addEventListener("DOMContentLoaded", () => {
       if (window.showToast) window.showToast("Failed to save Vendor TTR", true);
     }
   });
+
+  const prefillData = <%- JSON.stringify(prefillData || null) %>;
+  if (prefillData) {
+    ttrFields.forEach((fieldId) => {
+      const paramKey = fieldToParam[fieldId];
+      const value = prefillData[paramKey];
+      if (value) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.value = String(value);
+          if (specChoices[fieldId]) {
+            specChoices[fieldId].setChoiceByValue(String(value));
+          }
+        }
+      }
+    });
+    handleSmartFilterChange();
+  }
 });
 
 function showVendorToast(message, isError = true) {

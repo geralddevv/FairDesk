@@ -1,0 +1,204 @@
+<% layout('/layout/boilerplate') %>
+
+<!-- Tabulator CSS -->
+<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+
+<div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+  <div class="indi-head">
+    <h1>Re-Order List</h1>
+    <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
+      <!-- Item Filter -->
+      <div style="position: relative; display: inline-block">
+        <select
+          id="item-filter"
+          style="
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 3px 30px 2px 14px;
+            background: #ffffff;
+            color: #3e3e3e;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            outline: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+            min-width: 140px;
+          "
+          onmouseover="this.style.boxShadow = '0 3px 6px rgba(0,0,0,0.08)'"
+          onmouseout="this.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)'"
+        >
+          <option value="">All Items</option>
+          <option value="Tape">Tape</option>
+          <option value="Tafeta">Tafeta</option>
+          <option value="POS Roll">POS Roll</option>
+          <option value="TTR">TTR</option>
+        </select>
+        <i
+          class="fa-solid fa-chevron-down"
+          style="
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #6b7280;
+            pointer-events: none;
+            transition: transform 0.2s ease;
+          "
+        ></i>
+      </div>
+
+      <a
+        href="/fairdesk/sales/order/logs"
+        style="
+          padding: 6px 14px;
+          background: #044a78;
+          color: white;
+          border-radius: 6px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: opacity 0.2s;
+        "
+        onmouseover="this.style.opacity = '0.85'"
+        onmouseout="this.style.opacity = '1'"
+      >
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>View Logs</span>
+      </a>
+
+      <div class="download-selector" id="downloadSelector">
+        <button class="download-selector__trigger">
+          <span>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span class="download-typo">Download</span>
+          </span>
+          <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
+        </button>
+        <div class="download-selector__menu" id="downloads">
+          <span class="download-selector__option" id="download-pdf">
+            <i class="fas fa-file-pdf download-selector__option-icon"></i>
+            <span>PDF</span>
+          </span>
+          <span class="download-selector__option" id="download-xlsx">
+            <i class="fas fa-file-excel download-selector__option-icon"></i>
+            <span>Excel</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-spinner"><div class="spinner-circle"></div></div>
+  <div id="master-table" class="tabulator tabulator-modern"></div>
+</div>
+
+
+
+<!-- Tabulator JS -->
+<script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+<script id="reorder-data" type="application/json">
+  <%- safeJson(items || []) %>
+</script>
+
+<script>
+  const reorderData = JSON.parse(document.getElementById("reorder-data").textContent);
+
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const table = new Tabulator("#master-table", {
+      data: reorderData,
+      layout: "fitColumns",
+      placeholder: "No items need reordering",
+      columns: [
+        {
+          title: "Action",
+          hozAlign: "center",
+          headerSort: false,
+          width: 100,
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            let typeSlug = row.typeKey ? row.typeKey.toLowerCase() : "";
+            if (row.typeKey === "PosRoll") typeSlug = "pos-roll";
+            
+            const url = `/fairdesk/inventory/reorder/select-vendor/${typeSlug}/${row._id}?shortage=${row.shortage || 0}`;
+            return `
+              <a href="${url}" 
+                 style="padding: 4px 12px; background: #044a78; color: white; border-radius: 4px; border:none; cursor:pointer; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-block;">
+                 Order
+              </a>
+            `;
+          },
+        },
+        { title: "ID", field: "productId", width: 140, headerFilter: "input" },
+        { title: "Type", field: "type", width: 100, headerFilter: "input" },
+        { title: "Item Name", field: "name", headerFilter: "input" },
+        {
+          title: "Stock",
+          field: "stock",
+          hozAlign: "center",
+          width: 80,
+          formatter: (cell) => {
+            const val = cell.getValue();
+            return `<span style="font-weight:700; color:${val < 0 ? "#dc2626" : "#374151"}">${val}</span>`;
+          },
+        },
+        { title: "Booked", field: "booked", hozAlign: "center", width: 80 },
+        { title: "MSQ", field: "minQty", hozAlign: "center", width: 80 },
+        {
+          title: "Shortage",
+          field: "shortage",
+          hozAlign: "center",
+          width: 100,
+          formatter: (cell) => {
+            return `<span style="font-weight:800; color:#dc2626;">${cell.getValue()}</span>`;
+          },
+        },
+      ],
+    });
+
+    table.on("tableBuilt", () => {
+      document.querySelector(".table-spinner")?.classList.add("hidden");
+    });
+
+    // Item Category Filter
+    document.getElementById("item-filter").addEventListener("change", function (e) {
+      if (this.value) {
+        table.setFilter("type", "=", this.value);
+      } else {
+        table.clearFilter();
+      }
+    });
+
+    // Dropdown toggle
+    const selector = document.getElementById("downloadSelector");
+    const trigger = selector.querySelector(".download-selector__trigger");
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selector.classList.toggle("download-selector--active");
+    });
+    document.addEventListener("click", () => selector.classList.remove("download-selector--active"));
+
+    // Downloads
+    document.getElementById("download-pdf").addEventListener("click", () => {
+      table.download("pdf", "reorder_list.pdf", { orientation: "landscape", title: "Reorder List" });
+      selector.classList.remove("download-selector--active");
+    });
+    document.getElementById("download-xlsx").addEventListener("click", () => {
+      table.download("xlsx", "reorder_list.xlsx", { sheetName: "Reorder" });
+      selector.classList.remove("download-selector--active");
+    });
+  });
+
+
+</script>

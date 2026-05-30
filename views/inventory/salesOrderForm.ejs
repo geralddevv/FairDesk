@@ -833,7 +833,7 @@
           return `<label class="location-option" data-location="${locName}" data-qty="${qty}" data-booked="${booked}" data-balance="${balance}">
               <input type="radio" name="locationRadio" class="location-radio" value="${locName}" data-qty="${qty}" data-booked="${booked}" data-balance="${balance}" />
               <span class="location-label">${locName}:</span>
-              <span class="location-qty">${balance}</span>
+              <span class="location-qty">${qty}</span>
             </label>`;
         }).join("");
 
@@ -1155,6 +1155,29 @@
     return getAvailableStockForSelectedLocation(selectedRadio);
   }
 
+  function getPhysicalStockForLocation(locationName) {
+    const normalizedLocation = normalizeLocationName(locationName);
+    if (!normalizedLocation) return 0;
+
+    if (normalizedLocation === "ALL") {
+      const totalStock = Number.parseInt(stockInfo?.totalStock ?? 0, 10);
+      return Number.isFinite(totalStock) ? totalStock : 0;
+    }
+
+    const locationEntry = (stockInfo?.locations || []).find((entry) => normalizeLocationName(entry?.location) === normalizedLocation);
+    if (locationEntry) {
+      const qty = Number.parseInt(locationEntry.qty ?? 0, 10);
+      return Number.isFinite(qty) ? qty : 0;
+    }
+
+    const selectedRadio = document.querySelector(`input[name="locationRadio"][value="${normalizedLocation}"]`);
+    if (selectedRadio) {
+      const qty = Number.parseInt(selectedRadio.dataset.qty || "0", 10);
+      return Number.isFinite(qty) ? qty : 0;
+    }
+    return 0;
+  }
+
   function selectStockLocation(locationName) {
     const normalizedLocation = normalizeLocationName(locationName);
     if (!normalizedLocation) return false;
@@ -1236,8 +1259,9 @@
     const dispatchQty = confirmMode ? (parseInt(confirmQuantityInput?.value) || 0) : qty;
     if (confirmMode) {
       const confirmLocation = normalizeLocationName(sourceLocationInput.value || currentSourceLocation || selectedLocation || selectedRadio?.value || "");
-      const availableQty = getAvailableStockForLocation(confirmLocation);
-      if (availableQty <= 0 || dispatchQty > availableQty) {
+      // Validate against physical stock (qty) instead of available balance during dispatch
+      const physicalQty = getPhysicalStockForLocation(confirmLocation);
+      if (physicalQty <= 0 || dispatchQty > physicalQty) {
         showToast("cannot dispatch, not enough stocks", "error");
         setSubmittingState(false);
         return;

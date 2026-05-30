@@ -1,0 +1,195 @@
+<% layout('/layout/boilerplate') %>
+
+<!-- Tabulator CSS -->
+<link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+
+<style>
+  .order-highlight {
+    padding: 0.3rem 0.85rem;
+    border-radius: 0.35rem;
+    font-weight: 600;
+    font-size: 1.15rem;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    background-color: rgba(255, 255, 255, 0.12);
+    margin-left: 8px;
+    display: inline-block;
+  }
+</style>
+
+<div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+  <div class="indi-head">
+    <h1>
+      Pending Purchase Orders
+    </h1>
+    <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
+      <div style="position: relative; display: inline-block">
+        <select
+          id="item-filter"
+          style="
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 3px 30px 2px 14px;
+            background: #ffffff;
+            color: #3e3e3e;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            outline: none;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+            min-width: 140px;
+          "
+        >
+          <option value="">All Items</option>
+          <option value="Tape">Tape</option>
+          <option value="Tafeta">Tafeta</option>
+          <option value="PosRoll">POS Roll</option>
+          <option value="Ttr">TTR</option>
+        </select>
+      </div>
+
+      <div class="download-selector" id="downloadSelector">
+        <button class="download-selector__trigger">
+          <span>
+            <i class="fa-solid fa-file-arrow-down"></i>
+            <span class="download-typo">Download</span>
+          </span>
+          <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
+        </button>
+        <div class="download-selector__menu" id="downloads">
+          <span class="download-selector__option" id="download-xlsx">
+            <i class="fas fa-file-excel download-selector__option-icon"></i>
+            <span>Excel</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="master-table" class="tabulator tabulator-modern"></div>
+</div>
+
+<!-- Tabulator JS -->
+<script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script id="order-data" type="application/json">
+  <%- safeJson(orders || []) %>
+</script>
+
+<script>
+  const orderData = JSON.parse(document.getElementById("order-data").textContent);
+
+  function getItemName(row) {
+    const item = row.itemId;
+    if (!item) return "N/A";
+    if (row.onModel === "Tape") {
+      return `${item.tapePaperCode || ""} ${item.tapeGsm || ""}gsm`.trim() || item.tapeProductId;
+    }
+    if (row.onModel === "PosRoll") {
+      return `${item.posPaperCode || ""} ${item.posGsm || ""}gsm`.trim() || item.posProductId;
+    }
+    if (row.onModel === "Tafeta") {
+      return `${item.tafetaMaterialCode || ""} ${item.tafetaGsm || ""}gsm`.trim() || item.tafetaProductId;
+    }
+    if (row.onModel === "Ttr") {
+      return `${item.ttrType || ""} ${item.ttrWidth || ""}x${item.ttrMtrs || ""}`.trim() || item.ttrProductId;
+    }
+    return "Unknown Item";
+  }
+
+  const table = new Tabulator("#master-table", {
+    data: orderData,
+    layout: "fitColumns",
+    placeholder: "No pending purchase orders found",
+    columns: [
+      {
+        title: "Date",
+        field: "createdAt",
+        width: 105,
+        formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
+      },
+      {
+        title: "Vendor",
+        field: "vendorUserId.vendorName",
+        width: 200,
+        headerFilter: "input",
+      },
+      { title: "Coordinator", field: "vendorUserId.userName", width: 150, headerFilter: "input" },
+      {
+        title: "Item Type",
+        field: "onModel",
+        width: 100,
+        formatter: (cell) => {
+          const val = cell.getValue();
+          if (val === "PosRoll") return "POS Roll";
+          return val;
+        },
+      },
+      {
+        title: "Item Details",
+        field: "itemId",
+        width: 250,
+        headerFilter: "input",
+        headerFilterFunc: (headerValue, rowValue, rowData) => {
+          const name = getItemName(rowData);
+          return String(name).toLowerCase().includes(String(headerValue).toLowerCase());
+        },
+        formatter: (cell) => {
+          const row = cell.getRow().getData();
+          return `<span style="color:#044A78; font-weight:600;">${getItemName(row)}</span>`;
+        },
+      },
+      {
+        title: "Qty",
+        field: "quantity",
+        hozAlign: "center",
+        width: 80,
+      },
+      {
+        title: "Recvd",
+        field: "receivedQuantity",
+        hozAlign: "center",
+        width: 80,
+      },
+      {
+        title: "PO Number",
+        field: "poNumber",
+        width: 150,
+        headerFilter: "input",
+      },
+      {
+        title: "Est. Delivery",
+        field: "estimatedDate",
+        width: 120,
+        formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
+      },
+      { title: "Remarks", field: "remarks", headerFilter: "input" },
+    ],
+  });
+
+  document.getElementById("item-filter").addEventListener("change", function (e) {
+    const val = e.target.value;
+    if (val === "") {
+      table.clearFilter();
+    } else {
+      table.setFilter("onModel", "=", val);
+    }
+  });
+
+  document.getElementById("download-xlsx").addEventListener("click", () => {
+    table.download("xlsx", "pending_purchase_orders.xlsx", { sheetName: "PendingPO" });
+  });
+
+  // Dropdown toggle
+  const selector = document.getElementById("downloadSelector");
+  const trigger = selector.querySelector(".download-selector__trigger");
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    selector.classList.toggle("download-selector--active");
+  });
+  document.addEventListener("click", () => selector.classList.remove("download-selector--active"));
+</script>

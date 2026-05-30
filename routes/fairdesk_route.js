@@ -12,6 +12,7 @@ import Ttr from "../models/inventory/ttr.js";
 import Tape from "../models/inventory/tape.js";
 import TapeBinding from "../models/inventory/tapeBinding.js";
 import TapeSalesOrder from "../models/inventory/TapeSalesOrder.js";
+import PurchaseOrder from "../models/inventory/PurchaseOrder.js";
 import SystemId from "../models/system/systemId.js";
 import Carelead from "../models/carelead.js";
 import Calculator from "../models/utilities/calculator.js";
@@ -3959,6 +3960,32 @@ router.get("/sales/pending", async (req, res) => {
   }
 });
 
+// View Pending Purchase Orders
+router.get("/purchase/pending", async (req, res) => {
+  try {
+    const pendingPOs = await PurchaseOrder.find({ status: "PENDING" })
+      .populate("vendorUserId", "vendorName userName")
+      .populate({
+        path: "itemId",
+        select:
+          "tapeProductId tapePaperCode tapeGsm posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.render("inventory/pendingPurchaseOrders.ejs", {
+      title: "Pending Purchase Orders",
+      orders: pendingPOs,
+      notification: req.flash("notification"),
+      CSS: "tableDisp.css",
+      JS: false,
+    });
+  } catch (err) {
+    console.error("PENDING PO ERROR:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 // GET: Confirm Order Page (prefilled sales order form + extra fields)
 router.get("/sales/order/confirm", async (req, res) => {
   try {
@@ -4047,9 +4074,12 @@ router.get("/sales/order/confirm", async (req, res) => {
         totalBooked += b.bookedQty;
       });
 
+      // Get union of locations from physical stock and booked stock
+      const allStockLocs = new Set([...stockAgg.map((s) => s._id || "UNKNOWN"), ...Object.keys(bookedMap)]);
+
       let totalPhysical = 0;
-      const locations = stockAgg.map((s) => {
-        const loc = s._id || "UNKNOWN";
+      const locations = Array.from(allStockLocs).map((loc) => {
+        const s = stockAgg.find((sa) => (sa._id || "UNKNOWN") === loc) || { qty: 0 };
         const booked = bookedMap[loc] || 0;
         totalPhysical += s.qty;
         return {
@@ -4236,13 +4266,12 @@ router.post("/sales/order/status", async (req, res) => {
       ]);
       const currentStock = bal[0]?.qty || 0;
       const bookedQty = bookedAgg[0]?.bookedQty || 0;
-      const availableStock = currentStock - bookedQty;
 
-      // Validate sufficient stock
-      if (availableStock < qty) {
-        const message = availableStock <= 0
+      // Validate sufficient stock against physical quantity
+      if (currentStock < qty) {
+        const message = currentStock <= 0
           ? "cannot dispatch, not enough stocks"
-          : `Cannot dispatch ${qty}. Only ${availableStock} available at ${location}.`;
+          : `Cannot dispatch ${qty}. Only ${currentStock} available at ${location}.`;
         if (wantsJson) {
           return res.status(400).json({ success: false, message });
         }
