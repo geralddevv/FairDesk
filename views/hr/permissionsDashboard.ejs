@@ -145,7 +145,9 @@
           layout: "fitColumns",
           resizableColumns: true,
           initialSort: [{ column: "empName", dir: "asc" }],
-          initialFilter: [{ field: "role", type: "!=", value: "none" }],
+          initialHeaderFilter: [
+              { field: "role", value: "assigned" }
+          ],
           columns: [
               {
                   title: "Employee Name",
@@ -179,14 +181,19 @@
                   headerFilter: "select",
                   headerFilterParams: {
                       values: {
-                          "": "All",
+                          "": "All Employees",
+                          "assigned": "Assigned Roles Only",
                           none: "None (No Access)",
                           sales: "Sales",
                           hr: "HR / Accounts",
                           admin: "System Admin",
                       },
                   },
-                  headerFilterFunc: "=", 
+                  headerFilterFunc: function(headerValue, rowValue) {
+                      if (headerValue === "") return true;
+                      if (headerValue === "assigned") return rowValue && rowValue !== "none";
+                      return rowValue === headerValue;
+                  },
                   formatter: function(cell) {
                       const val = cell.getValue();
                       return `

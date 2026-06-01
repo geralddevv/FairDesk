@@ -11,7 +11,7 @@ filtering option like (active, request, hold, closed)
 on top of the loan view show request total and active total
 
 Petty Cash:
-need a year/month selector, person and a from/to slector in the view transaction
+need a year/month selector, person and a from/to slector in the view transaction ✔️
 month wise export (like a statement)
 
 employee:
@@ -49,5 +49,7 @@ make the old order appear on top in pending order page
 
 multiple po (purchase) should not be created for a specific item
 
-minus stock is not showing in the 
-
+solve prblm in permissions ✔️
+the reorder page is closing
+stock inward -> stocks
+by default if no photo show f

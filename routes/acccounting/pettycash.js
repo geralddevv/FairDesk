@@ -297,6 +297,8 @@ router.get("/logs/:location/view", async (req, res) => {
       viewLabel = "Current Month";
     }
 
+    const pettyList = await PettyCash.find().lean();
+    const allLocations = pettyList.map(p => p.location);
     const currentMonthExpense = getCurrentMonthExpense(logs);
 
     res.render("accounting/pettycashLogs", {
@@ -304,6 +306,7 @@ router.get("/logs/:location/view", async (req, res) => {
       location: locationLabel,
       balance,
       currentMonthExpense,
+      allLocations,
       viewLabel,
       mode,
       title: `Petty Cash Logs - ${locationLabel}`,
@@ -330,7 +333,7 @@ router.patch("/logs/:id", async (req, res) => {
       return res.status(404).json({ message: "Log not found" });
     }
 
-    const { amount, type, from, to, reason, entryDate } = req.body;
+    const { amount, type, from, to, reason, entryDate, location: newLocation } = req.body;
     const txnAmount = Number(amount) || 0;
     const normalizedEntryDate = normalizeEntryDate(entryDate);
 
@@ -346,6 +349,9 @@ router.patch("/logs/:id", async (req, res) => {
       return res.status(400).json({ message: "To is required" });
     }
 
+    const oldLocation = log.location;
+    const isLocationChange = newLocation && newLocation.trim() && newLocation.trim() !== oldLocation;
+
     const overrideDoc = {
       amount: txnAmount,
       type,
@@ -355,12 +361,26 @@ router.patch("/logs/:id", async (req, res) => {
       entryDate: normalizedEntryDate,
     };
 
-    const balance = await recomputeLogsAndBalance(log.location, {
-      overrideId: log._id,
-      overrideDoc,
-    });
+    if (isLocationChange) {
+      // 1. Update the log to the new location FIRST
+      log.location = newLocation.trim();
+      Object.assign(log, overrideDoc);
+      await log.save();
 
-    return res.json({ ok: true, balance });
+      // 2. Recompute the OLD location (it will no longer find this log)
+      await recomputeLogsAndBalance(oldLocation);
+
+      // 3. Recompute the NEW location (it will now include this log)
+      await recomputeLogsAndBalance(newLocation.trim());
+    } else {
+      // Normal update within the same location
+      await recomputeLogsAndBalance(oldLocation, {
+        overrideId: log._id,
+        overrideDoc,
+      });
+    }
+
+    return res.json({ ok: true });
   } catch (err) {
     console.error(err);
     return res.status(400).json({ message: err.message || "Failed to update log" });

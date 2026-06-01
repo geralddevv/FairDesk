@@ -95,10 +95,13 @@
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
       <div>
         <label style="font-size:12px; color:#6b7280; font-weight:600;">Type</label>
-        <select id="pc-edit-type" style="width:100%; height:42px; padding:10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#ffffff; color:#0f172a; font-size:14px; line-height:20px;">
-          <option value="RECEIVED">RECEIVED</option>
-          <option value="PAID">PAID</option>
-        </select>
+        <div style="position:relative;">
+          <select id="pc-edit-type" style="width:100%; height:42px; padding:10px 32px 10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#ffffff; color:#0f172a; font-size:14px; appearance:none; -webkit-appearance:none; cursor:pointer;">
+            <option value="RECEIVED">RECEIVED</option>
+            <option value="PAID">PAID</option>
+          </select>
+          <i class="fa-solid fa-chevron-down" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:12px; color:#64748b;"></i>
+        </div>
       </div>
       <div>
         <label style="font-size:12px; color:#6b7280; font-weight:600;">Amount</label>
@@ -106,6 +109,18 @@
           <span style="color:#044A78; font-weight:600;">₹</span>
           <input type="number" id="pc-edit-amount" min="1" style="width:100%; padding:10px 0; border:none; background:transparent; outline:none; color:#0f172a; font-size:14px; line-height:20px;" />
         </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#6b7280; font-weight:600;">Location</label>
+      <div style="position:relative;">
+        <select id="pc-edit-location" style="width:100%; height:42px; padding:10px 32px 10px 12px; border:1px solid #cbd5e1; border-radius:8px; background:#ffffff; color:#0f172a; font-size:14px; appearance:none; -webkit-appearance:none; cursor:pointer;">
+          <% allLocations.forEach(loc => { %>
+            <option value="<%= loc %>"><%= loc %></option>
+          <% }) %>
+        </select>
+        <i class="fa-solid fa-chevron-down" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:12px; color:#64748b;"></i>
       </div>
     </div>
 
@@ -183,6 +198,7 @@
   }
 
   const columns = [
+    { title: "Location", field: "location", headerFilter: "input", headerFilterPlaceholder: "Search" },
     { title: "From", field: "from", headerFilter: "input", headerFilterPlaceholder: "Search" },
     { title: "To", field: "to", headerFilter: "input", headerFilterPlaceholder: "Search" },
     {
@@ -284,6 +300,7 @@
   function openEditDialog(row) {
     document.getElementById("pc-edit-id").value = row._id;
     document.getElementById("pc-edit-amount").value = row.amount;
+    document.getElementById("pc-edit-location").value = row.location || "";
     document.getElementById("pc-edit-reason").value = row.reason || "";
     document.getElementById("pc-edit-type").value = row.type === "INWARD" ? "RECEIVED" : "PAID";
     document.getElementById("pc-edit-from").value = row.from || "";
@@ -309,6 +326,7 @@
 
   async function submitEditLog() {
     const id = document.getElementById("pc-edit-id").value;
+    const location = document.getElementById("pc-edit-location").value.trim();
     const typeUi = document.getElementById("pc-edit-type").value;
     const amount = Number(document.getElementById("pc-edit-amount").value);
     const from = document.getElementById("pc-edit-from").value.trim();
@@ -316,11 +334,12 @@
     const reason = document.getElementById("pc-edit-reason").value.trim();
     const entryDate = document.getElementById("pc-edit-date").value;
 
-    if (!id || !amount || amount <= 0) {
-      alert("Please enter a valid amount.");
+    if (!id || !amount || amount <= 0 || !location) {
+      alert("Please enter a valid amount and location.");
       return;
     }
     const payload = {
+      location,
       amount,
       type: typeUi === "RECEIVED" ? "INWARD" : "OUTWARD",
       from,
@@ -336,7 +355,10 @@
         body: JSON.stringify(payload),
       });
       if (res.ok) window.location.reload();
-      else alert("Failed to update log");
+      else {
+        const err = await res.json();
+        alert("Error: " + (err.message || "Failed to update log"));
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to update log");
