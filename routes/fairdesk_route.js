@@ -4975,6 +4975,35 @@ router.get("/labels/view/:id", async (req, res) => {
 });
 
 // ----------------------------------Welcome---------------------------------->
+const MOTIVATIONAL_QUOTES = [
+  { q: "The only way to do great work is to love what you do.", a: "Steve Jobs" },
+  { q: "Success is not final; failure is not fatal: it is the courage to continue that counts.", a: "Winston Churchill" },
+  { q: "Believe you can and you're halfway there.", a: "Theodore Roosevelt" },
+  { q: "The best way to predict the future is to create it.", a: "Peter Drucker" },
+  { q: "Everything you’ve ever wanted is on the other side of fear.", a: "George Addair" },
+  { q: "The only limit to our realization of tomorrow will be our doubts of today.", a: "Franklin D. Roosevelt" },
+  { q: "Hardships often prepare ordinary people for an extraordinary destiny.", a: "C.S. Lewis" },
+  { q: "Your time is limited, so don't waste it living someone else's life.", a: "Steve Jobs" },
+  { q: "Success is walking from failure to failure with no loss of enthusiasm.", a: "Winston Churchill" },
+  { q: "Whether you think you can or you think you can't, you're right.", a: "Henry Ford" },
+  { q: "The future belongs to those who believe in the beauty of their dreams.", a: "Eleanor Roosevelt" },
+  { q: "Don't watch the clock; do what it does. Keep going.", a: "Sam Levenson" },
+  { q: "The search for excellence is a journey, not a destination.", a: "Unknown" },
+  { q: "What you get by achieving your goals is not as important as what you become by achieving your goals.", a: "Zig Ziglar" },
+  { q: "It always seems impossible until it's done.", a: "Nelson Mandela" },
+  { q: "Quality is not an act, it is a habit.", a: "Aristotle" },
+  { q: "The only person you are destined to become is the person you decide to be.", a: "Ralph Waldo Emerson" },
+  { q: "Be so good they can't ignore you.", a: "Steve Martin" },
+  { q: "Integrity is doing the right thing, even when no one is watching.", a: "C.S. Lewis" },
+  { q: "The secret of getting ahead is getting started.", a: "Mark Twain" }
+];
+
+router.get("/api/motivational", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  const quote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+  res.json(quote);
+});
+
 router.get("/welcome", (req, res) => {
   res.render("miscellaneous/welcome.ejs", {
     title: "Welcome",

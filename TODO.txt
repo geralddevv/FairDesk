@@ -49,3 +49,6 @@ if physical stock 100 and the
 make the old order appear on top in pending order page
 
 multiple po (purchase) should not be created for a specific item
+
+minus stock is not showing in the 
+
