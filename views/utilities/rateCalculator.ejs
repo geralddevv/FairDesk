@@ -1,332 +1,181 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fairdesk - form</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css">
-    <!-- <link rel="stylesheet" href="/css/rateCalculator.css" /> -->
-    <link rel="stylesheet" href="/css/common.css">
-  </head>
-  <body>
-    <nav>
-      <h1>Fairdesk</h1>
-    </nav>
-    <div class="contain">
-      <!-- The navigation panel -->
-      <div class="side-nav">
-        <div title="Expand" class="nav-items nav-toggle">
-          <i class="fa-solid fa-bars" style="color: #ffffff"></i>
-          <p class="nav-items-para">Navigation</p>
-        </div>        
-        <div title="Client Data" class="nav-items" onclick="window.location.href = '/fairdesk/form/client'">
-          <i class="fa-solid fa-user" style="color: #ffffff"></i>
-          <p class="nav-items-para">Client Data</p>
+<% layout('/layout/boilerplate') %>
+
+<!-- The main content -->
+<div class="main-content">
+<form action="/fairdesk/form/ratecalculator" class="needs-validation" method="post" novalidate>
+  <div class="span-full form-heading">
+    <h1>Rate Calculator</h1>
+  </div>
+
+      <div class="span-four">
+        <label for="date">Date</label>
+        <input type="date" id="date" class="form-control input-tag" name="date" required />
+      </div>
+
+      <div class="span-dual">
+        <label for="company-name">Company name</label>
+        <input list="company_name_options" id="company-name" class="form-control input-tag" name="companyName" placeholder="Enter company name" required />
+          <datalist id="company_name_options">
+            <% for (let client of clients) { %>
+              <option value="<%= client %>"></option>
+            <% } %>
+          </datalist>
+      </div>
+
+
+      <div class="span-three">
+        <label for="label-width">Width</label>
+        <input type="number" step="any" id="label-width" class="form-control input-tag" name="labelWidth" placeholder="Enter width" required />
+      </div>
+
+      <div class="span-three">
+        <label for="label-height">Height</label>
+        <input type="number" step="any" id="label-height" class="form-control input-tag" name="LabelHeight" placeholder="Enter height" required />
+      </div>
+
+        <div class="span-five">
+          <label for="paper-type">Paper type</label>
+          <input
+            list="paper_type_options"
+            id="paper-type" class="form-control input-tag"
+            name="labelType"
+            placeholder="Enter label type"
+            required
+          />
+
+          <datalist id="paper_type_options">
+            <option value="Avery"></option>
+            <option value="Chromo"></option>
+            <option value="PVC / PP"></option>
+            <option value="D.T"></option>
+          </datalist>
         </div>
 
-        <div class="nav-opt-wrap">
-        <div title="Datasheet" class="datasheet-toggle nav-items">
-          <i class="fa-solid fa-square-caret-down" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Datasheet</p>
+        <div class="span-five">
+          <label for="paper-code">Paper code</label>
+          <input type="text" id="paper-code" class="form-control input-tag" name="paperCode" placeholder="Enter label code" required />
         </div>
 
-        <div class="nav-labels-opt">
-          <div title="Labels" class="nav-items" onclick="window.location.href = '/fairdesk/form/labels'">
-            <i class="fa-solid fa-address-card" style="color: #ffffff"></i>
-            <p class="nav-items-para">Labels</p>
-          </div>       
-          <div title="TTR" class="nav-items" onclick="window.location.href = '/fairdesk/form/ttr'">
-            <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
-            <p class="nav-items-para">TTR</p>
-          </div>
-          <div title="Tape" class="nav-items" onclick="window.location.href = '/fairdesk/form/tape'">
-            <i class="fa-solid fa-tape" style="color: #ffffff;"></i>
-            <p class="nav-items-para">Tape</p>
-          </div>  
-        </div>          
+        <div class="span-four">
+          <label for="printed">Printed</label>
+          <!-- <input list="printed_options" id="printed" class="form-control input-tag" name="printed" placeholder="Enter Printed" required /> -->
+          <select name="printed" id="printed" class="form-control select-tag" required>
+            <option value="" selected disabled hidden>Select</option>
+            <option value="Plain">Plain</option>
+            <option value="Printed">Printed</option>
+          </select>
+        </div>
+
+        <div class="span-five">
+          <label for="paper-size">Paper size</label>
+          <input type="number" step="any" id="paper-size" class="form-control input-tag" name="paperSize" placeholder="Enter paper size" required />
+        </div>
+
+      <div class="span-four">
+        <label for="job-ups">job ups</label>
+        <input type="number" oninput="limitToTwoChars(this)" id="job-ups" class="form-control input-tag" name="jobUps" placeholder="Enter job ups" required />
+      </div>
+
+      <div class="span-five">
+        <label for="die-across">Die across</label>
+        <input type="number" oninput="limitToTwoChars(this)" id="die-across" class="form-control input-tag" name="dieAcross" placeholder="Enter die across" required />
+      </div>
+
+        <div class="span-four">
+          <label for="per-1k">Per 1000</label>
+          <input type="number" step="any" id="per-1k" class="form-control input-tag" name="perOneK" placeholder="Enter per 1000" required />
+        </div>
+
+        <div class="span-five">
+          <label for="order-quantity">Order quantity</label>
+          <input type="number" step="any" id="order-quantity" class="form-control input-tag" name="orderQuantity" placeholder="Enter order quantity" required />
+        </div>
+
+        <div class="span-five">
+          <label for="m-rate">M rate</label>
+          <input type="number" step="any" id="m-rate" class="form-control input-tag" name="mRate" placeholder="Enter M rate" required />
         </div>
         
-        <div class="nav-opt-wrap">
-        <div title="Care" class="care-toggle nav-items">
-          <i class="fa-solid fa-circle-chevron-down" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Care</p>
+        <div class="span-four">
+          <label for="cost">Cost (%)</label>
+          <input list="cost-list" id="cost" class="form-control input-tag" name="cost" placeholder="Enter cost %" required />
+
+          <datalist id="cost-list">
+            <option value="1.45"></option>
+            <option value="1.55"></option>
+          </datalist>
         </div>
 
-        <div class="nav-care-opt">
-        <div title="System ID" class="nav-items" onclick="window.location.href = '/fairdesk/form/systemid'">
-          <i class="fa-solid fa-id-badge" style="color: #ffffff;"></i>
-          <p class="nav-items-para">System ID</p>
-        </div> 
-        <div title="Care Call Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/carecallreport'" >
-          <i class="fa-solid fa-file" style="color: #ffffff"></i>
-          <p class="nav-items-para">Call Report</p>
-        </div>
-        <div title="Care Workshop Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/careworkshopreport'">
-          <i class="fa-solid fa-shop" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Workshop Report</p>
-        </div>
-        <div title="Carelead" class="nav-items" onclick="window.location.href = '/fairdesk/form/carelead'">
-          <i class="fa-solid fa-notes-medical" style="color: #ffffff"></i>
-          <p class="nav-items-para">Lead</p>
-        </div>           
-        <div title="Care Quote" class="nav-items" onclick="window.location.href = '/fairdesk/form/carequote'">
-          <i class="fa-solid fa-quote-left" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Quote</p>
-        </div>           
-        </div>             
-        </div>
-        <div title="Rate Calculator" class="nav-items active" onclick="window.location.href = '/fairdesk/form/ratecalculator'">
-          <i class="fa-solid fa-calculator" style="color: #ffffff"></i>
-          <p class="nav-items-para">Rate Calculator</p>
-        </div>
+  <div class="btn-grp span-full">
+    <button id="calc-btn" type="button">Calculate</button>
+  </div>
 
-        <div class="nav-opt-wrap">
-        <div title="Rate Calculator" class="calc-toggle nav-items">
-          <i class="fa-solid fa-square-caret-down" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Rate Calculator</p>
-        </div>
-
-        <div class="nav-calc-opt">
-          <div title="Sales Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/salescalc'">
-            <i class="fa-solid fa-money-bill-transfer" style="color: #ffffff;"></i>
-            <p class="nav-items-para">Sales Calculator</p>
-          </div>       
-          <div title="Production Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/prodcalc'">
-            <i class="fa-solid fa-industry" style="color: #ffffff;"></i>
-            <p class="nav-items-para">Production Calculator</p>
-          </div>
-        </div>            
-        </div>
+      <div class="span-six">
+        <label for="production">Production (sq.inch)</label>
+        <input type="number" step="any" id="production" class="form-control auto-calc input-tag" name="production" placeholder="Enter production area" required />
       </div>
-      
-      <!-- The main content -->
-      <div class="main-content">
-      <form action="/fairdesk/form/ratecalculator" class="needs-validation" method="post" novalidate>
-        <div class="span-full form-heading">
-          <h1>Rate Calculator</h1>
-        </div>
 
-            <div class="span-four">
-              <label for="date">Date</label>
-              <input type="date" id="date" class="form-control input-tag" name="date" required />
-            </div>
-
-            <div class="span-dual">
-              <label for="company-name">Company name</label>
-              <input list="company_name_options" id="company-name" class="form-control input-tag" name="companyName" placeholder="Enter company name" required />
-                <datalist id="company_name_options">
-                  <% for (let client of clients) { %>
-                    <option value="<%= client %>"></option>
-                  <% } %>
-                </datalist>
-            </div>
-
-
-            <div class="span-three">
-              <label for="label-width">Width</label>
-              <input type="number" step="any" id="label-width" class="form-control input-tag" name="labelWidth" placeholder="Enter width" required />
-            </div>
-
-            <div class="span-three">
-              <label for="label-height">Height</label>
-              <input type="number" step="any" id="label-height" class="form-control input-tag" name="LabelHeight" placeholder="Enter height" required />
-            </div>
-
-              <div class="span-five">
-                <label for="paper-type">Paper type</label>
-                <input
-                  list="paper_type_options"
-                  id="paper-type" class="form-control input-tag"
-                  name="labelType"
-                  placeholder="Enter label type"
-                  required
-                />
-
-                <datalist id="paper_type_options">
-                  <option value="Avery"></option>
-                  <option value="Chromo"></option>
-                  <option value="PVC / PP"></option>
-                  <option value="D.T"></option>
-                </datalist>
-              </div>
-
-              <div class="span-five">
-                <label for="paper-code">Paper code</label>
-                <input type="text" id="paper-code" class="form-control input-tag" name="paperCode" placeholder="Enter label code" required />
-              </div>
-
-              <div class="span-four">
-                <label for="printed">Printed</label>
-                <!-- <input list="printed_options" id="printed" class="form-control input-tag" name="printed" placeholder="Enter Printed" required /> -->
-                <select name="printed" id="printed" class="form-control select-tag" required>
-                  <option value="" selected disabled hidden>Select</option>
-                  <option value="Plain">Plain</option>
-                  <option value="Printed">Printed</option>
-                </select>
-              </div>
-
-              <div class="span-five">
-                <label for="paper-size">Paper size</label>
-                <input type="number" step="any" id="paper-size" class="form-control input-tag" name="paperSize" placeholder="Enter paper size" required />
-              </div>
-
-            <div class="span-four">
-              <label for="job-ups">job ups</label>
-              <input type="number" oninput="limitToTwoChars(this)" id="job-ups" class="form-control input-tag" name="jobUps" placeholder="Enter job ups" required />
-            </div>
-
-            <div class="span-five">
-              <label for="die-across">Die across</label>
-              <input type="number" oninput="limitToTwoChars(this)" id="die-across" class="form-control input-tag" name="dieAcross" placeholder="Enter die across" required />
-            </div>
-
-              <div class="span-four">
-                <label for="per-1k">Per 1000</label>
-                <input type="number" step="any" id="per-1k" class="form-control input-tag" name="perOneK" placeholder="Enter per 1000" required />
-              </div>
-
-              <div class="span-five">
-                <label for="order-quantity">Order quantity</label>
-                <input type="number" step="any" id="order-quantity" class="form-control input-tag" name="orderQuantity" placeholder="Enter order quantity" required />
-              </div>
-
-              <div class="span-five">
-                <label for="m-rate">M rate</label>
-                <input type="number" step="any" id="m-rate" class="form-control input-tag" name="mRate" placeholder="Enter M rate" required />
-              </div>
-              
-              <div class="span-four">
-                <label for="cost">Cost (%)</label>
-                <input list="cost-list" id="cost" class="form-control input-tag" name="cost" placeholder="Enter cost %" required />
-
-                <datalist id="cost-list">
-                  <option value="1.45"></option>
-                  <option value="1.55"></option>
-                </datalist>
-              </div>
-
-        <div class="btn-grp span-full">
-          <button id="calc-btn" type="button">Calculate</button>
-        </div>
-
-            <div class="span-six">
-              <label for="production">Production (sq.inch)</label>
-              <input type="number" step="any" id="production" class="form-control auto-calc input-tag" name="production" placeholder="Enter production area" required />
-            </div>
-
-            <div class="span-five">
-              <label for="sales">Sales (sq.m)</label>
-              <input type="number" step="any" id="sales" class="form-control auto-calc input-tag" name="sales" placeholder="Enter sales area" required />
-            </div>
-
-              <div class="span-four">
-                <label for="actual-cost">Actual cost</label>
-                <input type="number" step="any" id="actual-cost" class="form-control auto-calc input-tag" name="actualCost" placeholder="Actual cost" required />
-              </div>
-
-              <div class="span-six">
-                <label for="production-rate">Production rate</label>
-                <input type="number" step="any" id="production-rate" class="form-control auto-calc input-tag" name="productionRate" placeholder="Production rate" required />
-              </div>
-
-              <div class="span-four">
-                <label for="sales-rate">Sales rate</label>
-                <input type="number" step="any" id="sales-rate" class="form-control auto-calc input-tag" name="salesRate" placeholder="Sales rate" required />
-              </div>
-
-              <div class="span-seven">
-                <label for="tot-sqr-m">Total square meters</label>
-                <input type="number" step="any" id="tot-sqr-m" class="form-control auto-calc input-tag" name="sqMeter" placeholder="Total square meters" required />
-              </div>
-
-              <div class="span-seven">
-                <label for="m-cost">M cost</label>
-                <input type="number" step="any" id="m-cost" class="form-control auto-calc input-tag" name="mCost" placeholder="M cost" required />
-              </div>
-
-            <div class="span-six">
-              <label for="order-value">Order value</label>
-              <input type="number" step="any" id="order-value" class="form-control auto-calc input-tag" name="orderValue" placeholder="Order value" required />
-            </div>
-
-              <div class="span-six">
-                <label for="margin">Margin</label>
-                <input type="number" step="any" id="margin" class="form-control auto-calc input-tag" name="margin" placeholder="Margin" required />
-              </div>
-
-              <div class="span-six">
-                <label for="margin-amount">Margin cost</label>
-                <input type="number" step="any" id="margin-amount" class="form-control auto-calc input-tag" name="marginAmount" placeholder="Margin amount" required />
-              </div>
-
-              <div class="span-seven">
-                <label for="margin-percent">Margin %</label>
-                <input type="number" step="any" id="margin-percent" class="auto-calc form-control input-tag" name="marginPercent" placeholder="Margin percentage" required />
-              </div>
-        <div class="btn-grp span-full">
-          <button class="view-btn" type="button">View Details</button>
-          <button class="submit-btn" type="submit">Submit Order Details</button>
-        </div>
-      </form>
+      <div class="span-five">
+        <label for="sales">Sales (sq.m)</label>
+        <input type="number" step="any" id="sales" class="form-control auto-calc input-tag" name="sales" placeholder="Enter sales area" required />
       </div>
-    </div>
 
-        <!-- The view details panel -->
-     <!-- <div class="view-details-contain">
-      <div class="rounded-container">
-     <div class="view-details">
-      <div class="view-details-heading mb-3 rounded-3">
-        <h1>Client Details</h1>
-        <button class="close-btn position-absolute">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="span-four">
+          <label for="actual-cost">Actual cost</label>
+          <input type="number" step="any" id="actual-cost" class="form-control auto-calc input-tag" name="actualCost" placeholder="Actual cost" required />
+        </div>
+
+        <div class="span-six">
+          <label for="production-rate">Production rate</label>
+          <input type="number" step="any" id="production-rate" class="form-control auto-calc input-tag" name="productionRate" placeholder="Production rate" required />
+        </div>
+
+        <div class="span-four">
+          <label for="sales-rate">Sales rate</label>
+          <input type="number" step="any" id="sales-rate" class="form-control auto-calc input-tag" name="salesRate" placeholder="Sales rate" required />
+        </div>
+
+        <div class="span-seven">
+          <label for="tot-sqr-m">Total square meters</label>
+          <input type="number" step="any" id="tot-sqr-m" class="form-control auto-calc input-tag" name="sqMeter" placeholder="Total square meters" required />
+        </div>
+
+        <div class="span-seven">
+          <label for="m-cost">M cost</label>
+          <input type="number" step="any" id="m-cost" class="form-control auto-calc input-tag" name="mCost" placeholder="M cost" required />
+        </div>
+
+      <div class="span-six">
+        <label for="order-value">Order value</label>
+        <input type="number" step="any" id="order-value" class="form-control auto-calc input-tag" name="orderValue" placeholder="Order value" required />
       </div>
-      <h6><b>Date: </b><span id="det-1">-</span></h6>
-      <h6><b>Company name:  </b><span id="det-2">-</span></h6>
-      <h5>Label</h5>
-      <h6><b>Width: </b><span id="det-3">-</span></h6>
-      <h6><b>Label: </b><span id="det-4">-</span></h6>
-      <h5>Transport Details</h5>
-      <h6><b>Paper type:  </b><span id="det-5">-</span></h6>
-      <h6><b>Printed:  </b><span id="det-6">-</span></h6>
-      <h6><b>Paper code:  </b><span id="det-7">-</span></h6>
-      <h6><b>Payment: </b><span id="det-9">-</span></h6>
-      <br>
-      <h6><b>Job ups:  </b><span id="det-10">-</span></h6>
-      <h6><b>Die across:  </b><span id="det-12">-</span></h6>
-      <br>
-      <h6><b>Per 1000:  </b><span id="det-13">-</span></h6>
-      <h6><b>M rate:  </b><span id="det-14">-</span></h6>
-      <h6><b>Order quantity:  </b><span id="det-15">-</span></h6>
-      <h6><b>Cost percentage:  </b><span id="det-16">-</span></h6>
-      <br>
-      <h5>Calculated Values</h5>
-      <h6><b>Production (sq.inch):  </b><span id="det-16">-</span></h6>
-      <h6><b>Sales (sq.m):  </b><span id="det-17">-</span></h6>
-      <h6><b>Actual cost:  </b><span id="det-18">-</span></h6>
-      <h6><b>Sales rate:  </b><span id="det-19">-</span></h6>
-      <h6><b>Production rate:  </b><span id="det-20">-</span></h6>
-      <h6><b>Total Square meters:  </b><span id="det-21">-</span></h6>
-      <h6><b>Order value:   </b><span id="det-22">-</span></h6>
-      <h6><b>M cost:  </b><span id="det-23">-</span></h6>
-      <h6><b>Margin:  </b><span id="det-24">-</span></h6>
-      <h6><b>Margin percentage:  </b><span id="det-25">-</span></h6>
-      <h6><b>Margin cost:  </b><span id="det-26">-</span></h6>
-     </div>
-     </div>
-     </div> -->
 
-    <script>
-      function limitToTwoChars(elem) {
-        if (elem.value.length > 2) {
-          elem.value = elem.value.slice(0, 2);
-        }
-      }
-    </script>
-    <script src="/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/BTStrap.js"></script>
-    <script src="/js/rateCalculator.js"></script>
-    <script src="/js/common.js"></script>
-  </body>
-</html>
+        <div class="span-six">
+          <label for="margin">Margin</label>
+          <input type="number" step="any" id="margin" class="form-control auto-calc input-tag" name="margin" placeholder="Margin" required />
+        </div>
+
+        <div class="span-six">
+          <label for="margin-amount">Margin cost</label>
+          <input type="number" step="any" id="margin-amount" class="form-control auto-calc input-tag" name="marginAmount" placeholder="Margin amount" required />
+        </div>
+
+        <div class="span-seven">
+          <label for="margin-percent">Margin %</label>
+          <input type="number" step="any" id="margin-percent" class="auto-calc form-control input-tag" name="marginPercent" placeholder="Margin percentage" required />
+        </div>
+  <div class="btn-grp span-full">
+    <button class="view-btn" type="button">View Details</button>
+    <button class="submit-btn" type="submit">Submit Order Details</button>
+  </div>
+</form>
+</div>
+
+<script>
+  function limitToTwoChars(elem) {
+    if (elem.value.length > 2) {
+      elem.value = elem.value.slice(0, 2);
+    }
+  }
+</script>
+<script src="/js/rateCalculator.js" defer></script>

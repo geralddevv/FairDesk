@@ -1,197 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Care Quote</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" />
-    <link rel="stylesheet" href="/bootstrap/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="/css/common.css" />
-  </head>
-  <body>
-    <nav>
-      <h1>Fairdesk</h1>
-    </nav>
-    <div class="contain">
-      <!-- Navigation bar -->
-      <div class="side-nav">
-        <div title="Expand" class="nav-items nav-toggle">
-          <i class="fa-solid fa-bars" style="color: #ffffff"></i>
-          <p class="nav-items-para">Navigation</p>
-        </div>        
-        <div title="Client Data" class="nav-items" onclick="window.location.href = '/fairdesk/form/client'">
-          <i class="fa-solid fa-user" style="color: #ffffff"></i>
-          <p class="nav-items-para">Client Data</p>
-        </div>
+<% layout('/layout/boilerplate') %>
 
-        <div class="nav-opt-wrap">
-        <div title="Datasheet" class="datasheet-toggle nav-items">
-          <i class="fa-solid fa-square-caret-down" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Datasheet</p>
-        </div>
-
-        <div class="nav-labels-opt">
-          <div title="Labels" class="nav-items" onclick="window.location.href = '/fairdesk/form/labels'">
-            <i class="fa-solid fa-address-card" style="color: #ffffff"></i>
-            <p class="nav-items-para">Labels</p>
-          </div>       
-          <div title="TTR" class="nav-items" onclick="window.location.href = '/fairdesk/form/ttr'">
-            <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
-            <p class="nav-items-para">TTR</p>
-          </div>
-          <div title="Tape" class="nav-items" onclick="window.location.href = '/fairdesk/form/tape'">
-            <i class="fa-solid fa-tape" style="color: #ffffff;"></i>
-            <p class="nav-items-para">Tape</p>
-          </div>  
-        </div>          
-        </div>
-        
-        <div class="nav-opt-wrap">
-        <div title="Care" class="care-toggle nav-items">
-          <i class="fa-solid fa-circle-chevron-down" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Care</p>
-        </div>
-
-        <div class="nav-care-opt">
-        <div title="System ID" class="nav-items" onclick="window.location.href = '/fairdesk/form/systemid'">
-          <i class="fa-solid fa-id-badge" style="color: #ffffff;"></i>
-          <p class="nav-items-para">System ID</p>
-        </div> 
-        <div title="Care Call Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/carecallreport'" >
-          <i class="fa-solid fa-file" style="color: #ffffff"></i>
-          <p class="nav-items-para">Call Report</p>
-        </div>
-        <div title="Care Workshop Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/careworkshopreport'">
-          <i class="fa-solid fa-shop" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Workshop Report</p>
-        </div>
-        <div title="Carelead" class="nav-items" onclick="window.location.href = '/fairdesk/form/carelead'">
-          <i class="fa-solid fa-notes-medical" style="color: #ffffff"></i>
-          <p class="nav-items-para">Lead</p>
-        </div>           
-        <div title="Care Quote" class="nav-items active" onclick="window.location.href = '/fairdesk/form/carequote'">
-          <i class="fa-solid fa-quote-left" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Quote</p>
-        </div>           
-        </div>             
-        </div>
-        <div title="Rate Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/ratecalculator'">
-          <i class="fa-solid fa-calculator" style="color: #ffffff"></i>
-          <p class="nav-items-para">Rate Calculator</p>
-        </div>
-
-        <div class="nav-opt-wrap">
-        <div title="Rate Calculator" class="calc-toggle nav-items">
-          <i class="fa-solid fa-square-caret-down" style="color: #ffffff;"></i>
-          <p class="nav-items-para">Rate Calculator</p>
-        </div>
-
-        <div class="nav-calc-opt">
-          <div title="Sales Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/salescalc'">
-            <i class="fa-solid fa-money-bill-transfer" style="color: #ffffff;"></i>
-            <p class="nav-items-para">Sales Calculator</p>
-          </div>       
-          <div title="Production Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/prodcalc'">
-            <i class="fa-solid fa-industry" style="color: #ffffff;"></i>
-            <p class="nav-items-para">Production Calculator</p>
-          </div>
-        </div>            
-        </div>
-      </div>
-
-      <!-- The main content -->
-      <div class="main-content">
-        <form action="/fairdesk/form/datasheet" method="post" class="needs-validation" novalidate>
-          <div class="span-full form-heading">
-            <h1>Care Quotes</h1>
-          </div>
-
-          <div class="span-full form-subheading">
-            <h1>General details</h1>
-          </div>
-
-          <div class="span-five">
-            <label for="careq-date">Date</label>
-            <input type="date" id="careq-date" class="form-control" name="careqDate" required />
-          </div>
-          <div class="span-half" style="grid-column: span 27;">
-            <label for="careq-client">Client name</label>
-            <input type="text" id="careq-client" class="form-control" name="careqClient" placeholder="Enter client name" required />
-          </div>
-
-          <div class="span-full form-subheading">
-            <h1>Product or Service Details</h1>
-          </div>
-
-          <div class="span-penta">
-            <label for="careq-requirments">Requirments</label>
-            <input type="text" id="careq-requirments" class="form-control" name="careqRequirments" placeholder="Enter Requirments" required />
-          </div>
-          <div class="span-hexa">
-            <label for="care1-make">Make</label>
-            <input type="text" id="careq-make" class="form-control" name="careMake" placeholder="Enter Location" required />
-          </div>
-          <div class="span-penta">
-            <label for="careq-model">Model</label>
-            <input type="text" id="careq-model" class="form-control" name="careqModel" placeholder="Enter model" required />
-          </div>
-
-          <div class="span-full form-subheading">
-            <h1>Vendor and Pricing</h1>
-          </div>
-
-          <div class="span-half">
-            <label for="careq-vendor">Vendor</label>
-            <input type="text" id="careq-vendor" class="form-control" name="careqVendor" placeholder="Enter vendor" required />
-          </div>
-          <div class="span-half">
-            <label for="careq-rate">Rate</label>
-            <input type="text" id="careq-rate" class="form-control" name="careqRate" placeholder="Enter rate" required />
-          </div>
-
-          <div class="span-full form-subheading">
-            <h1>Status Tracking</h1>
-          </div>
-
-          <div class="span-half">
-            <label for="careq-delivery">Delivery Status</label>
-            <input type="text" id="careq-delivery" class="form-control" name="careqDelivery" placeholder="Enter deliver status" required />
-          </div>          
-          <div class="span-half">
-            <label for="careq-quote">Quote</label>
-            <input type="text" id="careq-quote" class="form-control" name="careqQuote" placeholder="Enter Quote" required />
-          </div>          
-          
-          <div class="span-full form-subheading">
-            <h1>Remarks</h1>
-          </div>
-          
-          <div class="span-full">
-            <label for="careq-remark">Remark</label>
-            <input type="text" id="careq-remark" class="form-control" name="careqRemark" placeholder="Enter remark" required />
-          </div>
-
-          <div class="btn-grp span-full">
-            <button type="submit">Submit System Id</button>
-          </div>          
-        </form>
-      </div>
+<div class="main-content">
+  <form action="/fairdesk/form/carequote" method="post" class="needs-validation" novalidate>
+    <div class="span-full form-heading">
+      <h1>Care Quotes</h1>
     </div>
 
-    <script>
-        const dateInput = document.getElementById("careq-date");
+    <div class="span-full form-subheading">
+      <h1>General details</h1>
+    </div>
+    <div class="span-five">
+      <label for="careq-date">Date</label>
+      <input type="date" id="careq-date" class="form-control" name="careqDate" required />
+    </div>
+    <div class="span-half" style="grid-column: span 27;">
+      <label for="careq-client">Client name</label>
+      <input type="text" id="careq-client" class="form-control" name="careqClient" placeholder="Enter client name" required />
+    </div>
 
-        // Get today's date in YYYY-MM-DD format
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based
-        const dd = String(today.getDate()).padStart(2, '0');
+    <div class="span-full form-subheading">
+      <h1>Product or Service Details</h1>
+    </div>
+    <div class="span-penta">
+      <label for="careq-requirments">Requirements</label>
+      <input type="text" id="careq-requirments" class="form-control" name="careqRequirments" placeholder="Enter Requirements" required />
+    </div>
+    <div class="span-hexa">
+      <label for="careq-make">Make</label>
+      <input type="text" id="careq-make" class="form-control" name="careMake" placeholder="Enter Make" required />
+    </div>
+    <div class="span-penta">
+      <label for="careq-model">Model</label>
+      <input type="text" id="careq-model" class="form-control" name="careqModel" placeholder="Enter model" required />
+    </div>
 
-        const formattedDate = `${yyyy}-${mm}-${dd}`;
+    <div class="span-full form-subheading">
+      <h1>Vendor and Pricing</h1>
+    </div>
+    <div class="span-half">
+      <label for="careq-vendor">Vendor</label>
+      <input type="text" id="careq-vendor" class="form-control" name="careqVendor" placeholder="Enter vendor" required />
+    </div>
+    <div class="span-half">
+      <label for="careq-rate">Rate</label>
+      <input type="text" id="careq-rate" class="form-control" name="careqRate" placeholder="Enter rate" required />
+    </div>
 
-        // Set the value of the input
-        dateInput.value = formattedDate;
-    </script>
-    <script src="/js/common.js"></script>
-  </body>
-</html>
+    <div class="span-full form-subheading">
+      <h1>Status Tracking</h1>
+    </div>
+    <div class="span-half">
+      <label for="careq-delivery">Delivery Status</label>
+      <input type="text" id="careq-delivery" class="form-control" name="careqDelivery" placeholder="Enter delivery status" required />
+    </div>
+    <div class="span-half">
+      <label for="careq-quote">Quote</label>
+      <input type="text" id="careq-quote" class="form-control" name="careqQuote" placeholder="Enter Quote" required />
+    </div>
+
+    <div class="span-full form-subheading">
+      <h1>Remarks</h1>
+    </div>
+    <div class="span-full">
+      <label for="careq-remark">Remark</label>
+      <input type="text" id="careq-remark" class="form-control" name="careqRemark" placeholder="Enter remark" required />
+    </div>
+
+    <div class="btn-grp span-full">
+      <button type="submit">Submit Care Quote</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const dateInput = document.getElementById("careq-date");
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  dateInput.value = `${yyyy}-${mm}-${dd}`;
+</script>

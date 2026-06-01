@@ -121,9 +121,10 @@
       }
 
       .nav-items {
-        height: 3.6rem;
-        padding: 5px 12px;
+        min-height: 3.6rem;
+        padding: 8px 12px;
         gap: 10px;
+        border: 1px solid transparent;
       }
 
       .nav-items i {
@@ -503,13 +504,11 @@
           
           <div class="profile-menu" id="fdProfileMenu">
             <div class="profile-menu-header">
-              <div class="profile-avatar-circle" style="width: 42px; height: 42px; flex-shrink: 0; background: #044a78; border: 2px solid #e2e8f0; font-size: 18px;">
+              <div class="profile-avatar-circle" style="width: 42px; height: 42px; flex-shrink: 0; background: #f0f7ff; border: 2px solid #e2e8f0; font-size: 18px;">
                 <% if (authUser?.empPhoto) { %>
                   <img src="/images/thumb/empimg/<%= authUser.empPhoto %>" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                 <% } else { %>
-                  <span style="color: white; font-weight: 700;">
-                    F
-                  </span>
+                  <img src="/assets/fairfavicon.png" alt="Fairdesk" style="width: 65%; height: 65%; object-fit: contain;">
                 <% } %>
               </div>
               <div style="flex: 1; min-width: 0;">
@@ -731,6 +730,10 @@
               <i class="fa-solid fa-eye" style="color: #ffffff"></i>
               <p class="nav-items-para">Vendor Details</p>
             </div>
+            <div title="Stock View" class="<%= title === 'Stock View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/stocks/view'" >
+              <i class="fa-solid fa-table-list" style="color: #ffffff"></i>
+              <p class="nav-items-para">Summary</p>
+            </div>            
             <div title="Re-Order" class="<%= title === 'Reorder List' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/inventory/reorder'">
               <i class="fa-solid fa-cart-flatbed" style="color: #ffffff"></i>
               <p class="nav-items-para">Re-Order</p>
@@ -827,53 +830,8 @@
           </div>
         </div>
         
-        <!-- <div class="nav-opt-wrap">
-          <div title="Care" class="care-toggle nav-items">
-            <i class="fa-solid fa-circle-chevron-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Care</p>
-          </div>
-
-          <div class="nav-care-opt">
-            <div title="System ID" class="nav-items" onclick="window.location.href = '/fairdesk/form/systemid'">
-              <i class="fa-solid fa-id-badge" style="color: #ffffff"></i>
-              <p class="nav-items-para">System ID</p>
-            </div>
-            <div title="Care Call Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/carecallreport'" >
-              <i class="fa-solid fa-file" style="color: #ffffff"></i>
-              <p class="nav-items-para">Call Report</p>
-            </div>
-            <div title="Care Workshop Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/careworkshopreport'">
-              <i class="fa-solid fa-shop" style="color: #ffffff"></i>
-              <p class="nav-items-para">Workshop Report</p>
-            </div>
-            <div title="Carelead" class="nav-items" onclick="window.location.href = '/fairdesk/form/carelead'">
-              <i class="fa-solid fa-notes-medical" style="color: #ffffff"></i>
-              <p class="nav-items-para">Lead</p>
-            </div>
-            <div title="Care Quote" class="nav-items" onclick="window.location.href = '/fairdesk/form/carequote'">
-              <i class="fa-solid fa-quote-left" style="color: #ffffff"></i>
-              <p class="nav-items-para">Quote</p>
-            </div>
-          </div>
-        </div> -->
-        <!-- <div title="Rate Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/ratecalculator'">
-          <i class="fa-solid fa-calculator" style="color: #ffffff"></i>
-          <p class="nav-items-para">Rate Calculator</p>
-        </div> -->
-
-        <!-- <div class="nav-opt-wrap"> -->
-        <!-- <div title="Rate Calculator" class="calc-toggle nav-items">
-            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
-            <p class="nav-items-para">Rate Calculator</p>
-          </div> -->
-
-        <!-- <div class="nav-calc-opt">
-            <div title="Sales Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/salescalc'">
-              <i class="fa-solid fa-money-bill-transfer" style="color: #ffffff"></i>
-              <p class="nav-items-para">Sales Calculator</p>
-            </div>
-          </div> -->
         <% } %>
+
 
         <% if (canAccounting || canHr) { %>
         <div class="nav-opt-wrap">
@@ -975,7 +933,7 @@
           </div>
         </div> -->
 
-        <% if (canStock) { %>
+        <!-- <% if (canStock) { %>
         <div class="nav-opt-wrap">
           <div title="Orders" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
@@ -983,10 +941,6 @@
           </div>
 
           <div class="nav-labels-opt">
-            <div title="Stock View" class="<%= title === 'Stock View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/stocks/view'" style="border-top: 2px solid #ffffff9d;" >
-              <i class="fa-solid fa-table-list" style="color: #ffffff"></i>
-              <p class="nav-items-para">Summary</p>
-            </div>
             <div title="Tape Stock" class="<%= title === 'Tape Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tapestock'" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
@@ -1005,7 +959,7 @@
             </div>
           </div>
         </div>
-        <% } %>
+        <% } %> -->
 
         <% if (canOrders) { %>
         <div class="nav-opt-wrap">
@@ -1026,13 +980,61 @@
           </div>
         </div>
         <% } %>
-                  
+
+        <% if (isAdmin || isHod || isSales) { %>
+        <div class="nav-opt-wrap">
+          <div title="Care" class="care-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Care</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="System ID" class="nav-items" onclick="window.location.href = '/fairdesk/form/systemid'">
+              <i class="fa-solid fa-id-badge" style="color: #ffffff"></i>
+              <p class="nav-items-para">System ID</p>
+            </div>
+            <div title="Care Call Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/carecallreport'" >
+              <i class="fa-solid fa-file" style="color: #ffffff"></i>
+              <p class="nav-items-para">Call Report</p>
+            </div>
+            <div title="Care Workshop Report" class="nav-items" onclick="window.location.href = '/fairdesk/form/careworkshopreport'">
+              <i class="fa-solid fa-shop" style="color: #ffffff"></i>
+              <p class="nav-items-para">Workshop Report</p>
+            </div>
+            <div title="Carelead" class="nav-items" onclick="window.location.href = '/fairdesk/form/carelead'">
+              <i class="fa-solid fa-notes-medical" style="color: #ffffff"></i>
+              <p class="nav-items-para">Lead</p>
+            </div>
+            <div title="Care Quote" class="nav-items" onclick="window.location.href = '/fairdesk/form/carequote'">
+              <i class="fa-solid fa-quote-left" style="color: #ffffff"></i>
+              <p class="nav-items-para">Quote</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-opt-wrap">
+          <div title="Rate Calculator" class="calc-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">Calculator</p>
+          </div>
+
+          <div class="nav-labels-opt">
+            <div title="Rate Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/ratecalculator'">
+              <i class="fa-solid fa-calculator" style="color: #ffffff"></i>
+              <p class="nav-items-para">Rate Calculator</p>
+            </div>
+            <div title="Sales Calculator" class="nav-items" onclick="window.location.href = '/fairdesk/form/salescalc'">
+              <i class="fa-solid fa-money-bill-transfer" style="color: #ffffff"></i>
+              <p class="nav-items-para">Sales Calculator</p>
+            </div>
+          </div>
+        </div>
+        <% } %>
       </div>
 
       <!--- Loading Content --->
       <div class="page-content" id="pageContent"></div>
-        <%- body -%>
-      </div>
+      <%- body -%>
     </div>
 
     <script src="/js/common.js?v=session-keepalive-v2" defer></script>

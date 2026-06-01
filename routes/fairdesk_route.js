@@ -500,7 +500,13 @@ router.use((req, res, next) => {
 
 router.get("/form/ratecalculator", async (req, res) => {
   let clients = await Username.distinct("clientName");
-  res.render("utilities/rateCalculator.ejs", { clients });
+  res.render("utilities/rateCalculator.ejs", {
+    clients,
+    title: "Rate Calculator",
+    JS: "rateCalculator.js",
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle rate calculator form submission
@@ -987,7 +993,12 @@ router.post("/form/samples", async (req, res) => {
 // ----------------------------------CareLead---------------------------------->
 // route for carelead form.
 router.get("/form/carelead", (req, res) => {
-  res.render("careLead.ejs");
+  res.render("care/carelead.ejs", {
+    title: "Care Lead",
+    JS: false,
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle carelead form submission.
@@ -1001,7 +1012,12 @@ router.post("/form/carelead", async (req, res) => {
 // ----------------------------------CareCallReport---------------------------------->
 // route for carecallreport form.
 router.get("/form/carecallreport", (req, res) => {
-  res.render("careCallReport.ejs");
+  res.render("care/careCallReport.ejs", {
+    title: "Care Call Report",
+    JS: false,
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle carecallreport form submission.
@@ -1016,8 +1032,13 @@ router.post("/form/carecallreport", async (req, res) => {
 // route for systemid form.
 router.get("/form/systemid", async (req, res) => {
   let systemIdCount = await SystemId.countDocuments();
-  res.render("systemId.ejs", { systemIdCount });
-  res.render("systemId.ejs");
+  res.render("care/systemId.ejs", {
+    systemIdCount,
+    title: "System ID",
+    JS: false,
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle systemid form submission.
@@ -1031,7 +1052,12 @@ router.post("/form/systemid", async (req, res) => {
 // ----------------------------------WorkshopReport---------------------------------->
 // route for careworkshopreport form.
 router.get("/form/careworkshopreport", (req, res) => {
-  res.render("careWokshopReport.ejs");
+  res.render("care/careWokshopReport.ejs", {
+    title: "Care Workshop Report",
+    JS: false,
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle careworkshopreport form submission.
@@ -1045,7 +1071,12 @@ router.post("/form/careworkshopreport", async (req, res) => {
 // ----------------------------------CareQuote---------------------------------->
 // route for carequote form.
 router.get("/form/carequote", (req, res) => {
-  res.render("careQuote.ejs");
+  res.render("care/careQuote.ejs", {
+    title: "Care Quote",
+    JS: false,
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle carequote form submission.
@@ -4790,7 +4821,13 @@ router.get("/form/salesorder", (req, res) => {
 // route for salescalc form.
 router.get("/form/salescalc", async (req, res) => {
   let clients = await Client.distinct("clientName");
-  res.render("utilities/salesCalc.ejs", { clients });
+  res.render("utilities/salesCalc.ejs", {
+    clients,
+    title: "Sales Calculator",
+    JS: "salesCalc.js",
+    CSS: false,
+    notification: req.flash("notification"),
+  });
 });
 
 // Route to handle salescalc form submission.

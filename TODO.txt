@@ -49,7 +49,4 @@ make the old order appear on top in pending order page
 
 multiple po (purchase) should not be created for a specific item
 
-solve prblm in permissions ✔️
-the reorder page is closing
-stock inward -> stocks
-by default if no photo show f
+by default if no photo show f logo
