@@ -137,26 +137,61 @@
             `;
           },
         },
-        { title: "ID", field: "productId", width: 140, headerFilter: "input" },
-        { title: "Type", field: "type", width: 100, headerFilter: "input" },
-        { title: "Item Name", field: "name", headerFilter: "input" },
+        { 
+          title: "ID", 
+          field: "productId", 
+          width: 140, 
+          headerFilter: "input", 
+          headerFilterPlaceholder: "Filter ID..." 
+        },
+        { 
+          title: "Type", 
+          field: "type", 
+          width: 100, 
+          headerFilter: "input", 
+          headerFilterPlaceholder: "Filter type..." 
+        },
+        { 
+          title: "Item Name", 
+          field: "name", 
+          headerFilter: "input", 
+          headerFilterPlaceholder: "Filter specs..." 
+        },
         {
           title: "Stock",
           field: "stock",
           hozAlign: "center",
           width: 80,
+          headerFilter: "input",
+          headerFilterPlaceholder: "#",
           formatter: (cell) => {
             const val = cell.getValue();
             return `<span style="font-weight:700; color:${val < 0 ? "#dc2626" : "#374151"}">${val}</span>`;
           },
         },
-        { title: "Booked", field: "booked", hozAlign: "center", width: 80 },
-        { title: "MSQ", field: "minQty", hozAlign: "center", width: 80 },
+        { 
+          title: "Booked", 
+          field: "booked", 
+          hozAlign: "center", 
+          width: 80, 
+          headerFilter: "input", 
+          headerFilterPlaceholder: "#" 
+        },
+        { 
+          title: "MSQ", 
+          field: "minQty", 
+          hozAlign: "center", 
+          width: 80, 
+          headerFilter: "input", 
+          headerFilterPlaceholder: "#" 
+        },
         {
           title: "Shortage",
           field: "shortage",
           hozAlign: "center",
           width: 100,
+          headerFilter: "input",
+          headerFilterPlaceholder: "#",
           formatter: (cell) => {
             return `<span style="font-weight:800; color:#dc2626;">${cell.getValue()}</span>`;
           },

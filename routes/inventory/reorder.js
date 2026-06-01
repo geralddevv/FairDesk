@@ -14,6 +14,7 @@ import VendorTafetaBinding from "../../models/inventory/vendorTafetaBinding.js";
 import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
 import VendorUser from "../../models/users/vendorUser.js";
 import PurchaseOrder from "../../models/inventory/PurchaseOrder.js";
+import PurchaseOrderLog from "../../models/inventory/PurchaseOrderLog.js";
 
 const router = express.Router();
 
@@ -80,6 +81,44 @@ function getItemName(item, type) {
   if (type === "Tafeta") return `${item.tafetaMaterialCode || ""} ${item.tafetaGsm || ""}gsm`.trim() || item.tafetaProductId;
   if (type === "Ttr") return `${item.ttrType || ""} ${item.ttrWidth || ""}x${item.ttrMtrs || ""}`.trim() || item.ttrProductId;
   return "N/A";
+}
+
+async function getItemShortage(type, id) {
+  try {
+    const types = {
+      "Tape": { stockModel: TapeStock, stockRef: "tape", minQtyField: "tapeMinQty" },
+      "PosRoll": { stockModel: PosRollStock, stockRef: "posRoll", minQtyField: "posMinQty" },
+      "Tafeta": { stockModel: TafetaStock, stockRef: "tafeta", minQtyField: "tafetaMinQty" },
+      "Ttr": { stockModel: TtrStock, stockRef: "ttr", minQtyField: "ttrMinQty" }
+    };
+    const t = types[type];
+    if (!t) return 0;
+
+    const item = await (type === "Tape" ? Tape : type === "PosRoll" ? PosRoll : type === "Tafeta" ? Tafeta : Ttr).findById(id).lean();
+    if (!item) return 0;
+
+    // Current Stock
+    const stockAgg = await t.stockModel.aggregate([
+      { $match: { [t.stockRef]: item._id } },
+      { $group: { _id: null, total: { $sum: "$quantity" } } }
+    ]);
+    const stock = stockAgg[0]?.total || 0;
+
+    // Booked (Pending Sales)
+    const salesAgg = await TapeSalesOrder.aggregate([
+      { $match: { tapeId: item._id, status: { $in: ["PENDING", "CONFIRMED"] }, onModel: type } },
+      { $project: { balance: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] } } },
+      { $group: { _id: null, totalBooked: { $sum: "$balance" } } }
+    ]);
+    const booked = salesAgg[0]?.totalBooked || 0;
+
+    const minQty = item[t.minQtyField] || 0;
+    const effectiveStock = stock - booked;
+    return Math.max(0, minQty - effectiveStock);
+  } catch (err) {
+    console.error("GET ITEM SHORTAGE ERROR:", err);
+    return 0;
+  }
 }
 
 router.get("/reorder", async (req, res) => {
@@ -157,10 +196,12 @@ router.get("/reorder/select-vendor/:type/:id", async (req, res) => {
     }
 
     if (!model) return res.status(404).send("Item Type Not Found");
+    const { poId } = req.query;
 
-    const [item, bindings] = await Promise.all([
+    const [item, bindings, orderToEdit] = await Promise.all([
       model.findById(id).lean(),
-      bindingModel.find({ [refField]: id }).populate("vendorUserId").lean()
+      bindingModel.find({ [refField]: id }).populate("vendorUserId").lean(),
+      poId ? PurchaseOrder.findById(poId).populate("vendorUserId").lean() : Promise.resolve(null)
     ]);
 
     if (!item) return res.status(404).send("Item Not Found");
@@ -169,14 +210,19 @@ router.get("/reorder/select-vendor/:type/:id", async (req, res) => {
     const vendorIds = [...new Set(bindings.map(b => b.vendorUserId?.vendorId).filter(Boolean))];
     const allCoordinators = await VendorUser.find({ vendorId: { $in: vendorIds } }).lean();
 
+    // Item Spec
+    const typeKey = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1).replace("-", "");
+    const shortage = req.query.shortage || (await getItemShortage(typeKey, id));
+
     res.render("inventory/selectVendor.ejs", {
-      title: "Create Purchase Order",
+      title: orderToEdit ? "Edit Purchase Order" : "Create Purchase Order",
       item,
-      itemName: getItemName(item, normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1).replace("-", "")),
-      type: normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1).replace("-", ""),
+      orderToEdit,
+      itemName: getItemName(item, typeKey),
+      type: typeKey,
       bindings,
       allCoordinators,
-      shortage: req.query.shortage || 0,
+      shortage: shortage || 0,
       notification: req.flash("notification"),
       CSS: false,
       JS: false
@@ -189,14 +235,20 @@ router.get("/reorder/select-vendor/:type/:id", async (req, res) => {
 
 router.post("/reorder/create-po", async (req, res) => {
   try {
-    const { itemId, itemType, vendorUserId, userLocation, quantity, poNumber, estimatedDate, remarks } = req.body;
+    let { orderId, itemId, itemType, vendorUserId, userLocation, quantity, poNumber, estimatedDate, remarks } = req.body;
+
+    // Standardize itemType for Model Enums
+    if (itemType === "pos-roll") itemType = "PosRoll";
+    if (itemType === "tafeta") itemType = "Tafeta";
+    if (itemType === "ttr") itemType = "Ttr";
+    if (itemType === "tape") itemType = "Tape";
 
     let bindingModel, refField, onBindingModel;
     if (itemType === "Tape") {
       bindingModel = VendorTapeBinding;
       refField = "tapeId";
       onBindingModel = "VendorTapeBinding";
-    } else if (itemType === "PosRoll") {
+    } else if (itemType === "PosRoll" || itemType === "Pos-Roll") {
       bindingModel = VendorPosRollBinding;
       refField = "posRollId";
       onBindingModel = "VendorPosRollBinding";
@@ -210,31 +262,90 @@ router.post("/reorder/create-po", async (req, res) => {
       onBindingModel = "VendorTtrBinding";
     }
 
+    if (!bindingModel) {
+        req.flash("notification", "Invalid item type specified.");
+        return res.redirect("back");
+    }
+
     const binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
     if (!binding) {
-      req.flash("notification", { type: "error", message: "Vendor binding not found." });
+      req.flash("notification", "Vendor binding not found for this item/coordinator.");
       return res.redirect("back");
     }
 
-    await PurchaseOrder.create({
+    const poData = {
       onBindingModel,
       vendorBinding: binding._id,
       vendorUserId,
       onModel: itemType,
       itemId,
       userLocation,
-      quantity,
-      poNumber,
-      estimatedDate,
-      remarks,
-      createdBy: req.session?.authUser?.username || "SYSTEM"
-    });
+      quantity: Number(quantity),
+      poNumber: String(poNumber || "").trim(),
+      estimatedDate: new Date(estimatedDate),
+      remarks
+    };
 
-    req.flash("notification", { type: "success", message: "Purchase Order created successfully." });
+    if (orderId) {
+      const updatedPo = await PurchaseOrder.findByIdAndUpdate(orderId, poData, { new: true });
+      await PurchaseOrderLog.create({
+        orderId: updatedPo._id,
+        action: "EDITED",
+        poNumber: updatedPo.poNumber,
+        quantity: updatedPo.quantity,
+        performedBy: req.session?.authUser?.username || "SYSTEM"
+      });
+      req.flash("notification", "Purchase Order updated successfully.");
+    } else {
+      poData.createdBy = req.session?.authUser?.username || "SYSTEM";
+      const po = await PurchaseOrder.create(poData);
+      await PurchaseOrderLog.create({
+        orderId: po._id,
+        action: "CREATED",
+        poNumber: po.poNumber,
+        quantity: po.quantity,
+        performedBy: req.session?.authUser?.username || "SYSTEM"
+      });
+      req.flash("notification", "Purchase Order created successfully.");
+    }
+
     res.redirect("/fairdesk/purchase/pending");
   } catch (err) {
     console.error("CREATE PO ERROR:", err);
-    req.flash("notification", { type: "error", message: "Error creating Purchase Order." });
+    req.flash("notification", "Error: " + (err.message || "Failed to create Purchase Order."));
+    res.redirect("back");
+  }
+});
+
+router.post("/purchase/status", async (req, res) => {
+  try {
+    const { orderId, status, remarks } = req.body;
+    
+    const po = await PurchaseOrder.findById(orderId);
+    if (!po) {
+      req.flash("notification", "Purchase Order not found.");
+      return res.redirect("back");
+    }
+
+    po.status = status;
+    if (remarks) po.remarks = (po.remarks ? po.remarks + " | " : "") + remarks;
+    await po.save();
+
+    // Log Action
+    await PurchaseOrderLog.create({
+      orderId: po._id,
+      action: status === "RECEIVED" ? "RECEIVED" : "CANCELLED",
+      poNumber: po.poNumber,
+      quantity: po.quantity,
+      remarks: remarks || "",
+      performedBy: req.session?.authUser?.username || "SYSTEM"
+    });
+
+    req.flash("notification", `Purchase Order mark as ${status.toLowerCase()} successfully.`);
+    res.redirect("/fairdesk/purchase/pending");
+  } catch (err) {
+    console.error("PO STATUS UPDATE ERROR:", err);
+    req.flash("notification", "Error updating Purchase Order status.");
     res.redirect("back");
   }
 });

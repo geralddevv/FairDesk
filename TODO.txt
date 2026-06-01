@@ -31,7 +31,6 @@ add a specific date and qty for the sales order
 add item client item type in the tape binding and look out for other things also make a script to update the existing thing
 need to add a dashboard for each role (roles co1, co2, etc)
 
-
 vendor:
 after the edit of the form it should redirect to the main page not the edit page
 add user inactive/delete option

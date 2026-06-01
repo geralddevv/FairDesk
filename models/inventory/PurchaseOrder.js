@@ -65,7 +65,7 @@ const purchaseOrderSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["PENDING", "CONFIRMED", "RECEIVED", "CANCELLED"],
+      enum: ["PENDING", "CONFIRMED", "RECEIVED", "PARTIALLY_RECEIVED", "CANCELLED"],
       default: "PENDING",
     },
 

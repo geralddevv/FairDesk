@@ -33,6 +33,9 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="hidden" name="itemId" value="<%= item._id %>" />
     <input type="hidden" name="itemType" value="<%= type %>" />
+    <% if (typeof orderToEdit !== 'undefined' && orderToEdit) { %>
+      <input type="hidden" name="orderId" value="<%= orderToEdit._id %>" />
+    <% } %>
 
     <div class="span-full form-heading">
       <h1>Purchase Order</h1>
@@ -190,36 +193,37 @@
 
     <div class="span-dual">
       <label for="quantity">Purchase Quantity</label>
-      <input type="number" id="quantity" name="quantity" class="form-control" min="1" placeholder="Enter quantity" value="<%= shortage %>" required />
+      <input type="number" id="quantity" name="quantity" class="form-control" min="1" placeholder="Enter quantity" value="<%= (typeof orderToEdit !== 'undefined' && orderToEdit) ? orderToEdit.quantity : shortage %>" required />
     </div>
 
     <div class="span-dual">
       <label for="po-number">PO Number</label>
-      <input type="text" id="po-number" name="poNumber" class="form-control" placeholder="Enter PO number" required />
+      <input type="text" id="po-number" name="poNumber" class="form-control" placeholder="Enter PO number" value="<%= (typeof orderToEdit !== 'undefined' && orderToEdit) ? orderToEdit.poNumber : '' %>" required />
     </div>    
 
     <div class="span-dual">
       <label for="estimated-date">Expected Delivery</label>
-      <input type="date" id="estimated-date" name="estimatedDate" class="form-control" required />
+      <input type="date" id="estimated-date" name="estimatedDate" class="form-control" value="<%= (typeof orderToEdit !== 'undefined' && orderToEdit && orderToEdit.estimatedDate) ? new Date(orderToEdit.estimatedDate).toISOString().split('T')[0] : '' %>" required />
     </div>
 
     <div class="span-dual" style="grid-column: span 8;">
       <label for="remarks">Order Remarks (Optional)</label>
-      <input type="text" id="remarks" name="remarks" class="form-control" placeholder="Specific vendor instructions..." />
+      <input type="text" id="remarks" name="remarks" class="form-control" placeholder="Specific vendor instructions..." value="<%= (typeof orderToEdit !== 'undefined' && orderToEdit) ? orderToEdit.remarks : '' %>" />
     </div>
 
     <!-- ================= SUBMIT ================= -->
     <div class="span-full btn-grp" style="margin-top: 30px;">
       <button type="submit" style="background: #044A78; color: white; padding: 12px 30px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer;">
-        Create Purchase Order
+        <%= (typeof orderToEdit !== 'undefined' && orderToEdit) ? 'Update Purchase Order' : 'Create Purchase Order' %>
       </button>
     </div>
   </form>
 </div>
 
 <script>
-  // Grouped vendor data from EJS
+  // Grouped vendor data and orderToEdit from EJS
   const groupedVendors = <%- JSON.stringify(groupedVendors) %>;
+  const orderToEdit = <%- (typeof orderToEdit !== 'undefined' && orderToEdit) ? JSON.stringify(orderToEdit) : 'null' %>;
 
   document.addEventListener('DOMContentLoaded', () => {
     const vendorSelectEl = document.getElementById('vendor-select');
@@ -227,17 +231,20 @@
     const locationSelectEl = document.getElementById('location-select');
     const contactInput = document.getElementById('vendor-contact');
     const quantityInput = document.getElementById('quantity');
+    const poNumberInput = document.getElementById('po-number');
+    const estDateInput = document.getElementById('estimated-date');
 
     // Initialize Choices.js
     const vendorChoices = new Choices(vendorSelectEl, { searchEnabled: true, itemSelectText: '', shouldSort: false });
     const coordinatorChoices = new Choices(coordinatorSelectEl, { searchEnabled: true, itemSelectText: '', shouldSort: false });
     const locationChoices = new Choices(locationSelectEl, { searchEnabled: false, itemSelectText: '', shouldSort: false });
 
-    // Set default date to today + 7 days
-    const estDateInput = document.getElementById('estimated-date');
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    estDateInput.value = date.toISOString().split('T')[0];
+    // Set default date logic
+    if (!estDateInput.value) {
+      const date = new Date();
+      date.setDate(date.getDate() + 7);
+      estDateInput.value = date.toISOString().split('T')[0];
+    }
 
     vendorSelectEl.addEventListener('change', function() {
       const vendorId = this.value;
@@ -251,14 +258,13 @@
       const coordChoices = coordinators.map(c => ({
         value: c.userId,
         label: c.userName,
-        selected: coordinators.length === 1
+        selected: (orderToEdit && String(orderToEdit.vendorUserId?._id || orderToEdit.vendorUserId) === String(c.userId)) || (coordinators.length === 1 && !orderToEdit)
       }));
-      coordinatorChoices.setChoices([{ value: "", label: "Select Coordinator", disabled: true, selected: coordinators.length !== 1 }, ...coordChoices], 'value', 'label', true);
+      coordinatorChoices.setChoices([{ value: "", label: "Select Coordinator", disabled: true, selected: !coordChoices.some(c => c.selected) }, ...coordChoices], 'value', 'label', true);
 
-      if (coordinators.length === 1) {
-        // Choices.js might not trigger change on the underlying select when setChoices is used with selected:true
-        // We'll manually call the update logic
-        updateCoordinatorDetails(coordinators[0].userId);
+      const activeCoordinator = coordChoices.find(c => c.selected);
+      if (activeCoordinator) {
+        updateCoordinatorDetails(activeCoordinator.value);
       } else {
         resetLocation();
         contactInput.value = '';
@@ -275,14 +281,14 @@
       const vendor = groupedVendors[vendorId];
       if (!vendor) return;
 
-      const coordinator = vendor.coordinators.find(c => c.userId === userId);
+      const coordinator = vendor.coordinators.find(c => String(c.userId) === String(userId));
       if (!coordinator) return;
 
       // Update Contact
       contactInput.value = coordinator.userContact || 'N/A';
 
       // Update Min Qty if quantity is empty or equal to previous default
-      if (!quantityInput.value || quantityInput.value == 0) {
+      if (!orderToEdit && (!quantityInput.value || quantityInput.value == 0)) {
         quantityInput.value = coordinator.minQty || '';
       }
 
@@ -293,7 +299,7 @@
       }
       if (Array.isArray(coordinator.locationDetails)) {
         coordinator.locationDetails.forEach(ld => {
-          const loc = ld.userLocation || ld.location;
+          const loc = ld.userLocation || ld.location || ld.dispatchAddress;
           if (loc && !locations.find(l => l.value === loc)) {
             locations.push({ value: loc, label: loc });
           }
@@ -304,9 +310,9 @@
       const locChoices = locations.map((l, index) => ({
         value: l.value,
         label: l.label,
-        selected: locations.length === 1
+        selected: (orderToEdit && orderToEdit.userLocation === l.value) || (locations.length === 1 && !orderToEdit)
       }));
-      locationChoices.setChoices([{ value: "", label: "Select Location", disabled: true, selected: locations.length !== 1 }, ...locChoices], 'value', 'label', true);
+      locationChoices.setChoices([{ value: "", label: "Select Location", disabled: true, selected: !locChoices.some(l => l.selected) }, ...locChoices], 'value', 'label', true);
     }
 
     function resetLocation() {
@@ -314,13 +320,51 @@
       locationChoices.setChoices([{ value: "", label: "Select Location", disabled: true, selected: true }], 'value', 'label', true);
     }
 
-    // Auto-select if only one vendor
-    const vendorIds = Object.keys(groupedVendors);
-    if (vendorIds.length === 1) {
-      vendorChoices.setChoiceByValue(vendorIds[0]);
-      // Trigger change manually
-      const event = new Event('change');
-      vendorSelectEl.dispatchEvent(event);
+    // Initialization logic
+    if (orderToEdit) {
+      const editCoordId = String(orderToEdit.vendorUserId?._id || orderToEdit.vendorUserId);
+      
+      // Find the vendorId from groupedVendors where one coordinator matches orderToEdit.vendorUserId
+      const editVendorId = Object.keys(groupedVendors).find(vId => 
+        groupedVendors[vId].coordinators.some(c => String(c.userId) === editCoordId)
+      );
+
+      if (editVendorId) {
+        vendorChoices.setChoiceByValue(editVendorId);
+        
+        // Manually trigger the update logic since setChoiceByValue doesn't fire 'change'
+        const vendor = groupedVendors[editVendorId];
+        if (vendor) {
+          const coordinators = vendor.coordinators || [];
+          coordinatorChoices.clearStore();
+          const coordChoices = coordinators.map(c => ({
+            value: c.userId,
+            label: c.userName,
+            selected: String(c.userId) === editCoordId
+          }));
+          coordinatorChoices.setChoices([{ value: "", label: "Select Coordinator", disabled: true, selected: !coordChoices.some(c => c.selected) }, ...coordChoices], 'value', 'label', true);
+
+          const activeCoordinator = coordChoices.find(c => c.selected);
+          if (activeCoordinator) {
+            updateCoordinatorDetails(activeCoordinator.value);
+          }
+        }
+      }
+    } else {
+      // Auto-select if only one vendor
+      const vendorIds = Object.keys(groupedVendors);
+      if (vendorIds.length === 1) {
+        vendorChoices.setChoiceByValue(vendorIds[0]);
+        // Trigger manually
+        const vendor = groupedVendors[vendorIds[0]];
+        if (vendor) {
+            const coordinators = vendor.coordinators || [];
+            coordinatorChoices.clearStore();
+            const coordChoices = coordinators.map(c => ({ value: c.userId, label: c.userName, selected: coordinators.length === 1 }));
+            coordinatorChoices.setChoices([{ value: "", label: "Select Coordinator", disabled: true, selected: coordinators.length !== 1 }, ...coordChoices], 'value', 'label', true);
+            if (coordinators.length === 1) updateCoordinatorDetails(coordinators[0].userId);
+        }
+      }
     }
   });
 </script>

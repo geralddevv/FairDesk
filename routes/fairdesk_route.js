@@ -21,6 +21,7 @@ import Die from "../models/utilities/die_model.js";
 import TapeStock from "../models/inventory/TapeStock.js";
 import TapeStockLog from "../models/inventory/TapeStockLog.js";
 import SalesOrderLog from "../models/inventory/SalesOrderLog.js";
+import PurchaseOrderLog from "../models/inventory/PurchaseOrderLog.js";
 import PosRoll from "../models/inventory/posRoll.js";
 import Tafeta from "../models/inventory/tafeta.js";
 import PosRollBinding from "../models/inventory/posRollBinding.js";
@@ -3085,8 +3086,10 @@ router.get("/sales/order", async (req, res) => {
 
   const orderPromise = orderId
     ? TapeSalesOrder.findById(orderId)
+        .populate("userId")
+        .populate("tapeId")
+        .populate("tapeBinding")
         .lean()
-        .select("tapeId tapeBinding userId quantity dispatchedQuantity estimatedDate status remarks sourceLocation poNumber orderRate onModel onBindingModel")
     : Promise.resolve(null);
 
   const logsPromise = orderId
@@ -3735,7 +3738,7 @@ router.get("/sales/pending", async (req, res) => {
 // View Pending Purchase Orders
 router.get("/purchase/pending", async (req, res) => {
   try {
-    const pendingPOs = await PurchaseOrder.find({ status: "PENDING" })
+    const pendingPOs = await PurchaseOrder.find({ status: { $in: ["PENDING", "CONFIRMED", "PARTIALLY_RECEIVED"] } })
       .populate("vendorUserId", "vendorName userName")
       .populate({
         path: "itemId",
@@ -3755,6 +3758,138 @@ router.get("/purchase/pending", async (req, res) => {
   } catch (err) {
     console.error("PENDING PO ERROR:", err);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+function getItemName(item, type) {
+  if (!item) return "N/A";
+  if (type === "Tape") return `${item.tapePaperCode || ""} ${item.tapeGsm || ""}gsm`.trim() || item.tapeProductId;
+  if (type === "PosRoll" || type === "Pos-Roll") return `${item.posPaperCode || ""} ${item.posGsm || ""}gsm`.trim() || item.posProductId;
+  if (type === "Tafeta") return `${item.tafetaMaterialCode || ""} ${item.tafetaGsm || ""}gsm`.trim() || item.tafetaProductId;
+  if (type === "Ttr") return `${item.ttrType || ""} ${item.ttrWidth || ""}x${item.ttrMtrs || ""}`.trim() || item.ttrProductId;
+  return "N/A";
+}
+
+router.get("/purchase/receive", async (req, res) => {
+  try {
+    const { orderId } = req.query;
+    if (!orderId) {
+      req.flash("notification", "No order ID provided.");
+      return res.redirect("/fairdesk/purchase/pending");
+    }
+
+    const order = await PurchaseOrder.findById(orderId)
+      .populate("vendorUserId")
+      .populate("itemId")
+      .lean();
+
+    if (!order) {
+      req.flash("notification", "Purchase Order not found.");
+      return res.redirect("/fairdesk/purchase/pending");
+    }
+
+    const [logs, locations] = await Promise.all([
+      PurchaseOrderLog.find({ orderId: orderId, action: { $ne: "CREATED" } })
+        .sort({ createdAt: -1 })
+        .lean(),
+      Location.distinct("locationName")
+    ]);
+
+    res.render("inventory/receivePO.ejs", {
+      title: "Receive Purchase Order",
+      order,
+      logs: logs || [],
+      locations: (locations || []).filter(Boolean).sort(),
+      itemName: getItemName(order.itemId, order.onModel),
+      notification: req.flash("notification"),
+      CSS: false,
+      JS: false
+    });
+  } catch (err) {
+    console.error("RECEIVE PO GET ERROR:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.post("/purchase/receive", async (req, res) => {
+  try {
+    const { orderId, location, receivedQuantity, remarks } = req.body;
+    
+    const po = await PurchaseOrder.findById(orderId).populate("itemId");
+    if (!po) {
+      req.flash("notification", "Purchase Order not found.");
+      return res.redirect("/fairdesk/purchase/pending");
+    }
+
+    if (po.status === "RECEIVED") {
+      req.flash("notification", "This order has already been received.");
+      return res.redirect("/fairdesk/purchase/pending");
+    }
+
+    const qty = Number(receivedQuantity) || po.quantity;
+
+    // Create Stock Entry based on item type
+    if (po.onModel === "Tape") {
+      await TapeStock.create({
+        tape: po.itemId._id,
+        location,
+        quantity: qty,
+        remarks: remarks || `From PO: ${po.poNumber}`,
+        tapeFinish: po.itemId.tapeFinish || "MATTE"
+      });
+    } else if (po.onModel === "PosRoll" || po.onModel === "Pos-Roll") {
+      await PosRollStock.create({
+        posRoll: po.itemId._id,
+        location,
+        quantity: qty,
+        remarks: remarks || `From PO: ${po.poNumber}`
+      });
+    } else if (po.onModel === "Tafeta") {
+      await TafetaStock.create({
+        tafeta: po.itemId._id,
+        location,
+        quantity: qty,
+        remarks: remarks || `From PO: ${po.poNumber}`
+      });
+    } else if (po.onModel === "Ttr") {
+      await TtrStock.create({
+        ttr: po.itemId._id,
+        location,
+        quantity: qty,
+        remarks: remarks || `From PO: ${po.poNumber}`
+      });
+    }
+
+    // Update PO Status & Quantities
+    const newlyReceived = qty;
+    po.receivedQuantity = (po.receivedQuantity || 0) + newlyReceived;
+    
+    if (po.receivedQuantity >= po.quantity) {
+      po.status = "RECEIVED";
+    } else {
+      po.status = "PARTIALLY_RECEIVED";
+    }
+
+    po.remarks = (po.remarks ? po.remarks + " | " : "") + (remarks || `Received ${newlyReceived}`);
+    await po.save();
+
+    // Log Action
+    await PurchaseOrderLog.create({
+      orderId: po._id,
+      action: po.status === "RECEIVED" ? "RECEIVED" : "PARTIALLY_RECEIVED",
+      poNumber: po.poNumber,
+      quantity: newlyReceived,
+      location: location,
+      remarks: `Inward to ${location}. ` + (remarks || ""),
+      performedBy: req.session?.authUser?.username || "SYSTEM"
+    });
+
+    req.flash("notification", "Purchase Order received and stock updated successfully.");
+    res.redirect("/fairdesk/purchase/pending");
+  } catch (err) {
+    console.error("RECEIVE PO POST ERROR:", err);
+    req.flash("notification", "Error processing receipt: " + err.message);
+    res.redirect("back");
   }
 });
 
@@ -3849,6 +3984,242 @@ router.get("/sales/order/logs", async (req, res) => {
     console.error("ORDER LOGS ERROR:", err);
     req.flash("notification", "Failed to load logs");
     res.redirect("/fairdesk/sales/pending");
+  }
+});
+
+// ========== EDIT a Purchase Receipt Log (JSON API) ==========
+router.put("/purchase/log/:logId", async (req, res) => {
+  try {
+    const { logId } = req.params;
+    const { quantity: newQty, remarks: newRemarks } = req.body;
+
+    const log = await PurchaseOrderLog.findById(logId);
+    if (!log) return res.json({ success: false, message: "Receipt log not found" });
+
+    const po = await PurchaseOrder.findById(log.orderId).populate("itemId");
+    if (!po) return res.json({ success: false, message: "Purchase Order not found" });
+
+    const oldQty = log.quantity || 0;
+    const qtyDiff = Number(newQty) - oldQty;
+    const location = log.location;
+
+    // Item-specific stock models
+    let StockModel = TapeStock;
+    let StockLogModel = TapeStockLog;
+    let matchField = "tape";
+
+    if (po.onModel === "PosRoll") {
+      StockModel = PosRollStock;
+      StockLogModel = PosRollStockLog;
+      matchField = "posRoll";
+    } else if (po.onModel === "Tafeta") {
+      StockModel = TafetaStock;
+      StockLogModel = TafetaStockLog;
+      matchField = "tafeta";
+    } else if (po.onModel === "Ttr") {
+      StockModel = TtrStock;
+      StockLogModel = TtrStockLog;
+      matchField = "ttr";
+    }
+
+    if (location && po.itemId && qtyDiff !== 0) {
+      // Get current stock at location
+      const bal = await StockModel.aggregate([
+        { $match: { [matchField]: po.itemId._id, location: location } },
+        { $group: { _id: null, qty: { $sum: "$quantity" } } },
+      ]);
+      const currentStock = bal[0]?.qty || 0;
+
+      if (qtyDiff < 0) {
+        // Need to reverse (outward) some stock because new quantity is lower
+        const deduction = Math.abs(qtyDiff);
+        if (currentStock < deduction) {
+          return res.json({ success: false, message: `Insufficient stock at ${location} to reduce receipt. Available: ${currentStock}, adjustment needed: ${deduction}` });
+        }
+
+        const stockData = {
+          [matchField]: po.itemId._id,
+          location,
+          quantity: -deduction,
+          remarks: `Receipt Log Edited (reduced): ${po.poNumber}`,
+        };
+        if (po.onModel === "Tape") stockData.tapeFinish = po.itemId.tapeFinish;
+        await StockModel.create(stockData);
+
+        await StockLogModel.create({
+          [matchField]: po.itemId._id,
+          location,
+          openingStock: currentStock,
+          quantity: deduction,
+          closingStock: currentStock - deduction,
+          type: "OUTWARD",
+          source: "SYSTEM",
+          remarks: `Receipt Log Edited: ${po.poNumber}`,
+          createdBy: req.session?.authUser?.username || "SYSTEM"
+        });
+      } else {
+        // Need to inward MORE stock because new quantity is higher
+        const addition = qtyDiff;
+        const stockData = {
+          [matchField]: po.itemId._id,
+          location,
+          quantity: addition,
+          remarks: `Receipt Log Edited (increased): ${po.poNumber}`,
+        };
+        if (po.onModel === "Tape") stockData.tapeFinish = po.itemId.tapeFinish;
+        await StockModel.create(stockData);
+
+        await StockLogModel.create({
+          [matchField]: po.itemId._id,
+          location,
+          openingStock: currentStock,
+          quantity: addition,
+          closingStock: currentStock + addition,
+          type: "INWARD",
+          source: "SYSTEM",
+          remarks: `Receipt Log Edited: ${po.poNumber}`,
+          createdBy: req.session?.authUser?.username || "SYSTEM"
+        });
+      }
+    }
+
+    // Update PO totals
+    po.receivedQuantity = (po.receivedQuantity || 0) + qtyDiff;
+    if (po.receivedQuantity >= po.quantity) {
+      po.status = "RECEIVED";
+    } else if (po.receivedQuantity > 0) {
+      po.status = "PARTIALLY_RECEIVED";
+    } else {
+      po.status = "CONFIRMED"; 
+    }
+    await po.save();
+
+    // Update Log Record
+    log.quantity = Number(newQty);
+    if (newRemarks) log.remarks = newRemarks;
+    await log.save();
+
+    res.json({ success: true, message: "Receipt log updated successfully" });
+  } catch (err) {
+    console.error("EDIT PURCHASE LOG ERROR:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ========== DELETE a Purchase Receipt Log (JSON API) ==========
+router.delete("/purchase/log/:logId", async (req, res) => {
+  try {
+    const { logId } = req.params;
+    const log = await PurchaseOrderLog.findById(logId);
+    if (!log) return res.json({ success: false, message: "Log not found" });
+
+    const po = await PurchaseOrder.findById(log.orderId).populate("itemId");
+    if (!po) return res.json({ success: false, message: "Order not found" });
+
+    const qtyToRemove = log.quantity || 0;
+    const location = log.location;
+
+    // Item-specific stock models
+    let StockModel = TapeStock;
+    let StockLogModel = TapeStockLog;
+    let matchField = "tape";
+
+    if (po.onModel === "PosRoll") {
+      StockModel = PosRollStock;
+      StockLogModel = PosRollStockLog;
+      matchField = "posRoll";
+    } else if (po.onModel === "Tafeta") {
+      StockModel = TafetaStock;
+      StockLogModel = TafetaStockLog;
+      matchField = "tafeta";
+    } else if (po.onModel === "Ttr") {
+      StockModel = TtrStock;
+      StockLogModel = TtrStockLog;
+      matchField = "ttr";
+    }
+
+    if (location && po.itemId && qtyToRemove > 0) {
+      // Reverse stock (outward)
+      const bal = await StockModel.aggregate([
+        { $match: { [matchField]: po.itemId._id, location: location } },
+        { $group: { _id: null, qty: { $sum: "$quantity" } } },
+      ]);
+      const currentStock = bal[0]?.qty || 0;
+
+      if (currentStock < qtyToRemove) {
+          return res.json({ success: false, message: `Insufficient stock at ${location} to reverse receipt. Available: ${currentStock}` });
+      }
+
+      const stockData = {
+        [matchField]: po.itemId._id,
+        location,
+        quantity: -qtyToRemove,
+        remarks: `Receipt Log Deleted (reversed): ${po.poNumber}`,
+      };
+      if (po.onModel === "Tape") stockData.tapeFinish = po.itemId.tapeFinish;
+      await StockModel.create(stockData);
+
+      await StockLogModel.create({
+        [matchField]: po.itemId._id,
+        location,
+        openingStock: currentStock,
+        quantity: qtyToRemove,
+        closingStock: currentStock - qtyToRemove,
+        type: "OUTWARD",
+        source: "SYSTEM",
+        remarks: `Receipt Log Deleted: ${po.poNumber}`,
+        createdBy: req.session?.authUser?.username || "SYSTEM"
+      });
+    }
+
+    // Update PO totals
+    po.receivedQuantity = Math.max((po.receivedQuantity || 0) - qtyToRemove, 0);
+    if (po.receivedQuantity === 0) {
+      po.status = "CONFIRMED";
+    } else if (po.receivedQuantity < po.quantity) {
+      po.status = "PARTIALLY_RECEIVED";
+    }
+    await po.save();
+
+    // Remove the Log Entry
+    await PurchaseOrderLog.findByIdAndDelete(logId);
+
+    res.json({ success: true, message: "Receipt deleted successfully and stock reversed" });
+  } catch (err) {
+    console.error("DELETE PURCHASE LOG ERROR:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET: Purchase Order Logs
+router.get("/purchase/order/logs", async (req, res) => {
+  try {
+    const logs = await PurchaseOrderLog.find()
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "vendorUserId", select: "vendorName userName" },
+          {
+            path: "itemId",
+            select:
+              "tapeProductId tapePaperCode tapeGsm posProductId posPaperCode posGsm tafetaProductId tafetaMaterialCode tafetaGsm ttrProductId ttrType ttrWidth ttrMtrs",
+          },
+        ],
+      })
+      .sort({ performedAt: -1 })
+      .lean();
+
+    res.render("inventory/purchaseLogs.ejs", {
+      logs,
+      title: "Purchase Action Logs",
+      CSS: "tableDisp.css",
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("PURCHASE LOGS ERROR:", err);
+    req.flash("notification", "Failed to load purchase logs");
+    res.redirect("/fairdesk/purchase/pending");
   }
 });
 
