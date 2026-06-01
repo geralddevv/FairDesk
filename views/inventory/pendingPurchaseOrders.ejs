@@ -496,6 +496,9 @@
     data: orderData,
     layout: "fitColumns",
     placeholder: "No pending purchase orders found",
+    initialSort: [
+      { column: "createdAt", dir: "asc" },
+    ],
     columns: [
       {
         title: "Actions",

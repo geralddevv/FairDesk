@@ -164,6 +164,10 @@
             <input type="text" id="tafeta-client-material-code" class="form-control" name="tafetaClientMaterialCode" placeholder="Enter Client Material Code" required />
           </div>
           <div class="span-seven">
+            <label for="tafeta-client-material-type">Client Material Type</label>
+            <input type="text" id="tafeta-client-material-type" class="form-control" name="tafetaClientMaterialType" placeholder="Enter Client Material Type" required />
+          </div>
+          <div class="span-seven">
             <label for="tafeta-client-gsm">Client GSM</label>
             <input type="text" id="tafeta-client-gsm" class="form-control" name="clientTafetaGsm" placeholder="Enter Client GSM" required />
           </div>
@@ -178,7 +182,7 @@
           </div>            
           <div class="span-six">
             <label for="tafeta-sale-cost">Sales sq mtrs Cost</label>
-            <input type="text" id="tafeta-sale-cost" class="form-control" name="tafetaSaleCost" placeholder="Enter Sales Cost" tabindex="-1" required readonly />
+            <input type="text" id="tafeta-sale-cost" class="form-control" name="tafetaSaleCost" placeholder="Auto-calculated" tabindex="-1" required readonly />
           </div>           
 
           <div class="span-full form-subheading">
@@ -212,6 +216,7 @@
       </div>
 
 <!-- ===== RATE CALCULATION & JS ===== -->
+<script src="/js/choices.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   /* ================= ELEMENTS ================= */
@@ -469,7 +474,9 @@ document.addEventListener("DOMContentLoaded", () => {
     submitBtn.disabled = false;
 
     document.getElementById("tafeta-client-material-code").value = values["tafeta-material-code"];
+    document.getElementById("tafeta-client-material-type").value = values["tafeta-material-type"];
     document.getElementById("tafeta-client-gsm").value = values["tafeta-gsm"];
+    calcSaleCost();
   }
 
   /* ================= SPEC CHANGE HANDLER ================= */
@@ -500,6 +507,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // Clear the overrides if populated
       const clientMaterialCode = document.getElementById("tafeta-client-material-code");
       if (clientMaterialCode) clientMaterialCode.value = "";
+      const clientMaterialType = document.getElementById("tafeta-client-material-type");
+      if (clientMaterialType) clientMaterialType.value = "";
       const clientGsm = document.getElementById("tafeta-client-gsm");
       if (clientGsm) clientGsm.value = "";
 
@@ -586,7 +595,7 @@ function validateTafetaBeforeSubmit() {
   const odrQty = Number(document.getElementById("tafeta-odr-qty").value);
 
   if (minQty >= odrQty) {
-    showClientToast("Order Quantity must be greater than Minimum Order Quantity", true);
+    showClientToast("Order Quantity must be greater than Minimum Stock Quantity", true);
     return false;
   }
 

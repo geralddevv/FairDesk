@@ -63,6 +63,7 @@ router.post("/form/tafeta-binding", async (req, res) => {
       userId,
       tafetaId,
       tafetaClientMaterialCode: req.body.tafetaClientMaterialCode,
+      tafetaClientMaterialType: req.body.tafetaClientMaterialType,
       clientTafetaGsm: req.body.clientTafetaGsm,
       tafetaRatePerRoll: Number(req.body.tafetaRatePerRoll),
       tafetaSaleCost: Number(req.body.tafetaSaleCost),
@@ -177,7 +178,6 @@ router.get("/form/tafeta-binding/filter-specs", async (req, res) => {
 
 /* GET : Resolve Tafeta from Specifications */
 router.get("/form/tafeta-binding/resolve-tafeta", async (req, res) => {
-  console.log("Resolve Tafeta query:", req.query);
   try {
     const {
       tafetaMaterialCode,
@@ -252,8 +252,8 @@ router.get("/tafeta/view/:id", async (req, res) => {
       .populate({
         path: "tafeta",
         populate: [
-          { path: "tafetaId", model: "Tafeta" }, // Tafeta master
-          { path: "userId", model: "Username" }, // User ref
+          { path: "tafetaId", model: "Tafeta" }, 
+          { path: "userId", model: "Username" }, 
         ],
       })
       .lean();
@@ -264,8 +264,6 @@ router.get("/tafeta/view/:id", async (req, res) => {
     }
 
     const tafetaData = user.tafeta || [];
-
-    // Fetch stock for all bound Tafeta
     const tafetaIds = tafetaData.map((binding) => binding.tafetaId?._id).filter(Boolean);
     const stockMap = {};
     if (tafetaIds.length) {
@@ -320,7 +318,7 @@ router.get("/tafeta/compare/:id", async (req, res) => {
       {
         field: "Material Type",
         orgValue: tafeta.tafetaMaterialType || "N/A",
-        clientValue: tafeta.tafetaMaterialType || "N/A",
+        clientValue: binding.tafetaClientMaterialType || "N/A",
       },
       { field: "Color", orgValue: tafeta.tafetaColor || "N/A", clientValue: tafeta.tafetaColor || "N/A" },
       { field: "GSM", orgValue: tafeta.tafetaGsm || "N/A", clientValue: binding.clientTafetaGsm || "N/A" },
@@ -391,6 +389,7 @@ router.post("/tafeta-binding/edit/:id", async (req, res) => {
     const { id } = req.params;
     const {
       tafetaClientMaterialCode,
+      tafetaClientMaterialType,
       clientTafetaGsm,
       tafetaMtrsDel,
       tafetaRatePerRoll,
@@ -410,6 +409,7 @@ router.post("/tafeta-binding/edit/:id", async (req, res) => {
     }
 
     binding.tafetaClientMaterialCode = tafetaClientMaterialCode;
+    binding.tafetaClientMaterialType = tafetaClientMaterialType;
     binding.clientTafetaGsm = clientTafetaGsm;
     binding.tafetaMtrsDel = tafetaMtrsDel;
     binding.tafetaRatePerRoll = Number(tafetaRatePerRoll);

@@ -2083,6 +2083,7 @@ router.get("/tape/profile/:id", async (req, res) => {
   const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
 
   const rows = [
+    { label: "Product ID", value: tape.tapeProductId || "N/A" },
     { label: "Paper Code", value: tape.tapePaperCode || "N/A" },
     { label: "GSM", value: tape.tapeGsm ?? "N/A" },
     { label: "Paper Type", value: tape.tapePaperType || "N/A" },
@@ -2091,6 +2092,7 @@ router.get("/tape/profile/:id", async (req, res) => {
     { label: "Meters", value: tape.tapeMtrs ?? "N/A" },
     { label: "Core ID", value: tape.tapeCoreId ?? "N/A" },
     { label: "Finish", value: tape.tapeFinish || "N/A" },
+    { label: "Min Stock Qty", value: tape.tapeMinQty ?? "N/A" },
   ];
 
   res.render("inventory/itemView.ejs", {
@@ -2309,6 +2311,7 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
   const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
 
   const rows = [
+    { label: "Product ID", value: posRoll.posProductId || "N/A" },
     { label: "Paper Code", value: posRoll.posPaperCode || "N/A" },
     { label: "GSM", value: posRoll.posGsm ?? "N/A" },
     { label: "Paper Type", value: posRoll.posPaperType || "N/A" },
@@ -2316,6 +2319,7 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
     { label: "Width", value: posRoll.posWidth ?? "N/A" },
     { label: "Meters", value: posRoll.posMtrs ?? "N/A" },
     { label: "Core ID", value: posRoll.posCoreId ?? "N/A" },
+    { label: "Min Stock Qty", value: posRoll.posMinQty ?? "N/A" },
   ];
 
   res.render("inventory/itemView.ejs", {
@@ -2455,6 +2459,7 @@ router.get("/tafeta/profile/:id", async (req, res) => {
   const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
 
   const rows = [
+    { label: "Product ID", value: tafeta.tafetaProductId || "N/A" },
     { label: "Material Code", value: tafeta.tafetaMaterialCode || "N/A" },
     { label: "GSM", value: tafeta.tafetaGsm ?? "N/A" },
     { label: "Material Type", value: tafeta.tafetaMaterialType || "N/A" },
@@ -2464,6 +2469,7 @@ router.get("/tafeta/profile/:id", async (req, res) => {
     { label: "Core Length", value: tafeta.tafetaCoreLen ?? "N/A" },
     { label: "Notch", value: tafeta.tafetaNotch || "N/A" },
     { label: "Core ID", value: tafeta.tafetaCoreId ?? "N/A" },
+    { label: "Min Stock Qty", value: tafeta.tafetaMinQty ?? "N/A" },
   ];
 
   res.render("inventory/itemView.ejs", {
@@ -2610,6 +2616,7 @@ router.get("/ttr/profile/:id", async (req, res) => {
     .trim();
 
   const rows = [
+    { label: "Product ID", value: ttr.ttrProductId || "N/A" },
     { label: "Material Code", value: ttr.ttrMaterialCode || "N/A" },
     { label: "Type", value: ttr.ttrType || "N/A" },
     { label: "Color", value: ttr.ttrColor || "N/A" },
@@ -2620,6 +2627,7 @@ router.get("/ttr/profile/:id", async (req, res) => {
     { label: "Core Length", value: ttr.ttrCoreLength ?? "N/A" },
     { label: "Notch", value: ttr.ttrNotch || "N/A" },
     { label: "Winding", value: ttr.ttrWinding || "N/A" },
+    { label: "Min Stock Qty", value: ttr.ttrMinQty ?? "N/A" },
   ];
 
   res.render("inventory/itemView.ejs", {
@@ -3190,6 +3198,8 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
               productId: t.tapeProductId || "",
               paperCode: t.tapePaperCode || "",
               gsm: t.tapeGsm || "",
+              paperType: t.tapePaperType || "",
+              adhesiveGsm: t.tapeAdhesiveGsm || "",
               finish: t.tapeFinish || "",
               color: t.tapeColor || "",
               width: t.tapeWidth || "",
@@ -3198,11 +3208,11 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
               coreLength: t.tapeCoreLength || "",
               notch: t.tapeNotch || "",
               winding: t.tapeWinding || "",
-              clientMaterialCode: binding.tapeClientMaterialCode || "",
+              clientPaperCode: binding.tapeClientPaperCode || "",
               clientGsm: binding.clientTapeGsm || "",
               deliveredMtrs: binding.tapeMtrsDel || "",
               saleCost: binding.tapeSaleCost || 0,
-              minQty: binding.tapeMinQty || 0,
+              minQty: t.tapeMinQty || 0,
               orderQty: binding.tapeOdrQty || 0,
               orderFreq: binding.tapeOdrFreq || "",
               creditTerm: binding.tapeCreditTerm || "",
@@ -3228,6 +3238,7 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
               productId: t.posProductId || "",
               paperCode: t.posPaperCode || "",
               gsm: t.posGsm || "",
+              paperType: t.posPaperType || "",
               color: t.posColor || "",
               width: t.posWidth || "",
               mtrs: t.posMtrs || "",
@@ -3235,11 +3246,11 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
               coreLength: t.posCoreLength || "",
               notch: t.posNotch || "",
               winding: t.posWinding || "",
-              clientMaterialCode: binding.posClientMaterialCode || "",
+              clientPaperCode: binding.posClientPaperCode || "",
               clientGsm: binding.clientPosGsm || "",
               deliveredMtrs: binding.posMtrsDel || "",
               saleCost: binding.posSaleCost || 0,
-              minQty: binding.posMinQty || 0,
+              minQty: t.posMinQty || 0,
               orderQty: binding.posOdrQty || 0,
               orderFreq: binding.posOdrFreq || "",
               creditTerm: binding.posCreditTerm || "",
@@ -3273,10 +3284,11 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
               coreId: t.tafetaCoreId || "",
               notch: t.tafetaNotch || "",
               clientMaterialCode: binding.tafetaClientMaterialCode || "",
+              clientMaterialType: binding.tafetaClientMaterialType || "",
               clientGsm: binding.clientTafetaGsm || "",
               deliveredMtrs: binding.tafetaMtrsDel || "",
               saleCost: binding.tafetaSaleCost || 0,
-              minQty: binding.tafetaMinQty || 0,
+              minQty: t.tafetaMinQty || 0,
               orderQty: binding.tafetaOdrQty || 0,
               orderFreq: binding.tafetaOdrFreq || "",
               creditTerm: binding.tafetaCreditTerm || "",
@@ -3301,20 +3313,20 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
               type: "TTR",
               productId: t.ttrProductId || "",
               ttrType: t.ttrType || "",
-              color: t.color || "",
-              materialCode: t.materialCode || "",
-              width: t.width || "",
-              mtrs: t.mtrs || "",
-              inkFace: t.inkFace || "",
-              coreId: t.coreId || "",
-              coreLength: t.coreLength || "",
-              notch: t.notch || "",
-              winding: t.winding || "",
+              color: t.ttrColor || "",
+              materialCode: t.ttrMaterialCode || "",
+              width: t.ttrWidth || "",
+              mtrs: t.ttrMtrs || "",
+              inkFace: t.ttrInkFace || "",
+              coreId: t.ttrCoreId || "",
+              coreLength: t.ttrCoreLength || "",
+              notch: t.ttrNotch || "",
+              winding: t.ttrWinding || "",
               clientMaterialCode: binding.ttrClientMaterialCode || "",
               clientType: binding.clientTtrType || "",
               deliveredMtrs: binding.ttrMtrsDel || "",
               saleCost: binding.ttrSaleCost || 0,
-              minQty: binding.ttrMinQty || 0,
+              minQty: t.ttrMinQty || 0,
               orderQty: binding.ttrOdrQty || 0,
               orderFreq: binding.ttrOdrFreq || "",
               creditTerm: binding.ttrCreditTerm || "",

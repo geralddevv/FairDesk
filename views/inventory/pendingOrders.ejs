@@ -419,6 +419,9 @@
     responsiveLayout: false,
     movableColumns: true,
     placeholder: "No pending orders found",
+    initialSort: [
+      { column: "createdAt", dir: "asc" },
+    ],
     columns: [
       {
         title: "Actions",
@@ -1138,4 +1141,3 @@
     box-shadow: 0 0 0 2px rgba(26, 26, 46, 0.1);
   }
 </style>
-

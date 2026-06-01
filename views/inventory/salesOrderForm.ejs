@@ -723,9 +723,11 @@
     };
 
     if (type === "TTR") {
+      pushIf("Product ID", d.productId);
+      pushIf("Min Stock Qty", d.minQty);
       pushIf("Client Material Code", d.clientMaterialCode);
-      pushIf("Client Type", d.clientType);
       pushIf("Material Code", d.materialCode);
+      pushIf("Client Type", d.clientType);
       pushIf("Type", d.ttrType);
       pushIf("Color", d.color);
       pushIf("Ink Face", d.inkFace);
@@ -736,9 +738,11 @@
       pushIf("Notch", d.notch);
       pushIf("Winding", d.winding);
     } else if (type === "TAPE") {
-      pushIf("Client Material Code", d.clientMaterialCode);
-      pushIf("Client GSM", d.clientGsm);
+      pushIf("Product ID", d.productId);
+      pushIf("Min Stock Qty", d.minQty);
+      pushIf("Client Paper Code", d.clientPaperCode);
       pushIf("Paper Code", d.paperCode);
+      pushIf("Client GSM", d.clientGsm);
       pushIf("GSM", d.gsm);
       pushIf("Paper Type", d.paperType);
       pushIf("Adhesive GSM", d.adhesiveGsm);
@@ -747,9 +751,11 @@
       pushIf("Core ID", d.coreId);
       pushIf("Finish", d.finish);
     } else if (type === "POS_ROLL") {
-      pushIf("Client Material Code", d.clientMaterialCode);
-      pushIf("Client GSM", d.clientGsm);
+      pushIf("Product ID", d.productId);
+      pushIf("Min Stock Qty", d.minQty);
+      pushIf("Client Paper Code", d.clientPaperCode);
       pushIf("Paper Code", d.paperCode);
+      pushIf("Client GSM", d.clientGsm);
       pushIf("GSM", d.gsm);
       pushIf("Paper Type", d.paperType);
       pushIf("Color", d.color);
@@ -757,10 +763,13 @@
       pushIf("Meters", d.mtrs);
       pushIf("Core ID", d.coreId);
     } else if (type === "TAFETA") {
+      pushIf("Product ID", d.productId);
+      pushIf("Min Stock Qty", d.minQty);
       pushIf("Client Material Code", d.clientMaterialCode);
-      pushIf("Client GSM", d.clientGsm);
       pushIf("Material Code", d.materialCode);
+      pushIf("Client Material Type", d.clientMaterialType);
       pushIf("Material Type", d.materialType);
+      pushIf("Client GSM", d.clientGsm);
       pushIf("GSM", d.gsm);
       pushIf("Color", d.color);
       pushIf("Width", d.width);
@@ -1418,25 +1427,24 @@
           const detailsObj = { type: type || "" };
           if (orderToEdit.tapeId) {
              const t = orderToEdit.tapeId;
-             // Map common fields from Tape, PosRoll, Tafeta, Ttr, Label
+             detailsObj.type = type;
              detailsObj.productId = t.tapeProductId || t.posProductId || t.tafetaProductId || t.ttrProductId || "";
              detailsObj.paperCode = t.tapePaperCode || t.posPaperCode || "";
              detailsObj.materialCode = t.tafetaMaterialCode || t.ttrMaterialCode || "";
              detailsObj.gsm = t.tapeGsm || t.posGsm || t.tafetaGsm || "";
-             detailsObj.finish = t.tapeFinish || "";
              detailsObj.paperType = t.tapePaperType || t.posPaperType || "";
              detailsObj.materialType = t.tafetaMaterialType || "";
+             detailsObj.finish = t.tapeFinish || "";
              detailsObj.color = t.posColor || t.tafetaColor || t.ttrColor || "";
-             detailsObj.width = t.tapeWidth || t.posWidth || t.tafetaWidth || t.ttrWidth || t.labelWidth || ""; 
-             detailsObj.height = t.labelHeight || "";
+             detailsObj.width = t.tapeWidth || t.posWidth || t.tafetaWidth || t.ttrWidth || t.labelWidth || "";
              detailsObj.mtrs = t.tapeMtrs || t.posMtrs || t.tafetaMtrs || t.ttrMtrs || "";
-             detailsObj.ttrType = t.ttrType || "";
-             detailsObj.coreId = t.tapeCoreId || t.posCoreId || t.tafetaCoreId || t.ttrCoreId || "";
-             detailsObj.coreLength = t.tafetaCoreLen || t.ttrCoreLength || "";
-             detailsObj.notch = t.tafetaNotch || t.ttrNotch || "";
+             detailsObj.coreId = t.tapeCoreId || t.posCoreId || t.tafetaCoreId || t.coreId || "";
+             detailsObj.coreLength = t.tafetaCoreLen || t.coreLength || "";
+             detailsObj.notch = t.tafetaNotch || t.notch || "";
              detailsObj.winding = t.ttrWinding || "";
              detailsObj.inkFace = t.ttrInkFace || "";
              detailsObj.adhesiveGsm = t.tapeAdhesiveGsm || "";
+             detailsObj.minQty = t.tapeMinQty || t.posMinQty || t.tafetaMinQty || t.ttrMinQty || "";
              
              // Client specific fields (from populated binding)
              if (orderToEdit.tapeBinding) {

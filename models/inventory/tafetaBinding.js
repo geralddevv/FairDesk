@@ -22,6 +22,11 @@ const tafetaBindingSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    tafetaClientMaterialType: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     clientTafetaGsm: {
       type: String,
       required: true,
