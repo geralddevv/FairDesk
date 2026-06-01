@@ -48,4 +48,4 @@ Booked in pending stock page
 if physical stock 100 and the 
 make the old order appear on top in pending order page
 
-multiple po (purhcase) should not be created for a specific item
+multiple po (purchase) should not be created for a specific item

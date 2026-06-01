@@ -42,7 +42,7 @@ async function getReorderData() {
     // Aggregate Booked (Pending Sales Orders)
     const salesAgg = await TapeSalesOrder.aggregate([
       { $match: { tapeId: { $in: itemIds }, status: { $in: ["PENDING", "CONFIRMED"] }, onModel: t.typeKey } },
-      { $project: { tapeId: 1, balance: { $subtract: ["$quantity", "$dispatchedQuantity"] } } },
+      { $project: { tapeId: 1, balance: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] } } },
       { $group: { _id: "$tapeId", totalBooked: { $sum: "$balance" } } }
     ]);
     const bookedMap = {};

@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import Tape from "../../models/inventory/tape.js";
 import PosRoll from "../../models/inventory/posRoll.js";
 import Tafeta from "../../models/inventory/tafeta.js";
@@ -78,7 +79,9 @@ async function getStockSnapshot({ stockModel, itemField, itemId, location, onMod
       {
         $group: {
           _id: { location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } } },
-          bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
+          bookedQty: {
+            $sum: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] },
+          },
         },
       },
     ]),
@@ -157,7 +160,7 @@ async function loadBookedMap(onModel) {
           location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
         },
         bookedQty: {
-          $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+          $sum: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] },
         },
       },
     },

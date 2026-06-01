@@ -59,8 +59,17 @@ function toNumber(value) {
   return Number(value || 0);
 }
 
-async function getTtrStockSummary(ttrId) {
+async function getTtrStockSummary(ttrId, excludeOrderId = null) {
   const ttrObjectId = new mongoose.Types.ObjectId(ttrId);
+  const bookedMatch = {
+    tapeId: ttrObjectId,
+    onModel: "Ttr",
+    status: "PENDING",
+  };
+  if (excludeOrderId) {
+    bookedMatch._id = { $ne: new mongoose.Types.ObjectId(excludeOrderId) };
+  }
+
   const [stockAggregation, bookedAggregation] = await Promise.all([
     TtrStock.aggregate([
       { $match: { ttr: ttrObjectId } },
@@ -75,20 +84,14 @@ async function getTtrStockSummary(ttrId) {
       { $sort: { "_id.location": 1 } },
     ]),
     TapeSalesOrder.aggregate([
-      {
-        $match: {
-          tapeId: ttrObjectId,
-          onModel: "Ttr",
-          status: { $nin: ["CANCELLED"] },
-        },
-      },
+      { $match: bookedMatch },
       {
         $group: {
           _id: {
             location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
           },
           bookedQty: {
-            $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+            $sum: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] },
           },
         },
       },
@@ -117,11 +120,17 @@ async function getTtrStockSummary(ttrId) {
     })
     .filter((entry) => entry.qty !== 0 || entry.booked !== 0);
 
+  const totalStock = locations.reduce((sum, entry) => sum + toNumber(entry.qty), 0);
+  const totalBooked = locations.reduce((sum, entry) => sum + toNumber(entry.booked), 0);
+  const totalBalance = totalStock - totalBooked;
+
   return {
     locations,
-    totalStock: locations.reduce((sum, entry) => sum + toNumber(entry.qty), 0),
-    totalBooked: locations.reduce((sum, entry) => sum + toNumber(entry.booked), 0),
-    totalBalance: locations.reduce((sum, entry) => sum + toNumber(entry.balance), 0),
+    totalStock,
+    totalBooked,
+    totalBalance,
+    booked: totalBooked, // for compatibility
+    balance: totalBalance, // for compatibility
   };
 }
 
@@ -162,7 +171,7 @@ async function applyTtrStockDelta({ ttrId, location, delta, remarks, createdBy }
 }
 
 function getProfileStockConfig(itemType) {
-  return {
+  const map = {
     Tape: {
       itemLabel: "Tape",
       stockModel: TapeStock,
@@ -171,6 +180,13 @@ function getProfileStockConfig(itemType) {
       onModel: "Tape",
     },
     "POS Roll": {
+      itemLabel: "POS Roll",
+      stockModel: PosRollStock,
+      logModel: PosRollStockLog,
+      itemField: "posRoll",
+      onModel: "PosRoll",
+    },
+    PosRoll: {
       itemLabel: "POS Roll",
       stockModel: PosRollStock,
       logModel: PosRollStockLog,
@@ -191,13 +207,31 @@ function getProfileStockConfig(itemType) {
       itemField: "ttr",
       onModel: "Ttr",
     },
-  }[itemType] || null;
+    Ttr: {
+      itemLabel: "TTR",
+      stockModel: TtrStock,
+      logModel: TtrStockLog,
+      itemField: "ttr",
+      onModel: "Ttr",
+    },
+  };
+  return map[itemType] || null;
 }
 
-async function getItemStockSummary(itemType, itemId) {
+async function getItemStockSummary(itemType, itemId, excludeOrderId = null) {
   const config = getProfileStockConfig(itemType);
   if (!config) throw new Error(`Unsupported stock item type: ${itemType}`);
   const itemObjectId = new mongoose.Types.ObjectId(itemId);
+
+  const bookedMatch = {
+    tapeId: itemObjectId,
+    onModel: config.onModel,
+    status: "PENDING",
+  };
+  if (excludeOrderId) {
+    bookedMatch._id = { $ne: new mongoose.Types.ObjectId(excludeOrderId) };
+  }
+
   const [stockAggregation, bookedAggregation] = await Promise.all([
     config.stockModel.aggregate([
       { $match: { [config.itemField]: itemObjectId } },
@@ -212,20 +246,14 @@ async function getItemStockSummary(itemType, itemId) {
       { $sort: { "_id.location": 1 } },
     ]),
     TapeSalesOrder.aggregate([
-      {
-        $match: {
-          tapeId: itemObjectId,
-          onModel: config.onModel,
-          status: { $nin: ["CANCELLED"] },
-        },
-      },
+      { $match: bookedMatch },
       {
         $group: {
           _id: {
             location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
           },
           bookedQty: {
-            $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
+            $sum: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] },
           },
         },
       },
@@ -254,12 +282,18 @@ async function getItemStockSummary(itemType, itemId) {
     })
     .filter((entry) => entry.qty !== 0 || entry.booked !== 0);
 
+  const totalStock = locations.reduce((sum, entry) => sum + toNumber(entry.qty), 0);
+  const totalBooked = locations.reduce((sum, entry) => sum + toNumber(entry.booked), 0);
+  const totalBalance = totalStock - totalBooked;
+
   return {
     config,
     locations,
-    totalStock: locations.reduce((sum, entry) => sum + toNumber(entry.qty), 0),
-    totalBooked: locations.reduce((sum, entry) => sum + toNumber(entry.booked), 0),
-    totalBalance: locations.reduce((sum, entry) => sum + toNumber(entry.balance), 0),
+    totalStock,
+    totalBooked,
+    totalBalance,
+    booked: totalBooked, // for compatibility
+    balance: totalBalance, // for compatibility
   };
 }
 
@@ -431,7 +465,7 @@ router.use((req, res, next) => {
   if (role === "sales") {
     const path = req.path || "";
     if (path.startsWith("/sales/")) return next();
-    if (req.method !== "GET") return res.redirect("/login");
+    if (req.method !== "GET") return res.status(403).send("Forbidden");
 
     const allowedViewRoutes = [
       /^\/master\/view$/,
@@ -444,13 +478,20 @@ router.use((req, res, next) => {
       /^\/tafeta\/profile\/[^/]+$/,
       /^\/ttr\/view$/,
       /^\/ttr\/profile\/[^/]+$/,
+      /^\/welcome$/,
     ];
 
     if (allowedViewRoutes.some((re) => re.test(path))) return next();
-    return res.redirect("/login");
+    return res.status(403).send("Forbidden");
   }
 
-  return res.redirect("/login");
+  if (role === "hr") {
+    const path = req.path || "";
+    if (path === "/welcome") return next();
+    return res.status(403).send("Forbidden");
+  }
+
+  return res.status(403).send("Forbidden");
 });
 
 // ----------------------------------RateCalculator---------------------------------->
@@ -3103,342 +3144,188 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
     const { type, userId } = req.params;
     let items = [];
 
-    if (type === "TAPE") {
-      const user = await Username.findById(userId)
-        .populate({
-          path: "tape",
-          populate: { path: "tapeId", select: "tapeProductId tapePaperCode tapeGsm tapeFinish tapeColor tapeWidth tapeMtrs tapeCoreId tapeCoreLength tapeNotch tapeWinding" },
-          select: "tapeClientMaterialCode clientTapeGsm tapeMtrsDel tapeRatePerRoll tapeSaleCost tapeMinQty tapeOdrQty tapeOdrFreq tapeCreditTerm tapeId",
-        })
-        .lean();
-
-      // Get all tape IDs for this user
-      const tapeBindings = user?.tape || [];
-
-      // Fetch stock for all these tapes in one go
-      const tapeIds = tapeBindings.map((b) => b.tapeId?._id).filter(Boolean);
-      if (!tapeIds.length) {
-        return res.json([]);
-      }
-
-      const [stockAggregation, bookedAggregation] = await Promise.all([
-        TapeStock.aggregate([
-          { $match: { tape: { $in: tapeIds } } },
-          {
-            $group: {
-              _id: {
-                tape: "$tape",
-                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-              },
-              totalQty: { $sum: "$quantity" },
-            },
-          },
-          {
-            $group: {
-              _id: "$_id.tape",
-              locations: {
-                $push: {
-                  location: "$_id.location",
-                  qty: "$totalQty",
-                },
-              },
-              totalStock: { $sum: "$totalQty" },
-            },
-          },
-        ]),
-        TapeSalesOrder.aggregate([
-          { $match: { tapeId: { $in: tapeIds }, status: "PENDING" } },
-          {
-            $group: {
-              _id: {
-                tapeId: "$tapeId",
-                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
-              },
-              bookedQty: {
-                $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
-              },
-            },
-          },
-        ]),
-      ]);
-
-      // Map stock back to bindings
-      const stockMap = {};
-      stockAggregation.forEach((s) => {
-        stockMap[s._id.toString()] = s;
-      });
-
-      // Build per-tape overall booked AND per-location booked
-      const bookedMap = {}; // tapeId -> total booked
-      const bookedLocMap = {}; // tapeId -> { "UNIT 1": N, "UNIT 2": N, ... }
-      bookedAggregation.forEach((b) => {
-        const tid = b._id.tapeId.toString();
-        const loc = b._id.location || "UNKNOWN";
-        bookedMap[tid] = (bookedMap[tid] || 0) + b.bookedQty;
-        if (!bookedLocMap[tid]) bookedLocMap[tid] = {};
-        bookedLocMap[tid][loc] = (bookedLocMap[tid][loc] || 0) + b.bookedQty;
-      });
-
-      items = tapeBindings.map((binding) => {
-        const tapeIdStr = binding.tapeId?._id?.toString();
-        const stockInfo = stockMap[tapeIdStr] || { locations: [], totalStock: 0 };
-        const booked = bookedMap[tapeIdStr] || 0;
-        const locBooked = bookedLocMap[tapeIdStr] || {};
-
-        // Overall balance
-        stockInfo.booked = booked;
-        stockInfo.balance = stockInfo.totalStock - booked;
-
-        // Per-location booked & balance
-        stockInfo.locations = stockInfo.locations.map((loc) => ({
-          ...loc,
-          booked: locBooked[loc.location] || 0,
-          balance: loc.qty - (locBooked[loc.location] || 0),
-        }));
-
-        return {
-          _id: binding._id,
-          displayName: `${binding.tapeId?.tapeProductId || "N/A"} - ${binding.tapeId?.tapePaperCode || ""} ${binding.tapeId?.tapeGsm || ""}gsm`,
-          minOrderQty: binding.tapeMinQty || 0,
-          rate: binding.tapeRatePerRoll || 0,
-          stock: stockInfo,
-          details: {
-            type: "TAPE",
-            productId: binding.tapeId?.tapeProductId || "",
-            paperCode: binding.tapeId?.tapePaperCode || "",
-            gsm: binding.tapeId?.tapeGsm || "",
-            finish: binding.tapeId?.tapeFinish || "",
-            color: binding.tapeId?.tapeColor || "",
-            width: binding.tapeId?.tapeWidth || "",
-            mtrs: binding.tapeId?.tapeMtrs || "",
-            coreId: binding.tapeId?.tapeCoreId || "",
-            coreLength: binding.tapeId?.tapeCoreLength || "",
-            notch: binding.tapeId?.tapeNotch || "",
-            winding: binding.tapeId?.tapeWinding || "",
-            clientMaterialCode: binding.tapeClientMaterialCode || "",
-            clientGsm: binding.clientTapeGsm || "",
-            deliveredMtrs: binding.tapeMtrsDel || "",
-            saleCost: binding.tapeSaleCost || 0,
-            minQty: binding.tapeMinQty || 0,
-            orderQty: binding.tapeOdrQty || 0,
-            orderFreq: binding.tapeOdrFreq || "",
-            creditTerm: binding.tapeCreditTerm || "",
-          },
-        };
-      });
-    } else if (type === "POS_ROLL") {
-      const user = await Username.findById(userId)
-        .populate({
-          path: "posRoll",
-          populate: { path: "posRollId", select: "posProductId posPaperCode posGsm posColor posWidth posMtrs posCoreId posCoreLength posNotch posWinding" },
-          select: "posClientMaterialCode clientPosGsm posMtrsDel posRatePerRoll posSaleCost posMinQty posOdrQty posOdrFreq posCreditTerm posRollId",
-        })
-        .lean();
-
-      const posBindings = user?.posRoll || [];
-      const posRollIds = posBindings.map((b) => b.posRollId?._id).filter(Boolean);
-      if (!posRollIds.length) return res.json([]);
-
-      const [stockAgg, bookedAgg] = await Promise.all([
-        PosRollStock.aggregate([
-          { $match: { posRoll: { $in: posRollIds } } },
-          {
-            $group: {
-              _id: {
-                posRoll: "$posRoll",
-                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-              },
-              totalQty: { $sum: "$quantity" },
-            },
-          },
-          {
-            $group: {
-              _id: "$_id.posRoll",
-              locations: { $push: { location: "$_id.location", qty: "$totalQty" } },
-              totalStock: { $sum: "$totalQty" },
-            },
-          },
-        ]),
-        TapeSalesOrder.aggregate([
-          { $match: { tapeId: { $in: posRollIds }, status: "PENDING" } },
-          {
-            $group: {
-              _id: {
-                tapeId: "$tapeId",
-                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
-              },
-              bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
-            },
-          },
-        ]),
-      ]);
-
-      const stockMap = {};
-      stockAgg.forEach((s) => {
-        stockMap[s._id.toString()] = s;
-      });
-      const bookedMap = {};
-      const bookedLocMap = {};
-      bookedAgg.forEach((b) => {
-        const tid = b._id.tapeId.toString();
-        const loc = b._id.location || "UNKNOWN";
-        bookedMap[tid] = (bookedMap[tid] || 0) + b.bookedQty;
-        if (!bookedLocMap[tid]) bookedLocMap[tid] = {};
-        bookedLocMap[tid][loc] = (bookedLocMap[tid][loc] || 0) + b.bookedQty;
-      });
-
-      items = posBindings.map((binding) => {
-        const idStr = binding.posRollId?._id?.toString();
-        const stockInfo = stockMap[idStr] || { locations: [], totalStock: 0 };
-        const booked = bookedMap[idStr] || 0;
-        const locBooked = bookedLocMap[idStr] || {};
-        stockInfo.booked = booked;
-        stockInfo.balance = stockInfo.totalStock - booked;
-        stockInfo.locations = stockInfo.locations.map((loc) => ({
-          ...loc,
-          booked: locBooked[loc.location] || 0,
-          balance: loc.qty - (locBooked[loc.location] || 0),
-        }));
-
-        return {
-          _id: binding._id,
-          displayName: `${binding.posRollId?.posProductId || "N/A"} - ${binding.posRollId?.posPaperCode || ""} ${binding.posRollId?.posGsm || ""}gsm`,
-          minOrderQty: binding.posMinQty || 0,
-          rate: binding.posRatePerRoll || 0,
-          stock: stockInfo,
-          details: {
-            type: "POS_ROLL",
-            productId: binding.posRollId?.posProductId || "",
-            paperCode: binding.posRollId?.posPaperCode || "",
-            gsm: binding.posRollId?.posGsm || "",
-            color: binding.posRollId?.posColor || "",
-            width: binding.posRollId?.posWidth || "",
-            mtrs: binding.posRollId?.posMtrs || "",
-            coreId: binding.posRollId?.posCoreId || "",
-            coreLength: binding.posRollId?.posCoreLength || "",
-            notch: binding.posRollId?.posNotch || "",
-            winding: binding.posRollId?.posWinding || "",
-            clientMaterialCode: binding.posClientMaterialCode || "",
-            clientGsm: binding.clientPosGsm || "",
-            deliveredMtrs: binding.posMtrsDel || "",
-            saleCost: binding.posSaleCost || 0,
-            minQty: binding.posMinQty || 0,
-            orderQty: binding.posOdrQty || 0,
-            orderFreq: binding.posOdrFreq || "",
-            creditTerm: binding.posCreditTerm || "",
-          },
-        };
-      });
-    } else if (type === "TAFETA") {
-      const tafetaBindings = await TafetaBinding.find({ userId })
-        .populate({ path: "tafetaId", select: "tafetaProductId tafetaMaterialCode tafetaMaterialType tafetaGsm tafetaColor tafetaWidth tafetaMtrs tafetaCoreLen tafetaCoreId tafetaNotch" })
-        .select("tafetaClientMaterialCode clientTafetaGsm tafetaMtrsDel tafetaRatePerRoll tafetaSaleCost tafetaMinQty tafetaOdrQty tafetaOdrFreq tafetaCreditTerm tafetaId")
-        .lean();
-
-      const tafetaIds = tafetaBindings.map((b) => b.tafetaId?._id).filter(Boolean);
-      if (!tafetaIds.length) return res.json([]);
-
-      const [stockAgg, bookedAgg] = await Promise.all([
-        TafetaStock.aggregate([
-          { $match: { tafeta: { $in: tafetaIds } } },
-          {
-            $group: {
-              _id: {
-                tafeta: "$tafeta",
-                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-              },
-              totalQty: { $sum: "$quantity" },
-            },
-          },
-          {
-            $group: {
-              _id: "$_id.tafeta",
-              locations: { $push: { location: "$_id.location", qty: "$totalQty" } },
-              totalStock: { $sum: "$totalQty" },
-            },
-          },
-        ]),
-        TapeSalesOrder.aggregate([
-          { $match: { tapeId: { $in: tafetaIds }, status: "PENDING" } },
-          {
-            $group: {
-              _id: {
-                tapeId: "$tapeId",
-                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
-              },
-              bookedQty: { $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] } },
-            },
-          },
-        ]),
-      ]);
-
-      const stockMap = {};
-      stockAgg.forEach((s) => {
-        stockMap[s._id.toString()] = s;
-      });
-      const bookedMap = {};
-      const bookedLocMap = {};
-      bookedAgg.forEach((b) => {
-        const tid = b._id.tapeId.toString();
-        const loc = b._id.location || "UNKNOWN";
-        bookedMap[tid] = (bookedMap[tid] || 0) + b.bookedQty;
-        if (!bookedLocMap[tid]) bookedLocMap[tid] = {};
-        bookedLocMap[tid][loc] = (bookedLocMap[tid][loc] || 0) + b.bookedQty;
-      });
-
-      items = tafetaBindings.map((binding) => {
-        const idStr = binding.tafetaId?._id?.toString();
-        const stockInfo = stockMap[idStr] || { locations: [], totalStock: 0 };
-        const booked = bookedMap[idStr] || 0;
-        const locBooked = bookedLocMap[idStr] || {};
-        stockInfo.booked = booked;
-        stockInfo.balance = stockInfo.totalStock - booked;
-        stockInfo.locations = stockInfo.locations.map((loc) => ({
-          ...loc,
-          booked: locBooked[loc.location] || 0,
-          balance: loc.qty - (locBooked[loc.location] || 0),
-        }));
-
-        return {
-          _id: binding._id,
-          displayName: `${binding.tafetaId?.tafetaProductId || "N/A"} - ${binding.tafetaId?.tafetaMaterialCode || ""} ${binding.tafetaId?.tafetaGsm || ""}gsm`,
-          minOrderQty: binding.tafetaMinQty || 0,
-          rate: binding.tafetaRatePerRoll || 0,
-          stock: stockInfo,
-          details: {
-            type: "TAFETA",
-            productId: binding.tafetaId?.tafetaProductId || "",
-            materialCode: binding.tafetaId?.tafetaMaterialCode || "",
-            materialType: binding.tafetaId?.tafetaMaterialType || "",
-            gsm: binding.tafetaId?.tafetaGsm || "",
-            color: binding.tafetaId?.tafetaColor || "",
-            width: binding.tafetaId?.tafetaWidth || "",
-            mtrs: binding.tafetaId?.tafetaMtrs || "",
-            coreLength: binding.tafetaId?.tafetaCoreLen || "",
-            coreId: binding.tafetaId?.tafetaCoreId || "",
-            notch: binding.tafetaId?.tafetaNotch || "",
-            clientMaterialCode: binding.tafetaClientMaterialCode || "",
-            clientGsm: binding.clientTafetaGsm || "",
-            deliveredMtrs: binding.tafetaMtrsDel || "",
-            saleCost: binding.tafetaSaleCost || 0,
-            minQty: binding.tafetaMinQty || 0,
-            orderQty: binding.tafetaOdrQty || 0,
-            orderFreq: binding.tafetaOdrFreq || "",
-            creditTerm: binding.tafetaCreditTerm || "",
-          },
-        };
-      });
-    } else if (type === "LABEL") {
-      const user = await Username.findById(userId).populate({
+    const user = await Username.findById(userId)
+      .populate({
+        path: "tape",
+        populate: { path: "tapeId" },
+      })
+      .populate({
+        path: "posRoll",
+        populate: { path: "posRollId" },
+      })
+      .populate({
+        path: "tafeta",
+        populate: { path: "tafetaId" },
+      })
+      .populate({
+        path: "ttr",
+        populate: { path: "ttrId" },
+      })
+      .populate({
         path: "label",
         populate: { path: "labelId" },
-      });
-      items = (user?.label || []).map((lbl) => ({
+      })
+      .lean();
+
+    if (!user) return res.json([]);
+
+    if (type === "TAPE") {
+      const bindings = user.tape || [];
+      items = await Promise.all(
+        bindings.map(async (binding) => {
+          if (!binding.tapeId) return null;
+          const stockInfo = await getItemStockSummary("Tape", binding.tapeId._id);
+          const t = binding.tapeId;
+          return {
+            _id: binding._id,
+            displayName: `${t.tapeProductId || "N/A"} - ${t.tapePaperCode || ""} ${t.tapeGsm || ""}gsm`,
+            minOrderQty: binding.tapeMinQty || 0,
+            rate: binding.tapeRatePerRoll || 0,
+            stock: stockInfo,
+            details: {
+              type: "TAPE",
+              productId: t.tapeProductId || "",
+              paperCode: t.tapePaperCode || "",
+              gsm: t.tapeGsm || "",
+              finish: t.tapeFinish || "",
+              color: t.tapeColor || "",
+              width: t.tapeWidth || "",
+              mtrs: t.tapeMtrs || "",
+              coreId: t.tapeCoreId || "",
+              coreLength: t.tapeCoreLength || "",
+              notch: t.tapeNotch || "",
+              winding: t.tapeWinding || "",
+              clientMaterialCode: binding.tapeClientMaterialCode || "",
+              clientGsm: binding.clientTapeGsm || "",
+              deliveredMtrs: binding.tapeMtrsDel || "",
+              saleCost: binding.tapeSaleCost || 0,
+              minQty: binding.tapeMinQty || 0,
+              orderQty: binding.tapeOdrQty || 0,
+              orderFreq: binding.tapeOdrFreq || "",
+              creditTerm: binding.tapeCreditTerm || "",
+            },
+          };
+        }),
+      );
+    } else if (type === "POS_ROLL") {
+      const bindings = user.posRoll || [];
+      items = await Promise.all(
+        bindings.map(async (binding) => {
+          if (!binding.posRollId) return null;
+          const stockInfo = await getItemStockSummary("POS Roll", binding.posRollId._id);
+          const t = binding.posRollId;
+          return {
+            _id: binding._id,
+            displayName: `${t.posProductId || "N/A"} - ${t.posPaperCode || ""} ${t.posGsm || ""}gsm`,
+            minOrderQty: binding.posMinQty || 0,
+            rate: binding.posRatePerRoll || 0,
+            stock: stockInfo,
+            details: {
+              type: "POS_ROLL",
+              productId: t.posProductId || "",
+              paperCode: t.posPaperCode || "",
+              gsm: t.posGsm || "",
+              color: t.posColor || "",
+              width: t.posWidth || "",
+              mtrs: t.posMtrs || "",
+              coreId: t.posCoreId || "",
+              coreLength: t.posCoreLength || "",
+              notch: t.posNotch || "",
+              winding: t.posWinding || "",
+              clientMaterialCode: binding.posClientMaterialCode || "",
+              clientGsm: binding.clientPosGsm || "",
+              deliveredMtrs: binding.posMtrsDel || "",
+              saleCost: binding.posSaleCost || 0,
+              minQty: binding.posMinQty || 0,
+              orderQty: binding.posOdrQty || 0,
+              orderFreq: binding.posOdrFreq || "",
+              creditTerm: binding.posCreditTerm || "",
+            },
+          };
+        }),
+      );
+    } else if (type === "TAFETA") {
+      const bindings = user.tafeta || [];
+      items = await Promise.all(
+        bindings.map(async (binding) => {
+          if (!binding.tafetaId) return null;
+          const stockInfo = await getItemStockSummary("Tafeta", binding.tafetaId._id);
+          const t = binding.tafetaId;
+          return {
+            _id: binding._id,
+            displayName: `${t.tafetaProductId || "N/A"} - ${t.tafetaMaterialCode || ""} ${t.tafetaGsm || ""}gsm`,
+            minOrderQty: binding.tafetaMinQty || 0,
+            rate: binding.tafetaRatePerRoll || 0,
+            stock: stockInfo,
+            details: {
+              type: "TAFETA",
+              productId: t.tafetaProductId || "",
+              materialCode: t.tafetaMaterialCode || "",
+              materialType: t.tafetaMaterialType || "",
+              gsm: t.tafetaGsm || "",
+              color: t.tafetaColor || "",
+              width: t.tafetaWidth || "",
+              mtrs: t.tafetaMtrs || "",
+              coreLength: t.tafetaCoreLen || "",
+              coreId: t.tafetaCoreId || "",
+              notch: t.tafetaNotch || "",
+              clientMaterialCode: binding.tafetaClientMaterialCode || "",
+              clientGsm: binding.clientTafetaGsm || "",
+              deliveredMtrs: binding.tafetaMtrsDel || "",
+              saleCost: binding.tafetaSaleCost || 0,
+              minQty: binding.tafetaMinQty || 0,
+              orderQty: binding.tafetaOdrQty || 0,
+              orderFreq: binding.tafetaOdrFreq || "",
+              creditTerm: binding.tafetaCreditTerm || "",
+            },
+          };
+        }),
+      );
+    } else if (type === "TTR") {
+      const bindings = user.ttr || [];
+      items = await Promise.all(
+        bindings.map(async (binding) => {
+          if (!binding.ttrId) return null;
+          const stockInfo = await getItemStockSummary("TTR", binding.ttrId._id);
+          const t = binding.ttrId;
+          return {
+            _id: binding._id,
+            displayName: `${t.ttrType || ""} ${t.ttrWidth || ""}mm x ${t.ttrMtrs || ""}m`,
+            minOrderQty: binding.ttrMinQty || 0,
+            rate: binding.ttrRatePerRoll || 0,
+            stock: stockInfo,
+            details: {
+              type: "TTR",
+              productId: t.ttrProductId || "",
+              ttrType: t.ttrType || "",
+              color: t.color || "",
+              materialCode: t.materialCode || "",
+              width: t.width || "",
+              mtrs: t.mtrs || "",
+              inkFace: t.inkFace || "",
+              coreId: t.coreId || "",
+              coreLength: t.coreLength || "",
+              notch: t.notch || "",
+              winding: t.winding || "",
+              clientMaterialCode: binding.ttrClientMaterialCode || "",
+              clientType: binding.clientTtrType || "",
+              deliveredMtrs: binding.ttrMtrsDel || "",
+              saleCost: binding.ttrSaleCost || 0,
+              minQty: binding.ttrMinQty || 0,
+              orderQty: binding.ttrOdrQty || 0,
+              orderFreq: binding.ttrOdrFreq || "",
+              creditTerm: binding.ttrCreditTerm || "",
+            },
+          };
+        }),
+      );
+    } else if (type === "LABEL") {
+      items = (user.label || []).map((lbl) => ({
         _id: lbl._id,
         displayName: `${lbl.labelId?.labelWidth || ""}x${lbl.labelId?.labelHeight || ""}`,
         minOrderQty: lbl.labelId?.minOrderQty || 0,
         rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
-        stock: { locations: [], totalStock: 0 },
+        stock: { locations: [], totalStock: 0, booked: 0, balance: 0 },
         details: {
           type: "LABEL",
           width: lbl.labelId?.labelWidth || "",
@@ -3447,124 +3334,9 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
           rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
         },
       }));
-    } else if (type === "TTR") {
-      const user = await Username.findById(userId)
-        .populate({
-          path: "ttr",
-          populate: { path: "ttrId", select: "ttrProductId ttrType ttrColor ttrMaterialCode ttrWidth ttrMtrs ttrInkFace ttrCoreId ttrCoreLength ttrNotch ttrWinding" },
-          select: "ttrClientMaterialCode clientTtrType ttrMtrsDel ttrRatePerRoll ttrSaleCost ttrMinQty ttrOdrQty ttrOdrFreq ttrCreditTerm ttrId",
-        })
-        .lean();
-
-      const ttrBindings = user?.ttr || [];
-      const ttrIds = ttrBindings.map((b) => b.ttrId?._id).filter(Boolean);
-
-      if (!ttrIds.length) {
-        return res.json([]);
-      }
-
-      const [stockAggregation, bookedAggregation] = await Promise.all([
-        TtrStock.aggregate([
-          { $match: { ttr: { $in: ttrIds } } },
-          {
-            $group: {
-              _id: {
-                ttr: "$ttr",
-                location: { $toUpper: { $ifNull: ["$location", "UNKNOWN"] } },
-              },
-              totalQty: { $sum: "$quantity" },
-            },
-          },
-          {
-            $group: {
-              _id: "$_id.ttr",
-              locations: {
-                $push: {
-                  location: "$_id.location",
-                  qty: "$totalQty",
-                },
-              },
-              totalStock: { $sum: "$totalQty" },
-            },
-          },
-        ]),
-        TapeSalesOrder.aggregate([
-          { $match: { tapeId: { $in: ttrIds }, status: "PENDING" } },
-          {
-            $group: {
-              _id: {
-                tapeId: "$tapeId",
-                location: { $toUpper: { $ifNull: ["$sourceLocation", "UNKNOWN"] } },
-              },
-              bookedQty: {
-                $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
-              },
-            },
-          },
-        ]),
-      ]);
-
-      const stockMap = {};
-      stockAggregation.forEach((s) => {
-        stockMap[s._id.toString()] = s;
-      });
-
-      const bookedMap = {};
-      const bookedLocMap = {};
-      bookedAggregation.forEach((b) => {
-        const tid = b._id.tapeId.toString();
-        const loc = b._id.location || "UNKNOWN";
-        bookedMap[tid] = (bookedMap[tid] || 0) + b.bookedQty;
-        if (!bookedLocMap[tid]) bookedLocMap[tid] = {};
-        bookedLocMap[tid][loc] = (bookedLocMap[tid][loc] || 0) + b.bookedQty;
-      });
-
-      items = ttrBindings.map((binding) => {
-        const idStr = binding.ttrId?._id?.toString();
-        const stockInfo = stockMap[idStr] || { locations: [], totalStock: 0 };
-        const booked = bookedMap[idStr] || 0;
-        const locBooked = bookedLocMap[idStr] || {};
-        stockInfo.booked = booked;
-        stockInfo.balance = stockInfo.totalStock - booked;
-        stockInfo.locations = stockInfo.locations.map((loc) => ({
-          ...loc,
-          booked: locBooked[loc.location] || 0,
-          balance: loc.qty - (locBooked[loc.location] || 0),
-        }));
-
-        return {
-          _id: binding._id,
-          displayName: `${binding.ttrId?.ttrType || ""} ${binding.ttrId?.ttrWidth || ""}mm x ${binding.ttrId?.ttrMtrs || ""}m`,
-          minOrderQty: binding.ttrMinQty || 0,
-          rate: binding.ttrRatePerRoll || 0,
-          stock: stockInfo,
-          details: {
-            type: "TTR",
-            productId: binding.ttrId?.ttrProductId || "",
-            ttrType: binding.ttrId?.ttrType || "",
-            color: binding.ttrId?.ttrColor || "",
-            materialCode: binding.ttrId?.ttrMaterialCode || "",
-            width: binding.ttrId?.ttrWidth || "",
-            mtrs: binding.ttrId?.ttrMtrs || "",
-            inkFace: binding.ttrId?.ttrInkFace || "",
-            coreId: binding.ttrId?.ttrCoreId || "",
-            coreLength: binding.ttrId?.ttrCoreLength || "",
-            notch: binding.ttrId?.ttrNotch || "",
-            winding: binding.ttrId?.ttrWinding || "",
-            clientMaterialCode: binding.ttrClientMaterialCode || "",
-            clientType: binding.clientTtrType || "",
-            deliveredMtrs: binding.ttrMtrsDel || "",
-            saleCost: binding.ttrSaleCost || 0,
-            minQty: binding.ttrMinQty || 0,
-            orderQty: binding.ttrOdrQty || 0,
-            orderFreq: binding.ttrOdrFreq || "",
-            creditTerm: binding.ttrCreditTerm || "",
-          },
-        };
-      });
     }
 
-    res.json(items);
+    res.json(items.filter(Boolean));
   } catch (err) {
     console.error("ITEMS API ERROR:", err);
     res.json([]);
@@ -4020,82 +3792,11 @@ router.get("/sales/order/confirm", async (req, res) => {
     // ========== STOCK PRE-CALCULATION FOR CONFIRM PAGE ==========
     let stockInfo = { totalStock: 0, locations: [], booked: 0, balance: 0 };
     if (order.tapeId) {
-      const tapeObjectId = order.tapeId._id;
-
-      let StockModel = TapeStock;
-      let matchField = "tape";
-
-      if (order.onModel === "PosRoll") {
-        StockModel = PosRollStock;
-        matchField = "posRoll";
-      } else if (order.onModel === "Tafeta") {
-        StockModel = TafetaStock;
-        matchField = "tafeta";
-      } else if (order.onModel === "Ttr") {
-        StockModel = TtrStock;
-        matchField = "ttr";
+      try {
+        stockInfo = await getItemStockSummary(order.onModel, order.tapeId._id);
+      } catch (err) {
+        console.error("CONFIRM STOCK SUMMARY ERROR:", err);
       }
-
-      const [stockAgg, bookedAgg] = await Promise.all([
-        StockModel.aggregate([
-          { $match: { [matchField]: tapeObjectId } },
-          {
-            $group: {
-              _id: "$location",
-              qty: { $sum: "$quantity" },
-            },
-          },
-        ]),
-        TapeSalesOrder.aggregate([
-          {
-            $match: {
-              tapeId: tapeObjectId,
-              status: "PENDING",
-              _id: { $ne: new mongoose.Types.ObjectId(orderId) },
-            },
-          },
-          {
-            $group: {
-              _id: "$sourceLocation",
-              bookedQty: {
-                $sum: { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] },
-              },
-            },
-          },
-        ]),
-      ]);
-
-      // Map/Combine
-      const bookedMap = {}; // location -> qty
-      let totalBooked = 0;
-      bookedAgg.forEach((b) => {
-        const loc = b._id || "UNKNOWN";
-        bookedMap[loc] = b.bookedQty;
-        totalBooked += b.bookedQty;
-      });
-
-      // Get union of locations from physical stock and booked stock
-      const allStockLocs = new Set([...stockAgg.map((s) => s._id || "UNKNOWN"), ...Object.keys(bookedMap)]);
-
-      let totalPhysical = 0;
-      const locations = Array.from(allStockLocs).map((loc) => {
-        const s = stockAgg.find((sa) => (sa._id || "UNKNOWN") === loc) || { qty: 0 };
-        const booked = bookedMap[loc] || 0;
-        totalPhysical += s.qty;
-        return {
-          location: loc,
-          qty: s.qty,
-          booked: booked,
-          balance: s.qty - booked,
-        };
-      });
-
-      stockInfo = {
-        totalStock: totalPhysical,
-        locations: locations, // array of { location, qty, booked, balance }
-        booked: totalBooked,
-        balance: totalPhysical - totalBooked,
-      };
     }
 
     const clients = await Client.distinct("clientName");
@@ -5269,6 +4970,16 @@ router.get("/labels/view/:id", async (req, res) => {
     CSS: "tableDisp.css",
     JS: false,
     title: "Labels Display",
+    notification: req.flash("notification"),
+  });
+});
+
+// ----------------------------------Welcome---------------------------------->
+router.get("/welcome", (req, res) => {
+  res.render("miscellaneous/welcome.ejs", {
+    title: "Welcome",
+    CSS: false,
+    JS: false,
     notification: req.flash("notification"),
   });
 });

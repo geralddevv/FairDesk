@@ -99,8 +99,6 @@
   <div id="master-table" class="tabulator tabulator-modern"></div>
 </div>
 
-
-
 <!-- Tabulator JS -->
 <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -113,7 +111,6 @@
 
 <script>
   const reorderData = JSON.parse(document.getElementById("reorder-data").textContent);
-
 
   document.addEventListener("DOMContentLoaded", () => {
     const table = new Tabulator("#master-table", {
@@ -130,7 +127,7 @@
             const row = cell.getRow().getData();
             let typeSlug = row.typeKey ? row.typeKey.toLowerCase() : "";
             if (row.typeKey === "PosRoll") typeSlug = "pos-roll";
-            
+
             const url = `/fairdesk/inventory/reorder/select-vendor/${typeSlug}/${row._id}?shortage=${row.shortage || 0}`;
             return `
               <a href="${url}" 
@@ -199,6 +196,4 @@
       selector.classList.remove("download-selector--active");
     });
   });
-
-
 </script>

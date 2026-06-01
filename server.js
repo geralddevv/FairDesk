@@ -24,6 +24,8 @@ import { configDotenv } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
 import os from "os";
+import fs from "fs";
+import sharp from "sharp";
 import Employee from "./models/hr/employee_model.js";
 
 
@@ -82,6 +84,30 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(express.static(path.join(dir_name, "public"), { maxAge: "1d" }));
 app.use("/bootstrap", express.static(dir_name + "/node_modules/bootstrap/dist", { maxAge: "1d" }));
 app.use("/images", express.static("images", { maxAge: "1d" }));
+
+/* Image Thumbnail Route (Compression) */
+app.get("/images/thumb/:folder/:filename", async (req, res) => {
+  const { folder, filename } = req.params;
+  const filePath = path.join(dir_name, "images", folder, filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("Not found");
+  }
+
+  try {
+    const data = await sharp(filePath)
+      .resize(100, 100, { fit: "cover" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "public, max-age=86400"); // 1 day cache
+    res.send(data);
+  } catch (err) {
+    console.error("Image processing error:", err);
+    res.sendFile(filePath); // Fallback to original
+  }
+});
 
 /* SESSION */
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes 
@@ -182,42 +208,26 @@ app.use((req, res, next) => {
 
 
 /* ROUTES */
+const redirectByRole = (role) => {
+  if (["admin", "hod", "sales", "hr"].includes(role)) {
+    return "/fairdesk/welcome";
+  }
+  return "/login";
+};
+
 app.get("/", (req, res) => {
   if (req.session?.authUser) {
-    const role = req.session.authUser.role;
-    if (role === "hr") return res.redirect("/fairdesk/employee/view");
-    if (role === "sales") return res.redirect("/fairdesk/sales/order");
-    return res.redirect("/fairdesk/master/view");
+    return res.redirect(redirectByRole(req.session.authUser.role));
   }
   res.render("auth/login", { title: "Login", CSS: "login.css" });
 });
 
 app.get("/login", (req, res) => {
   if (req.session?.authUser) {
-    const role = req.session.authUser.role;
-    if (role === "hr") return res.redirect("/fairdesk/employee/view");
-    if (role === "sales") return res.redirect("/fairdesk/sales/order");
-    return res.redirect("/fairdesk/master/view");
+    return res.redirect(redirectByRole(req.session.authUser.role));
   }
   res.render("auth/login", { title: "Login", CSS: "login.css" });
 });
-
-const redirectByRole = (role, permissions) => {
-  if (role === "admin" || role === "hod") return "/fairdesk/master/view";
-  if (role === "hr") return "/fairdesk/employee/view";
-  if (role === "sales") return "/fairdesk/sales/order";
-  
-  // Generic employee redirection based on permissions
-  if (permissions) {
-    if (permissions.master) return "/fairdesk/master/view";
-    if (permissions.sales) return "/fairdesk/sales/order";
-    if (permissions.inventory) return "/fairdesk/stocks/view";
-    if (permissions.hr) return "/fairdesk/employee/view";
-    if (permissions.accounting) return "/fairdesk/payroll/view";
-  }
-
-  return "/fairdesk/master/view"; // Default
-};
 
 app.post("/login", loginLimiter, async (req, res) => {
   const { username, password } = req.body;
@@ -257,7 +267,7 @@ app.post("/login", loginLimiter, async (req, res) => {
           error: ["Unable to start session. Please try again."],
         });
       }
-      return res.redirect(redirectByRole(authUser.role, authUser.permissions));
+      return res.redirect(redirectByRole(authUser.role));
     });
   };
 
@@ -289,7 +299,8 @@ app.post("/login", loginLimiter, async (req, res) => {
         username: employee.empName, 
         role: employee.role || "employee", 
         permissions: employee.permissions,
-        empId: employee.empId 
+        empId: employee.empId,
+        empPhoto: employee.empPhoto
       });
     }
   } catch (err) {
@@ -330,6 +341,10 @@ const requireAuth = (req, res, next) => {
 const requireRole = (roles) => (req, res, next) => {
   const role = req.session?.authUser?.role;
   if (roles.includes(role)) return next();
+  
+  if (req.session?.authUser) {
+    return res.status(403).send("Forbidden: You do not have permission to access this resource.");
+  }
   return res.redirect("/login?reason=session-ended");
 };
 
@@ -369,7 +384,7 @@ app.use("/fairdesk/advance", requireAuth, requireRole(["admin", "hr"]), advanceR
 app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr"]), employeeRoute);
 app.use("/fairdesk/pettycash", requireAuth, requireRole(["admin", "hr"]), pettycashRoute);
 
-app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), fairdeskRoute);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales", "hr"]), fairdeskRoute);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tapeBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), posRollBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tafetaBindingRoutes);
