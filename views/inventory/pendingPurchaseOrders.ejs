@@ -463,13 +463,13 @@
   };
 
   window.requestReceivePO = function (orderId) {
-    window.location.href = `/fairdesk/inventory/purchase/receive?orderId=${orderId}`;
+    window.location.href = `/fairdesk/purchase/receive?orderId=${orderId}`;
   };
 
   function submitStatusUpdate(orderId, status, reason = "") {
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = "/fairdesk/inventory/purchase/status";
+    form.action = "/fairdesk/purchase/status";
     
     const inputs = {
       orderId,

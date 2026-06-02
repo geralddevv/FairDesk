@@ -58,15 +58,42 @@
       </h1>
     </span>
 
-    <div class="download-selector" id="downloadSelector">
-      <div class="download-selector__trigger">
-        <span><i class="fa-solid fa-file-arrow-down"></i> Download</span>
-        <i class="fa-solid fa-chevron-down"></i>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <!-- Location Filter -->
+      <div style="position:relative;">
+        <select
+          id="location-switcher"
+          style="height:34px; min-width:140px; padding:4px 32px 4px 12px; border:1px solid rgba(255,255,255,0.45); border-radius:6px; background:#ffffff; color:#044A78; font-size:13px; font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;"
+        >
+          <option value="all">All Locations</option>
+          <% allLocations.forEach(loc => { %>
+            <option value="<%= loc %>" <%= (location === loc || (location === 'All Locations' && loc === 'all')) ? 'selected' : '' %>><%= loc %></option>
+          <% }) %>
+        </select>
+        <i class="fa-solid fa-location-dot" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#044A78; font-size:11px; pointer-events:none;"></i>
       </div>
 
-      <div class="download-selector__menu">
-        <div class="download-selector__option" id="download-pdf">PDF</div>
-        <div class="download-selector__option" id="download-xlsx">Excel</div>
+      <!-- Month Filter -->
+      <div style="position:relative;">
+        <select
+          id="month-filter"
+          style="height:34px; min-width:140px; padding:4px 32px 4px 12px; border:1px solid rgba(255,255,255,0.45); border-radius:6px; background:#ffffff; color:#044A78; font-size:13px; font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;"
+        >
+          <option value="">All Months</option>
+        </select>
+        <i class="fa-solid fa-calendar-days" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#044A78; font-size:11px; pointer-events:none;"></i>
+      </div>
+
+      <div class="download-selector" id="downloadSelector">
+        <div class="download-selector__trigger">
+          <span><i class="fa-solid fa-file-arrow-down"></i> Download</span>
+          <i class="fa-solid fa-chevron-down"></i>
+        </div>
+
+        <div class="download-selector__menu">
+          <div class="download-selector__option" id="download-pdf">PDF</div>
+          <div class="download-selector__option" id="download-xlsx">Excel</div>
+        </div>
       </div>
     </div>
   </div>
@@ -197,6 +224,25 @@
     });
   }
 
+  function getMonthKey(row) {
+    const raw = String(row?.entryDate || row?.createdAt || "").trim();
+    if (!raw) return "";
+    if (/^\d{4}-\d{2}/.test(raw)) return raw.slice(0, 7);
+
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function formatMonthLabel(monthKey) {
+    const [year, month] = String(monthKey || "").split("-").map(Number);
+    if (!year || !month) return monthKey;
+    return new Date(year, month - 1, 1).toLocaleDateString("en-IN", {
+      month: "short",
+      year: "numeric",
+    });
+  }
+
   const columns = [
     { title: "Location", field: "location", headerFilter: "input", headerFilterPlaceholder: "Search" },
     { title: "From", field: "from", headerFilter: "input", headerFilterPlaceholder: "Search" },
@@ -265,6 +311,64 @@
     pagination: "local",
     paginationSize: 30,
     columns: columns,
+  });
+
+  const monthFilter = document.getElementById("month-filter");
+  const locationSwitcher = document.getElementById("location-switcher");
+  const monthKeys = [...new Set(logsData.map(getMonthKey).filter(Boolean))].sort().reverse();
+
+  monthKeys.forEach((monthKey) => {
+    const option = document.createElement("option");
+    option.value = monthKey;
+    option.textContent = formatMonthLabel(monthKey);
+    monthFilter.appendChild(option);
+  });
+
+  // Handle URL parameters for Month
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramMonth = urlParams.get('month');
+  if (paramMonth) {
+    monthFilter.value = paramMonth;
+    // We'll apply filter after table is ready
+  }
+
+  monthFilter.addEventListener("change", () => {
+    const selectedMonth = monthFilter.value;
+    if (!selectedMonth) {
+      table.clearFilter();
+      updateUrlParam('month', '');
+      return;
+    }
+
+    table.setFilter((row) => getMonthKey(row) === selectedMonth);
+    updateUrlParam('month', selectedMonth);
+  });
+
+  locationSwitcher.addEventListener("change", () => {
+    const newLoc = locationSwitcher.value;
+    const currentMonth = monthFilter.value;
+    let url = `/fairdesk/pettycash/logs/${encodeURIComponent(newLoc)}/view`;
+    if (currentMonth) {
+      url += `?month=${currentMonth}`;
+    }
+    window.location.href = url;
+  });
+
+  function updateUrlParam(key, value) {
+    const url = new URL(window.location.href);
+    if (value) {
+      url.searchParams.set(key, value);
+    } else {
+      url.searchParams.delete(key);
+    }
+    window.history.replaceState({}, '', url);
+  }
+
+  // Apply initial filter if needed
+  table.on("tableBuilt", () => {
+    if (monthFilter.value) {
+      table.setFilter((row) => getMonthKey(row) === monthFilter.value);
+    }
   });
 
   /* ===== DOWNLOAD ===== */

@@ -292,11 +292,21 @@ router.post("/reorder/create-po", async (req, res) => {
       binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
     }
     if (!binding) {
+      const itemBindings = await bindingModel.find({ [refField]: itemId }).sort({ createdAt: 1 }).limit(2).lean();
+      if (itemBindings.length === 1) {
+        binding = itemBindings[0];
+      }
+    }
+    if (!binding) {
       req.flash("notification", "Vendor not binded for this item. Purchase Order was not created.");
       return res.redirect("/fairdesk/purchase/pending");
     }
 
     const resolvedVendorUserId = vendorUserId || binding.vendorUserId;
+    const parsedEstimatedDate = new Date(estimatedDate);
+    const resolvedEstimatedDate = Number.isNaN(parsedEstimatedDate.getTime())
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      : parsedEstimatedDate;
 
     const poData = {
       onBindingModel,
@@ -307,7 +317,7 @@ router.post("/reorder/create-po", async (req, res) => {
       userLocation,
       quantity: Number(quantity),
       poNumber: String(poNumber || "").trim(),
-      estimatedDate: new Date(estimatedDate),
+      estimatedDate: resolvedEstimatedDate,
       remarks,
       status: "PENDING",
     };
