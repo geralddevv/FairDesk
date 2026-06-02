@@ -52,15 +52,7 @@
     </span>
 
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
-      <div style="position:relative;">
-        <select
-          id="month-filter"
-          style="height:34px; min-width:150px; padding:4px 32px 4px 12px; border:1px solid rgba(255,255,255,0.45); border-radius:6px; background:#ffffff; color:#044A78; font-size:13px; font-weight:600; appearance:none; -webkit-appearance:none; cursor:pointer;"
-        >
-          <option value="">All Months</option>
-        </select>
-        <i class="fa-solid fa-calendar-days" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:#044A78; font-size:11px; pointer-events:none;"></i>
-      </div>
+
 
       <a
         href="/fairdesk/pettycash/logs/all/view"
@@ -315,7 +307,7 @@
       formatter: (c) => formatINRCurrency(c.getValue())
     },
     {
-      title: "Expense (Selected Month)",
+      title: "Current Month Expense",
       field: "monthExpense",
       formatter: (c) => formatINRCurrency(c.getValue())
     },
@@ -331,11 +323,9 @@
       hozAlign: "center",
       formatter: (cell) => {
         const { location } = cell.getRow().getData();
-        const selectedMonth = document.getElementById("month-filter").value;
-        const query = selectedMonth ? `?month=${selectedMonth}` : "";
         return `
           <div style="display:flex; gap:6px; justify-content:center; align-items:center; height:100%;">
-            <a href="/fairdesk/pettycash/logs/${encodeURIComponent(location)}/view${query}" 
+            <a href="/fairdesk/pettycash/logs/${encodeURIComponent(location)}/view" 
                class="view-txn-btn" 
                title="View All" 
                style="height:22px; padding:0 10px; border:1px solid #044A78; background:#044A78; color:#fff; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600; line-height:22px; text-decoration:none; display:inline-block;">
@@ -376,66 +366,7 @@
   document.getElementById("download-xlsx").onclick = () =>
     table.download("xlsx", "pettycash.xlsx");
 
-  /* ===== MONTH FILTER LOGIC ===== */
-  const monthFilter = document.getElementById("month-filter");
-  
-  function getMonthKey(log) {
-    const d = getLogDate(log);
-    if (!d) return "";
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  }
 
-  function formatMonthLabel(monthKey) {
-    const [year, month] = String(monthKey || "").split("-").map(Number);
-    if (!year || !month) return monthKey;
-    return new Date(year, month - 1, 1).toLocaleDateString("en-IN", {
-      month: "short",
-      year: "numeric",
-    });
-  }
-
-  const monthKeys = [...new Set(allLogs.map(getMonthKey).filter(Boolean))].sort().reverse();
-  monthKeys.forEach((monthKey) => {
-    const option = document.createElement("option");
-    option.value = monthKey;
-    option.textContent = formatMonthLabel(monthKey);
-    monthFilter.appendChild(option);
-  });
-
-  function getExpenseByMonth(logs, monthKey) {
-    if (!monthKey) return currentMonthExpenseMap; // default to current month map or whatever
-
-    const [year, month] = monthKey.split("-").map(Number);
-    const expenseMap = new Map();
-
-    logs.forEach((log) => {
-      const d = getLogDate(log);
-      if (!d || d.getMonth() !== month - 1 || d.getFullYear() !== year) return;
-      if (String(log.type || "").toUpperCase() !== "OUTWARD") return;
-      
-      const loc = String(log.location || "").trim();
-      expenseMap.set(loc, (expenseMap.get(loc) || 0) + (Number(log.amount) || 0));
-    });
-    return expenseMap;
-  }
-
-  monthFilter.addEventListener("change", () => {
-    const selectedMonth = monthFilter.value;
-    const expenseMap = selectedMonth ? getExpenseByMonth(allLogs, selectedMonth) : currentMonthExpenseMap;
-    
-    // Update Table Data
-    const newData = snapshotData.map(row => ({
-      ...row,
-      monthExpense: expenseMap.get(String(row.location || "").trim()) || 0
-    }));
-    table.replaceData(newData);
-
-    // Update View All Logs Button
-    const viewAllLogsBtn = document.getElementById("view-all-logs-btn");
-    viewAllLogsBtn.href = selectedMonth 
-      ? `/fairdesk/pettycash/logs/all/view?month=${selectedMonth}`
-      : `/fairdesk/pettycash/logs/all/view`;
-  });
 </script>
 <script>
   const editDialog = document.getElementById("pc-edit-dialog");
