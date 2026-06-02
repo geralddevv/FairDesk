@@ -389,4 +389,154 @@ router.post("/purchase/status", async (req, res) => {
   }
 });
 
+router.get("/reorder/select-vendor-multi", async (req, res) => {
+  try {
+    const itemsParam = req.query.items;
+    if (!itemsParam) return res.redirect("/fairdesk/inventory/reorder");
+
+    const tokens = decodeURIComponent(itemsParam).split(",").map(s => s.trim()).filter(Boolean);
+    const cartItems = [];
+
+    for (const token of tokens) {
+      const parts = token.split(":");
+      if (parts.length < 2) continue;
+      const typeKey  = parts[0];  // Tape | PosRoll | Tafeta | Ttr
+      const id       = parts[1];
+      const shortage = parseInt(parts[2]) || 0;
+
+      let model, bindingModel, refField;
+      if (typeKey === "Tape")    { model = Tape;    bindingModel = VendorTapeBinding;    refField = "tapeId"; }
+      else if (typeKey === "PosRoll") { model = PosRoll; bindingModel = VendorPosRollBinding; refField = "posRollId"; }
+      else if (typeKey === "Tafeta")  { model = Tafeta;  bindingModel = VendorTafetaBinding;  refField = "tafetaId"; }
+      else if (typeKey === "Ttr")     { model = Ttr;     bindingModel = VendorTtrBinding;     refField = "ttrId"; }
+      else continue;
+
+      const [item, bindings] = await Promise.all([
+        model.findById(id).lean(),
+        bindingModel.find({ [refField]: id }).populate("vendorUserId", "vendorName userName userContact userLocation locationDetails vendorId").lean()
+      ]);
+      if (!item) continue;
+
+      const vendorIds = [...new Set(bindings.map(b => b.vendorUserId?.vendorId).filter(Boolean))];
+      const coordinators = await VendorUser.find({ vendorId: { $in: vendorIds } }).lean();
+
+      const groupedVendors = {};
+      coordinators.forEach(v => {
+        const vId = v.vendorId;
+        if (!vId) return;
+        if (!groupedVendors[vId]) groupedVendors[vId] = { id: vId, name: v.vendorName, coordinators: [] };
+        const binding = bindings.find(b => b.vendorUserId?._id?.toString() === v._id.toString());
+        groupedVendors[vId].coordinators.push({
+          bindingId:       binding ? binding._id : null,
+          userId:          v._id,
+          userName:        v.userName,
+          userContact:     v.userContact,
+          userLocation:    v.userLocation,
+          locationDetails: v.locationDetails || [],
+          minQty:          binding ? (binding.tapeMinQty || binding.posMinQty || binding.tafetaMinQty || binding.ttrMinQty || 0) : 0,
+          hasBinding:      !!binding
+        });
+      });
+
+      cartItems.push({
+        _id:           item._id,
+        typeKey,
+        itemName:      getItemName(item, typeKey),
+        shortage,
+        item,
+        groupedVendors
+      });
+    }
+
+    if (cartItems.length === 0) return res.redirect("/fairdesk/inventory/reorder");
+
+    res.render("inventory/selectVendorMulti.ejs", {
+      title: "Create Purchase Orders",
+      cartItems,
+      notification: req.flash("notification"),
+      CSS: false,
+      JS: false
+    });
+  } catch (err) {
+    console.error("SELECT VENDOR MULTI ERROR:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+router.post("/reorder/create-po-multi", async (req, res) => {
+  try {
+    const { poNumber, estimatedDate, remarks } = req.body;
+    const rawItems = req.body.items;
+    let parsedItems = [];
+    try { parsedItems = JSON.parse(rawItems || "[]"); } catch { parsedItems = []; }
+
+    const parsedEstimatedDate = new Date(estimatedDate);
+    const resolvedDate = Number.isNaN(parsedEstimatedDate.getTime())
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      : parsedEstimatedDate;
+
+    let createdCount = 0;
+
+    for (const entry of parsedItems) {
+      let { itemId, itemType, vendorUserId, vendorBindingId, userLocation, quantity } = entry;
+
+      let bindingModel, refField, onBindingModel;
+      if (itemType === "Tape")    { bindingModel = VendorTapeBinding;    refField = "tapeId";    onBindingModel = "VendorTapeBinding"; }
+      else if (itemType === "PosRoll") { bindingModel = VendorPosRollBinding; refField = "posRollId"; onBindingModel = "VendorPosRollBinding"; }
+      else if (itemType === "Tafeta")  { bindingModel = VendorTafetaBinding;  refField = "tafetaId"; onBindingModel = "VendorTafetaBinding"; }
+      else if (itemType === "Ttr")     { bindingModel = VendorTtrBinding;     refField = "ttrId";     onBindingModel = "VendorTtrBinding"; }
+      else continue;
+
+      let binding = null;
+      if (vendorBindingId) {
+        binding = await bindingModel.findById(vendorBindingId);
+        if (binding && String(binding[refField]) !== String(itemId)) binding = null;
+      }
+      if (!binding) binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
+      if (!binding) {
+        const fallback = await bindingModel.find({ [refField]: itemId }).sort({ createdAt: 1 }).limit(1).lean();
+        if (fallback.length) binding = fallback[0];
+      }
+      if (!binding) continue;
+
+      const po = await PurchaseOrder.create({
+        onBindingModel,
+        vendorBinding:  binding._id,
+        vendorUserId:   vendorUserId || binding.vendorUserId,
+        onModel:        itemType,
+        itemId,
+        userLocation,
+        quantity:       Number(quantity) || 1,
+        poNumber:       String(poNumber || "").trim(),
+        estimatedDate:  resolvedDate,
+        remarks,
+        status:         "PENDING",
+        createdBy:      req.session?.authUser?.username || "SYSTEM"
+      });
+
+      await PurchaseOrderLog.create({
+        orderId:     po._id,
+        action:      "CREATED",
+        poNumber:    po.poNumber,
+        quantity:    po.quantity,
+        performedBy: req.session?.authUser?.username || "SYSTEM"
+      });
+
+      createdCount++;
+    }
+
+    if (createdCount > 0) {
+      req.flash("notification", `${createdCount} Purchase Order(s) created successfully under PO #${poNumber}.`);
+    } else {
+      req.flash("notification", "No Purchase Orders were created. Check vendor bindings for the selected items.");
+    }
+
+    res.redirect("/fairdesk/purchase/pending");
+  } catch (err) {
+    console.error("CREATE MULTI PO ERROR:", err);
+    req.flash("notification", "Error: " + (err.message || "Failed to create Purchase Orders."));
+    res.redirect("back");
+  }
+});
+
 export default router;

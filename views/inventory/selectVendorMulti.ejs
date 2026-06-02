@@ -1,0 +1,324 @@
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content">
+
+  <div class="span-full form-heading">
+    <h1>Purchase Order</h1>
+  </div>
+
+  <!-- PO Info banner -->
+  <div class="span-full" style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:4px;">
+    <div style="display:flex; align-items:center; gap:8px; background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 18px; flex:1; min-width:220px;">
+      <i class="fa-solid fa-boxes-stacked" style="color:#044a78; font-size:18px;"></i>
+      <div>
+        <div style="font-size:11px; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Items in Queue</div>
+        <div style="font-size:20px; font-weight:800; color:#044a78;"><%= cartItems.length %></div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 18px; flex:1; min-width:220px;">
+      <i class="fa-solid fa-triangle-exclamation" style="color:#dc2626; font-size:18px;"></i>
+      <div>
+        <div style="font-size:11px; color:#6b7280; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Total Shortage</div>
+        <div style="font-size:20px; font-weight:800; color:#dc2626;"><%= cartItems.reduce((s,i) => s + Number(i.shortage || 0), 0) %></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PER-ITEM VENDOR SELECTION ===== -->
+  <div class="span-full form-subheading">
+    <h1>Vendor Selection Per Item</h1>
+  </div>
+
+  <div class="span-full" id="item-rows-container" style="display:flex; flex-direction:column; gap:18px;">
+    <% cartItems.forEach((ci, idx) => {
+      const gv = ci.groupedVendors || {};
+      const hasVendors = Object.keys(gv).length > 0;
+    %>
+    <div class="item-po-row" data-index="<%= idx %>" style="border:1px solid #e5e7eb; border-radius:10px; padding:16px 20px; background:#fafafa;">
+
+      <!-- Item header -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="background:#044a78; color:white; border-radius:6px; padding:3px 12px; font-size:12px; font-weight:700;"><%= ci.typeKey %></span>
+          <span style="font-size:14px; font-weight:700; color:#1e3a5f;"><%= ci.itemName %></span>
+        </div>
+        <div style="font-size:13px; color:#dc2626; font-weight:700;">Shortage: <%= ci.shortage %></div>
+      </div>
+
+      <% if (!hasVendors) { %>
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:10px 14px; font-size:13px; color:#991b1b; font-weight:600;">
+        <i class="fa-solid fa-circle-exclamation"></i> No vendor bindings found for this item — it will be skipped.
+      </div>
+      <% } else { %>
+
+      <!-- Hidden inputs for this item -->
+      <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="itemId"   value="<%= ci._id %>">
+      <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="itemType" value="<%= ci.typeKey %>">
+      <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="shortage" value="<%= ci.shortage %>">
+      <input type="hidden" class="item-binding-id" data-idx="<%= idx %>" value="">
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;">
+
+        <!-- Vendor -->
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Select Vendor</label>
+          <select class="form-control select-tag vendor-sel" data-idx="<%= idx %>" style="width:100%;">
+            <option value="" disabled selected hidden>Select Vendor</option>
+            <% Object.values(gv).forEach(v => { %>
+              <option value="<%= v.id %>"><%= v.name %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <!-- Coordinator -->
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Coordinator</label>
+          <select class="form-control select-tag coord-sel" data-idx="<%= idx %>" style="width:100%;">
+            <option value="" disabled selected hidden>Select Coordinator</option>
+          </select>
+        </div>
+
+        <!-- Location -->
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Location</label>
+          <select class="form-control select-tag loc-sel" data-idx="<%= idx %>" style="width:100%;">
+            <option value="" disabled selected hidden>Select Location</option>
+          </select>
+        </div>
+
+        <!-- Quantity -->
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Quantity</label>
+          <input type="number" class="form-control qty-input" data-idx="<%= idx %>" min="1" placeholder="Qty" value="<%= ci.shortage %>" style="width:100%;">
+        </div>
+
+        <!-- Contact (read-only) -->
+        <div>
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Contact</label>
+          <input type="text" class="form-control contact-disp" data-idx="<%= idx %>" placeholder="—" readonly style="width:100%; background:#f9fafb;">
+        </div>
+
+      </div>
+      <% } %>
+    </div>
+    <% }) %>
+  </div>
+
+  <!-- ===== SHARED PO DETAILS ===== -->
+  <div class="span-full form-subheading" style="margin-top:10px;">
+    <h1>Purchase Order Info</h1>
+  </div>
+
+  <div class="span-dual">
+    <label for="po-number">PO Number</label>
+    <input type="text" id="po-number" class="form-control" placeholder="Enter PO number" required />
+  </div>
+
+  <div class="span-dual">
+    <label for="estimated-date">Expected Delivery</label>
+    <input type="date" id="estimated-date" class="form-control" required />
+  </div>
+
+  <div class="span-dual" style="grid-column: span 8;">
+    <label for="remarks">Remarks (Optional)</label>
+    <input type="text" id="remarks" class="form-control" placeholder="Specific vendor instructions..." />
+  </div>
+
+  <!-- Submit -->
+  <div class="span-full btn-grp" style="margin-top:24px; display:flex; gap:12px; align-items:center;">
+    <button
+      type="button"
+      id="submit-multi-po"
+      onclick="submitMultiPO()"
+      style="background:#044A78; color:white; padding:12px 32px; border-radius:6px; font-weight:700; border:none; cursor:pointer; font-size:15px; display:flex; align-items:center; gap:8px;"
+      onmouseover="this.style.opacity='0.85'"
+      onmouseout="this.style.opacity='1'"
+    >
+      <i class="fa-solid fa-paper-plane"></i> Create Purchase Orders
+    </button>
+    <a href="/fairdesk/inventory/reorder"
+      style="padding:12px 24px; background:#f3f4f6; color:#374151; border-radius:6px; font-weight:600; text-decoration:none; font-size:14px; border:1px solid #e5e7eb;"
+      onmouseover="this.style.background='#e5e7eb'"
+      onmouseout="this.style.background='#f3f4f6'"
+    >
+      <i class="fa-solid fa-arrow-left"></i> Back to Reorder
+    </a>
+  </div>
+
+  <!-- Hidden form for submission -->
+  <form id="multi-po-form" action="/fairdesk/inventory/reorder/create-po-multi" method="post" style="display:none;">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input type="hidden" name="poNumber" id="f-po-number" />
+    <input type="hidden" name="estimatedDate" id="f-estimated-date" />
+    <input type="hidden" name="remarks" id="f-remarks" />
+    <input type="hidden" name="items" id="f-items" />
+  </form>
+
+</div>
+
+<script id="vendor-data" type="application/json">
+  <%- JSON.stringify(cartItems.map(ci => ci.groupedVendors || {})) %>
+</script>
+
+<script>
+  // Vendor data injected from server
+  const allGroupedVendors = JSON.parse(document.getElementById('vendor-data').textContent);
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Default date: 7 days from now
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 7);
+    document.getElementById('estimated-date').value = defaultDate.toISOString().split('T')[0];
+
+    document.querySelectorAll('.vendor-sel').forEach(sel => {
+      const idx = parseInt(sel.dataset.idx);
+      sel.addEventListener('change', () => onVendorChange(idx));
+
+      // Auto-select if only one vendor
+      const opts = sel.options;
+      if (opts.length === 2) { // 1 real option + 1 placeholder
+        sel.selectedIndex = 1;
+        onVendorChange(idx);
+      }
+    });
+
+    document.querySelectorAll('.coord-sel').forEach(sel => {
+      const idx = parseInt(sel.dataset.idx);
+      sel.addEventListener('change', () => onCoordChange(idx));
+    });
+
+    document.querySelectorAll('.loc-sel').forEach(sel => {
+      const idx = parseInt(sel.dataset.idx);
+      sel.addEventListener('change', () => {});
+    });
+  });
+
+  function onVendorChange(idx) {
+    const vendorSel = document.querySelector(`.vendor-sel[data-idx="${idx}"]`);
+    const coordSel  = document.querySelector(`.coord-sel[data-idx="${idx}"]`);
+    const locSel    = document.querySelector(`.loc-sel[data-idx="${idx}"]`);
+    const contactEl = document.querySelector(`.contact-disp[data-idx="${idx}"]`);
+    const bindingEl = document.querySelector(`.item-binding-id[data-idx="${idx}"]`);
+
+    const gv = allGroupedVendors[idx] || {};
+    const vendor = gv[vendorSel.value];
+
+    // Reset downstream
+    coordSel.innerHTML = '<option value="" disabled selected hidden>Select Coordinator</option>';
+    locSel.innerHTML   = '<option value="" disabled selected hidden>Select Location</option>';
+    if (contactEl) contactEl.value = '';
+    if (bindingEl) bindingEl.value = '';
+
+    if (!vendor) return;
+
+    (vendor.coordinators || []).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.userId;
+      opt.textContent = c.userName;
+      coordSel.appendChild(opt);
+    });
+
+    // Auto-select if only one coordinator
+    if (coordSel.options.length === 2) {
+      coordSel.selectedIndex = 1;
+      onCoordChange(idx);
+    }
+  }
+
+  function onCoordChange(idx) {
+    const vendorSel  = document.querySelector(`.vendor-sel[data-idx="${idx}"]`);
+    const coordSel   = document.querySelector(`.coord-sel[data-idx="${idx}"]`);
+    const locSel     = document.querySelector(`.loc-sel[data-idx="${idx}"]`);
+    const contactEl  = document.querySelector(`.contact-disp[data-idx="${idx}"]`);
+    const bindingEl  = document.querySelector(`.item-binding-id[data-idx="${idx}"]`);
+
+    const gv = allGroupedVendors[idx] || {};
+    const vendor = gv[vendorSel.value];
+    if (!vendor) return;
+
+    const coord = (vendor.coordinators || []).find(c => String(c.userId) === String(coordSel.value));
+    if (!coord) return;
+
+    if (contactEl) contactEl.value = coord.userContact || '—';
+    if (bindingEl) bindingEl.value = coord.bindingId || '';
+
+    // Populate locations
+    locSel.innerHTML = '<option value="" disabled selected hidden>Select Location</option>';
+    const locs = [];
+    if (coord.userLocation) locs.push(coord.userLocation);
+    if (Array.isArray(coord.locationDetails)) {
+      coord.locationDetails.forEach(ld => {
+        const loc = ld.userLocation || ld.location || ld.dispatchAddress;
+        if (loc && !locs.includes(loc)) locs.push(loc);
+      });
+    }
+    locs.forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value = loc; opt.textContent = loc;
+      locSel.appendChild(opt);
+    });
+    if (locSel.options.length === 2) locSel.selectedIndex = 1;
+  }
+
+  function submitMultiPO() {
+    const poNumber       = document.getElementById('po-number').value.trim();
+    const estimatedDate  = document.getElementById('estimated-date').value;
+    const remarks        = document.getElementById('remarks').value.trim();
+
+    if (!poNumber) {
+      alert('Please enter a PO Number before submitting.');
+      document.getElementById('po-number').focus();
+      return;
+    }
+    if (!estimatedDate) {
+      alert('Please select an Expected Delivery date.');
+      document.getElementById('estimated-date').focus();
+      return;
+    }
+
+    const items = [];
+    document.querySelectorAll('.item-po-row').forEach(row => {
+      const idx      = parseInt(row.dataset.index);
+      const vendorSel = row.querySelector('.vendor-sel');
+      const coordSel  = row.querySelector('.coord-sel');
+      const locSel    = row.querySelector('.loc-sel');
+      const qtyInput  = row.querySelector('.qty-input');
+      const bindingEl = row.querySelector('.item-binding-id');
+
+      // Skip rows without vendor selects (no binding rows)
+      if (!vendorSel) return;
+
+      const itemId    = (row.querySelector(`.item-field[data-key="itemId"]`) || {}).value;
+      const itemType  = (row.querySelector(`.item-field[data-key="itemType"]`) || {}).value;
+      const shortage  = (row.querySelector(`.item-field[data-key="shortage"]`) || {}).value;
+
+      if (!itemId || !itemType) return;
+      if (!coordSel.value || !locSel.value) {
+        alert(`Please select a vendor, coordinator and location for every item before submitting.`);
+        coordSel.focus();
+        throw new Error('validation');
+      }
+
+      items.push({
+        itemId,
+        itemType,
+        vendorUserId:    coordSel.value,
+        vendorBindingId: bindingEl ? bindingEl.value : '',
+        userLocation:    locSel.value,
+        quantity:        qtyInput ? qtyInput.value : shortage,
+      });
+    });
+
+    if (items.length === 0) {
+      alert('No valid items with vendor bindings. Please go back and check your items.');
+      return;
+    }
+
+    document.getElementById('f-po-number').value      = poNumber;
+    document.getElementById('f-estimated-date').value = estimatedDate;
+    document.getElementById('f-remarks').value        = remarks;
+    document.getElementById('f-items').value          = JSON.stringify(items);
+
+    document.getElementById('multi-po-form').submit();
+  }
+</script>
