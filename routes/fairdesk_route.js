@@ -466,9 +466,9 @@ router.use((req, res, next) => {
   if (role === "sales") {
     const path = req.path || "";
     if (path.startsWith("/sales/")) return next();
-    if (req.method !== "GET") return res.status(403).send("Forbidden");
-
-    const allowedViewRoutes = [
+    const allowedGetRoutes = [
+      /^\/form\/client$/,
+      /^\/form\/client\/[^/]+$/,
       /^\/master\/view$/,
       /^\/client\/details\/[^/]+$/,
       /^\/tape\/view$/,
@@ -482,7 +482,13 @@ router.use((req, res, next) => {
       /^\/welcome$/,
     ];
 
-    if (allowedViewRoutes.some((re) => re.test(path))) return next();
+    const allowedPostRoutes = [
+      /^\/form\/client$/,
+      /^\/form\/user$/,
+    ];
+
+    if (req.method === "GET" && allowedGetRoutes.some((re) => re.test(path))) return next();
+    if (req.method === "POST" && allowedPostRoutes.some((re) => re.test(path))) return next();
     return res.status(403).send("Forbidden");
   }
 

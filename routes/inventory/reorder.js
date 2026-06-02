@@ -247,7 +247,7 @@ router.get("/reorder/select-vendor/:type/:id", async (req, res) => {
 
 router.post("/reorder/create-po", async (req, res) => {
   try {
-    let { orderId, itemId, itemType, vendorUserId, userLocation, quantity, poNumber, estimatedDate, remarks } = req.body;
+    let { orderId, itemId, itemType, vendorUserId, vendorBindingId, userLocation, quantity, poNumber, estimatedDate, remarks } = req.body;
 
     // Standardize itemType for Model Enums
     if (itemType === "pos-roll") itemType = "PosRoll";
@@ -279,23 +279,37 @@ router.post("/reorder/create-po", async (req, res) => {
         return res.redirect("/fairdesk/purchase/pending");
     }
 
-    const binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
+    let binding = null;
+    if (vendorBindingId) {
+      binding = await bindingModel.findById(vendorBindingId);
+      if (binding && String(binding[refField]) !== String(itemId)) {
+        binding = null;
+      }
+      if (binding && vendorUserId && String(binding.vendorUserId) !== String(vendorUserId)) {
+        binding = null;
+      }
+    } else {
+      binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
+    }
     if (!binding) {
       req.flash("notification", "Vendor not binded for this item. Purchase Order was not created.");
       return res.redirect("/fairdesk/purchase/pending");
     }
 
+    const resolvedVendorUserId = vendorUserId || binding.vendorUserId;
+
     const poData = {
       onBindingModel,
       vendorBinding: binding._id,
-      vendorUserId,
+      vendorUserId: resolvedVendorUserId,
       onModel: itemType,
       itemId,
       userLocation,
       quantity: Number(quantity),
       poNumber: String(poNumber || "").trim(),
       estimatedDate: new Date(estimatedDate),
-      remarks
+      remarks,
+      status: "PENDING",
     };
 
     if (orderId) {

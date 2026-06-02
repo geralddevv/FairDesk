@@ -66,6 +66,7 @@
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="hidden" name="itemId" value="<%= item._id %>" />
     <input type="hidden" name="itemType" value="<%= type %>" />
+    <input type="hidden" name="vendorBindingId" id="vendor-binding-id" value="" />
     <% if (typeof orderToEdit !== 'undefined' && orderToEdit) { %>
       <input type="hidden" name="orderId" value="<%= orderToEdit._id %>" />
     <% } %>
@@ -239,6 +240,7 @@
     const coordinatorSelectEl = document.getElementById('coordinator-select');
     const locationSelectEl = document.getElementById('location-select');
     const contactInput = document.getElementById('vendor-contact');
+    const bindingIdInput = document.getElementById('vendor-binding-id');
     const quantityInput = document.getElementById('quantity');
     const poNumberInput = document.getElementById('po-number');
     const estDateInput = document.getElementById('estimated-date');
@@ -271,9 +273,16 @@
       submitBtn.style.cursor = canSubmit ? 'pointer' : 'not-allowed';
     }
 
+    function setBindingId(value) {
+      if (bindingIdInput) {
+        bindingIdInput.value = value ? String(value) : '';
+      }
+    }
+
     if (!hasVendorOptions) {
       resetLocation();
       contactInput.value = '';
+      setBindingId('');
       vendorChoices.disable();
       coordinatorChoices.disable();
       locationChoices.disable();
@@ -294,6 +303,7 @@
       if (!vendor) {
         resetLocation();
         contactInput.value = '';
+        setBindingId('');
         validateSubmitState();
         return;
       }
@@ -315,6 +325,7 @@
       } else {
         resetLocation();
         contactInput.value = '';
+        setBindingId('');
       }
       validateSubmitState();
     });
@@ -337,6 +348,7 @@
 
       // Update Contact
       contactInput.value = coordinator.userContact || 'N/A';
+      setBindingId(coordinator.bindingId);
 
       // Update Min Qty if quantity is empty or equal to previous default
       if (!orderToEdit && (!quantityInput.value || quantityInput.value == 0)) {
@@ -398,10 +410,10 @@
           coordinatorChoices.setChoices([{ value: "", label: "Select Coordinator", disabled: true, selected: !coordChoices.some(c => c.selected) }, ...coordChoices], 'value', 'label', true);
 
           const activeCoordinator = coordChoices.find(c => c.selected);
-          if (activeCoordinator) {
-            updateCoordinatorDetails(activeCoordinator.value);
-          }
-        }
+      if (activeCoordinator) {
+        updateCoordinatorDetails(activeCoordinator.value);
+      }
+    }
       }
     } else {
       // Auto-select if only one vendor
