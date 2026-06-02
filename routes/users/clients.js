@@ -34,12 +34,17 @@ function hashSignature(rawSignature) {
 }
 
 router.use((req, res, next) => {
-  const role = req.session?.authUser?.role;
+  const authUser = req.session?.authUser;
+  const role = String(authUser?.role || "").toLowerCase();
+  const permissions = authUser?.permissions || {};
+  const hasSalesAccess = role === "sales" || Boolean(permissions.sales);
+  const hasClientAccess = hasSalesAccess || Boolean(permissions.master);
+
   if (!role) return res.redirect("/login");
 
   if (role === "admin" || role === "hod") return next();
 
-  if (role === "sales") {
+  if (hasClientAccess) {
     const path = req.path || "";
     if (req.method !== "GET") return res.redirect("/login");
 

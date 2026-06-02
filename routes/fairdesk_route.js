@@ -458,51 +458,87 @@ function isTemplateOnlyInvoice(invoiceNumber) {
 }
 
 router.use((req, res, next) => {
-  const role = req.session?.authUser?.role;
+  const authUser = req.session?.authUser;
+  const role = String(authUser?.role || "").toLowerCase();
+  const permissions = authUser?.permissions || {};
+  const hasSalesAccess = role === "sales" || Boolean(permissions.sales);
+  const hasHrAccess = role === "hr" || Boolean(permissions.hr);
+
   if (!role) return res.redirect("/login");
 
   if (role === "admin" || role === "hod") return next();
 
-  if (role === "sales") {
+  if (req.path === "/api/motivational") return next();
+
+  if (hasSalesAccess) {
     const path = req.path || "";
     if (path.startsWith("/sales/")) return next();
+
+    // Explicitly allowed GET routes for Sales
     const allowedGetRoutes = [
-      /^\/form\/client$/,
+      "/welcome",
+      "/master/view",
+      "/form/client",
+      "/tape/view",
+      "/pos-roll/view",
+      "/tafeta/view",
+      "/ttr/view",
+      "/form/tape-binding",
+      "/form/pos-roll-binding",
+      "/form/tafeta-binding",
+      "/form/ttr-binding",
+    ];
+
+    const allowedGetPatterns = [
       /^\/form\/client\/[^/]+$/,
-      /^\/master\/view$/,
       /^\/client\/details\/[^/]+$/,
-      /^\/tape\/view$/,
       /^\/tape\/profile\/[^/]+$/,
-      /^\/pos-roll\/view$/,
       /^\/pos-roll\/profile\/[^/]+$/,
-      /^\/tafeta\/view$/,
       /^\/tafeta\/profile\/[^/]+$/,
-      /^\/ttr\/view$/,
       /^\/ttr\/profile\/[^/]+$/,
-      /^\/welcome$/,
+      /^\/form\/tape-binding(?:\/.*)?$/,
+      /^\/form\/pos-roll-binding(?:\/.*)?$/,
+      /^\/form\/tafeta-binding(?:\/.*)?$/,
+      /^\/form\/ttr-binding(?:\/.*)?$/,
+      /^\/api\/motivational$/,
     ];
 
     const allowedPostRoutes = [
       /^\/form\/client$/,
       /^\/form\/user$/,
+      /^\/form\/tape-binding$/,
+      /^\/form\/pos-roll-binding$/,
+      /^\/form\/tafeta-binding$/,
+      /^\/form\/ttr-binding$/,
     ];
 
-    if (req.method === "GET" && allowedGetRoutes.some((re) => re.test(path))) return next();
-    if (req.method === "POST" && allowedPostRoutes.some((re) => re.test(path))) return next();
-    return res.status(403).send("Forbidden");
+    if (req.method === "GET") {
+      const normalizedPath = path.toLowerCase().replace(/\/$/, "");
+      
+      // Explicit keyword matches for resilience
+      const keywords = ["master/view", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor"];
+      if (keywords.some(k => normalizedPath.includes(k))) return next();
+
+      if (allowedGetRoutes.includes(path) || allowedGetPatterns.some((re) => re.test(path))) {
+        return next();
+      }
+    }
+
+    if (req.method === "POST" && (path.includes("binding") || allowedPostRoutes.some((re) => re.test(path)))) {
+      return next();
+    }
+
+    return res.status(403).send(`Forbidden (FR-Sales): ${path} | Role: ${role}`);
   }
 
-  if (role === "hr") {
+  if (hasHrAccess) {
     const path = req.path || "";
-    if (path === "/welcome") return next();
-    return res.status(403).send("Forbidden");
+    if (path === "/welcome" || path === "/api/motivational") return next();
+    return res.status(403).send(`Forbidden (FR-HR): ${path} | Role: ${role}`);
   }
 
-  return res.status(403).send("Forbidden");
+  return res.status(403).send(`Forbidden (FR-Final): ${req.path} | Role: ${role}`);
 });
-
-// ----------------------------------RateCalculator---------------------------------->
-// Route for rate calculator.
 
 router.get("/form/ratecalculator", async (req, res) => {
   let clients = await Username.distinct("clientName");

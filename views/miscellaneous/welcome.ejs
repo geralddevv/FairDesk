@@ -4,7 +4,7 @@
     <div style="background: white; padding: 40px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(4, 74, 120, 0.1); border: 1px solid rgba(4, 74, 120, 0.05);">
         <div style="width: 100px; height: 100px; background: #f0f7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; overflow: hidden; box-shadow: 0 4px 15px rgba(4, 74, 120, 0.15); border: 2px solid #ffffff;">
             <% if (authUser?.empPhoto) { %>
-                <img src="/images/thumb/empimg/<%= authUser.empPhoto %>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="/images/empimg/<%= authUser.empPhoto %>" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
             <% } else { %>
                 <img src="/assets/fairfavicon.png" alt="Fairdesk" style="width: 60%; height: 60%; object-fit: contain;">
             <% } %>
@@ -50,6 +50,9 @@
 
         try {
             const response = await fetch('/fairdesk/api/motivational?t=' + Date.now());
+            if (!response.ok) {
+                throw new Error(`Quote request failed with ${response.status}`);
+            }
             const data = await response.json();
             
             if (data && data.q) {

@@ -49,4 +49,4 @@ make the old order appear on top in pending order page
 
 multiple po (purchase) should not be created for a specific item
 
-by default if no photo show f logo
+show mtrs and width in the vendor details item page

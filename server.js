@@ -346,11 +346,26 @@ const requireAuth = (req, res, next) => {
   return res.redirect("/login?reason=session-ended");
 };
 
+const hasRoleAccess = (authUser, roleName) => {
+  if (!authUser) return false;
+  const role = String(authUser.role || "").toLowerCase();
+  const permissions = authUser.permissions || {};
+
+  if (roleName === "admin") return role === "admin";
+  if (roleName === "hod") return role === "hod";
+  if (roleName === "hr") return role === "hr" || Boolean(permissions.hr);
+  if (roleName === "sales") return role === "sales" || Boolean(permissions.sales);
+  if (roleName === "master") return Boolean(permissions.master);
+  if (roleName === "inventory") return Boolean(permissions.inventory);
+
+  return role === roleName;
+};
+
 const requireRole = (roles) => (req, res, next) => {
-  const role = req.session?.authUser?.role;
-  if (roles.includes(role)) return next();
+  const authUser = req.session?.authUser;
+  if (authUser && roles.some((roleName) => hasRoleAccess(authUser, roleName))) return next();
   
-  if (req.session?.authUser) {
+  if (authUser) {
     return res.status(403).send("Forbidden: You do not have permission to access this resource.");
   }
   return res.redirect("/login?reason=session-ended");
@@ -393,10 +408,10 @@ app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr"]), employe
 app.use("/fairdesk/pettycash", requireAuth, requireRole(["admin", "hr"]), pettycashRoute);
 
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales", "hr"]), fairdeskRoute);
-app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tapeBindingRoutes);
-app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), posRollBindingRoutes);
-app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), tafetaBindingRoutes);
-app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), ttrBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), tapeBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), posRollBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), ttrBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), vendorItemBindingRoutes);
 app.use("/fairdesk/tapestock", requireAuth, requireRole(["admin", "hod", "sales"]), tapeStockRoutes);
 app.use("/fairdesk/posrollstock", requireAuth, requireRole(["admin", "hod", "sales"]), posRollStockRoutes);
@@ -404,7 +419,7 @@ app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sale
 app.use("/fairdesk/ttrstock", requireAuth, requireRole(["admin", "hod", "sales"]), ttrStockRoutes);
 app.use("/fairdesk/stocks", requireAuth, requireRole(["admin", "hod", "sales"]), stockViewRoutes);
 app.use("/fairdesk/inventory", requireAuth, requireRole(["admin", "hod"]), reorderRoutes);
-app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales"]), clientFormRoute);
+app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales", "master"]), clientFormRoute);
 
 /* 404 */
 app.all("*", (req, res) => {

@@ -580,6 +580,9 @@
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const val = cell.getValue() || 0;
+          const quantity = Number(row.quantity) || 0;
+          const dispatched = Number(row.dispatchedQuantity) || 0;
+          const balance = Math.max(quantity - dispatched, 0);
           const itemId = row.tapeId?._id || row.tapeId;
           const model = row.onModel;
           
@@ -592,8 +595,9 @@
           else if (model === "Label") typeSlug = "label";
 
           const url = `/fairdesk/${typeSlug}/profile/${itemId}`;
+          const color = Number(val) < balance ? "#dc2626" : "#059669";
           
-          return `<a href="${url}" style="text-decoration:underline; font-weight:700; color: ${val > 0 ? '#059669' : '#b91c1c'}">${val}</a>`;
+          return `<a href="${url}" style="text-decoration:underline; font-weight:700; color:${color}">${val}</a>`;
         },
       },
       {
