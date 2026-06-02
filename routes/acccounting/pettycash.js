@@ -70,6 +70,20 @@ function getCurrentMonthExpense(logs) {
   }, 0);
 }
 
+function getTotalExpense(logs) {
+  return (logs || []).reduce((sum, log) => {
+    if (String(log?.type || "").toUpperCase() !== "OUTWARD") return sum;
+    return sum + (Number(log?.amount) || 0);
+  }, 0);
+}
+
+function getTotalIncome(logs) {
+  return (logs || []).reduce((sum, log) => {
+    if (String(log?.type || "").toUpperCase() !== "INWARD") return sum;
+    return sum + (Number(log?.amount) || 0);
+  }, 0);
+}
+
 function sortPettyCashLogs(logs) {
   return [...logs].sort((a, b) => {
     const aDate = entryDateSortValue(a);
@@ -299,13 +313,15 @@ router.get("/logs/:location/view", async (req, res) => {
 
     const pettyList = await PettyCash.find().lean();
     const allLocations = pettyList.map(p => p.location);
-    const currentMonthExpense = getCurrentMonthExpense(logs);
+    const currentMonthExpense = getTotalExpense(logs);
+    const currentMonthIncome = getTotalIncome(logs);
 
     res.render("accounting/pettycashLogs", {
       logs,
       location: locationLabel,
       balance,
       currentMonthExpense,
+      currentMonthIncome,
       allLocations,
       viewLabel,
       mode,

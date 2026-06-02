@@ -566,6 +566,7 @@
 <script src="https://cdn.jsdelivr.net/npm/selectize/dist/js/standalone/selectize.min.js"></script>
 <script>
   const dependentsData = <%- safeJson(employee?.dependentsDetails || []) %>;
+  const existingProfileCodes = new Set(<%- safeJson(existingProfileCodes || []) %>);
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -809,6 +810,18 @@ const empForm = document.getElementById("employeeForm");
 if (empForm) {
   empForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const profileCodeInput = document.getElementById("emp-profile-code");
+    const profileCode = (profileCodeInput?.value || "").trim().toUpperCase();
+
+    if (profileCode && existingProfileCodes.has(profileCode)) {
+      showToast("Profile Code already exists. Please enter a different code.", true);
+      if (profileCodeInput) {
+        profileCodeInput.focus();
+        profileCodeInput.select();
+      }
+      return;
+    }
+
     if (!empForm.checkValidity()) {
       empForm.classList.add("was-validated");
       return;

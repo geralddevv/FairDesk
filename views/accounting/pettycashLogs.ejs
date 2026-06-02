@@ -41,6 +41,16 @@
   .back-btn:hover {
     background-color: rgba(255, 255, 255, 0.1);
   }
+
+  .download-selector {
+    width: 160px;
+  }
+
+  .download-selector__trigger {
+    height: 34px;
+    padding: 0 14px;
+    box-sizing: border-box;
+  }
 </style>
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
@@ -52,8 +62,13 @@
         <span class="loan-highlight active" style="margin-left: 8px;">
           Balance: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(balance || 0)) %>
         </span>
-        <span class="loan-highlight expense" style="margin-left: 8px;">
-          <%= mode === 'CURRENT' ? 'Month Expense' : 'Total Expense' %>: <%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(currentMonthExpense || 0)) %>
+        <span id="pettyCashExpense" class="loan-highlight expense" style="margin-left: 8px;">
+          <span id="pettyCashExpenseLabel"><%= mode === 'CURRENT' ? 'Month Expense' : 'Total Expense' %></span>:
+          <span id="pettyCashExpenseAmount"><%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(currentMonthExpense || 0)) %></span>
+        </span>
+        <span id="pettyCashIncome" class="loan-highlight active" style="margin-left: 8px;">
+          <span id="pettyCashIncomeLabel"><%= mode === 'CURRENT' ? 'Month Income' : 'Total Income' %></span>:
+          <span id="pettyCashIncomeAmount"><%= new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(currentMonthIncome || 0)) %></span>
         </span>
       </h1>
     </span>
@@ -203,6 +218,10 @@
   const logsData = <%- safeJson(logs || []) %>;
   const currentViewMode = <%- safeJson(mode || 'ALL') %>;
   const currentLocation = <%- safeJson(location) %>;
+  const pettyCashExpenseLabel = document.getElementById("pettyCashExpenseLabel");
+  const pettyCashExpenseAmount = document.getElementById("pettyCashExpenseAmount");
+  const pettyCashIncomeLabel = document.getElementById("pettyCashIncomeLabel");
+  const pettyCashIncomeAmount = document.getElementById("pettyCashIncomeAmount");
 
   function formatINRCurrency(value) {
     return new Intl.NumberFormat("en-IN", {
@@ -218,6 +237,31 @@
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function formatDateForExport(row) {
+    const raw = String(row?.entryDate || row?.createdAt || "").trim();
+    if (!raw) return "-";
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const [year, month, day] = raw.split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      if (Number.isNaN(date.getTime())) return raw;
+      return new Intl.DateTimeFormat("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(date);
+    }
+
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+    return date.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -241,6 +285,81 @@
       month: "short",
       year: "numeric",
     });
+  }
+
+  function getOutwardExpense(rows) {
+    return (rows || []).reduce((sum, row) => {
+      if (String(row?.type || "").toUpperCase() !== "OUTWARD") return sum;
+      return sum + (Number(row?.amount) || 0);
+    }, 0);
+  }
+
+  function getActiveRowsData() {
+    return table.getRows("active").map((row) => row.getData());
+  }
+
+  function exportPettyCashExcel() {
+    const exportRows = getActiveRowsData().map((row, index) => ({
+      "#": index + 1,
+      Location: row.location || "-",
+      From: row.from || "-",
+      To: row.to || "-",
+      "Opening Balance": Number(row.openingBalance) || 0,
+      Amount: Number(row.amount) || 0,
+      "Closing Balance": Number(row.closingBalance) || 0,
+      Type: row.type === "INWARD" ? "INWARD" : "OUTWARD",
+      Reason: row.reason || "-",
+      "Entry Date": formatDateForExport(row),
+    }));
+
+    const sheet = XLSX.utils.json_to_sheet(exportRows, { skipHeader: false });
+    sheet["!cols"] = [
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 12 },
+      { wch: 28 },
+      { wch: 16 },
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Petty Cash Logs");
+    XLSX.writeFile(workbook, `pettycash_${currentLocation}.xlsx`);
+  }
+
+  function getInwardIncome(rows) {
+    return (rows || []).reduce((sum, row) => {
+      if (String(row?.type || "").toUpperCase() !== "INWARD") return sum;
+      return sum + (Number(row?.amount) || 0);
+    }, 0);
+  }
+
+  function updateCashSummary(monthKey = "") {
+    const filteredLogs = monthKey
+      ? logsData.filter((row) => getMonthKey(row) === monthKey)
+      : logsData;
+
+    const expense = getOutwardExpense(filteredLogs);
+    const income = getInwardIncome(filteredLogs);
+    const label = monthKey
+      ? `${formatMonthLabel(monthKey)} Expense`
+      : currentViewMode === "CURRENT"
+        ? "Month Expense"
+        : "Total Expense";
+    const incomeLabel = monthKey
+      ? `${formatMonthLabel(monthKey)} Income`
+      : currentViewMode === "CURRENT"
+        ? "Month Income"
+        : "Total Income";
+
+    if (pettyCashExpenseLabel) pettyCashExpenseLabel.textContent = label;
+    if (pettyCashExpenseAmount) pettyCashExpenseAmount.textContent = formatINRCurrency(expense);
+    if (pettyCashIncomeLabel) pettyCashIncomeLabel.textContent = incomeLabel;
+    if (pettyCashIncomeAmount) pettyCashIncomeAmount.textContent = formatINRCurrency(income);
   }
 
   const columns = [
@@ -332,16 +451,20 @@
     // We'll apply filter after table is ready
   }
 
+  updateCashSummary(monthFilter.value);
+
   monthFilter.addEventListener("change", () => {
     const selectedMonth = monthFilter.value;
     if (!selectedMonth) {
       table.clearFilter();
       updateUrlParam('month', '');
+      updateCashSummary("");
       return;
     }
 
     table.setFilter((row) => getMonthKey(row) === selectedMonth);
     updateUrlParam('month', selectedMonth);
+    updateCashSummary(selectedMonth);
   });
 
   locationSwitcher.addEventListener("change", () => {
@@ -369,6 +492,7 @@
     if (monthFilter.value) {
       table.setFilter((row) => getMonthKey(row) === monthFilter.value);
     }
+    updateCashSummary(monthFilter.value);
   });
 
   /* ===== DOWNLOAD ===== */
@@ -380,7 +504,7 @@
     table.download("pdf", `pettycash_${currentLocation}.pdf`);
 
   document.getElementById("download-xlsx").onclick = () =>
-    table.download("xlsx", `pettycash_${currentLocation}.xlsx`);
+    exportPettyCashExcel();
 
   /* ===== DIALOGS ===== */
   const editDialog = document.getElementById("pc-edit-dialog");

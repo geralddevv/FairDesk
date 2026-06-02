@@ -45,6 +45,46 @@ const uploadMiddleware = upload.fields([
   { name: "empPanImg", maxCount: 1 },
 ]);
 
+const normalizeProfileCode = (value) => String(value || "").trim().toUpperCase();
+
+const getExistingProfileCodes = async (excludeId = null) => {
+  const query = {
+    empProfileCode: { $exists: true, $ne: "" },
+  };
+  if (excludeId) query._id = { $ne: excludeId };
+
+  const employees = await Employee.find(query, "empProfileCode").lean();
+  return employees
+    .map((emp) => normalizeProfileCode(emp.empProfileCode))
+    .filter(Boolean);
+};
+
+const findEmployeeByProfileCode = async (profileCode, excludeId = null) => {
+  const normalizedCode = normalizeProfileCode(profileCode);
+  if (!normalizedCode) return null;
+
+  const query = { empProfileCode: { $exists: true, $ne: "" } };
+  if (excludeId) query._id = { $ne: excludeId };
+
+  const employees = await Employee.find(query, "_id empProfileCode").lean();
+  return employees.find((emp) => normalizeProfileCode(emp.empProfileCode) === normalizedCode) || null;
+};
+
+const deleteUploadedEmployeeFiles = (files = {}) => {
+  const folderByField = {
+    empPhoto: "empimg",
+    empAadhaarImg: "aadhaar",
+    empPanImg: "pan",
+  };
+
+  Object.entries(folderByField).forEach(([field, folder]) => {
+    (files[field] || []).forEach((file) => {
+      const filePath = path.join("images", folder, file.filename);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    });
+  });
+};
+
 const handleUpload = (req, res, next) => {
   uploadMiddleware(req, res, (err) => {
     if (err) {
@@ -65,6 +105,7 @@ router.get("/create", async (req, res) => {
     .collation({ locale: "en", strength: 2 })
     .sort({ empName: 1 })
     .lean();
+  const existingProfileCodes = await getExistingProfileCodes();
 
   res.render("hr/employee.ejs", {
     title: "Employee Details",
@@ -73,6 +114,7 @@ router.get("/create", async (req, res) => {
     employeeCount,
     employee: null,
     employees,
+    existingProfileCodes,
     notification: req.flash("notification"),
   });
 });
@@ -93,6 +135,15 @@ router.get("/view", async (req, res) => {
 /* ================= CREATE EMPLOYEE ================= */
 router.post("/form", handleUpload, async (req, res) => {
   try {
+    const existingProfileCode = await findEmployeeByProfileCode(req.body.empProfileCode);
+    if (existingProfileCode) {
+      deleteUploadedEmployeeFiles(req.files);
+      return res.status(409).json({
+        success: false,
+        message: "Profile Code already exists. Please enter a different code.",
+      });
+    }
+
     const employeeData = {
       ...req.body,
       empPhoto: req.files?.empPhoto?.[0]?.filename || null,
@@ -141,6 +192,7 @@ router.get("/edit/:id", async (req, res) => {
     .collation({ locale: "en", strength: 2 })
     .sort({ empName: 1 })
     .lean();
+  const existingProfileCodes = await getExistingProfileCodes(req.params.id);
 
   res.render("hr/employee.ejs", {
     title: "Edit Employee",
@@ -149,6 +201,7 @@ router.get("/edit/:id", async (req, res) => {
     employee,
     employeeCount: null,
     employees,
+    existingProfileCodes,
   });
 });
 
@@ -157,6 +210,15 @@ router.post("/edit/:id", handleUpload, async (req, res) => {
   try {
     const emp = await Employee.findById(req.params.id);
     if (!emp) return res.status(400).json({ success: false, message: "Employee not found" });
+
+    const existingProfileCode = await findEmployeeByProfileCode(req.body.empProfileCode, req.params.id);
+    if (existingProfileCode) {
+      deleteUploadedEmployeeFiles(req.files);
+      return res.status(409).json({
+        success: false,
+        message: "Profile Code already exists. Please enter a different code.",
+      });
+    }
 
     const oldName = emp.empName;
     const newName = req.body.empName;
