@@ -12,11 +12,19 @@
         
         <h1 style="color: #03365a; font-weight: 800; font-size: 2.5rem; margin-bottom: 8px; line-height: 1.2;">
             Welcome,<br>
-            <%= authUser?.username %>!
+            <%= authUser?.empName || authUser?.username %>!
         </h1>
         <p style="color: #64748b; font-size: 1.1rem; max-width: 400px; margin: 0 auto 32px;">We're glad to see you back. Use the sidebar to navigate through your Fairtech dashboard.</p>
         
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px;">
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1.5px solid #f1f5f9;">
+                <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Name</span>
+                <span style="font-weight: 700; color: #044a78;"><%= authUser?.empName || authUser?.username %></span>
+            </div>
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1.5px solid #f1f5f9;">
+                <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Profile Code</span>
+                <span style="font-weight: 700; color: #044a78;"><%= authUser?.profileCode || 'N/A' %></span>
+            </div>
             <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1.5px solid #f1f5f9;">
                 <span style="display: block; font-size: 12px; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Role</span>
                 <span style="font-weight: 700; color: #044a78;"><%= authUser?.role.toUpperCase() %></span>

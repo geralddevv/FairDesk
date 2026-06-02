@@ -19,6 +19,7 @@ import PurchaseOrderLog from "../../models/inventory/PurchaseOrderLog.js";
 const router = express.Router();
 
 async function getReorderData() {
+  const activePOStatuses = ["PENDING", "CONFIRMED", "PARTIALLY_RECEIVED"];
   const types = [
     { model: Tape, stockModel: TapeStock, stockRef: "tape", minQtyField: "tapeMinQty", typeKey: "Tape", label: "Tape" },
     { model: PosRoll, stockModel: PosRollStock, stockRef: "posRoll", minQtyField: "posMinQty", typeKey: "PosRoll", label: "POS Roll" },
@@ -49,7 +50,18 @@ async function getReorderData() {
     const bookedMap = {};
     salesAgg.forEach(s => bookedMap[s._id.toString()] = s.totalBooked);
 
+    const activePOs = await PurchaseOrder.find({
+      onModel: t.typeKey,
+      itemId: { $in: itemIds },
+      status: { $in: activePOStatuses },
+      vendorUserId: { $ne: null },
+      vendorBinding: { $ne: null },
+    }).select("itemId").lean();
+    const activePOMap = new Set(activePOs.map((po) => String(po.itemId)));
+
     items.forEach(item => {
+      if (activePOMap.has(String(item._id))) return;
+
       const stock = stockMap[item._id.toString()] || 0;
       const booked = bookedMap[item._id.toString()] || 0;
       const minQty = item[t.minQtyField] || 0;
@@ -264,13 +276,13 @@ router.post("/reorder/create-po", async (req, res) => {
 
     if (!bindingModel) {
         req.flash("notification", "Invalid item type specified.");
-        return res.redirect("back");
+        return res.redirect("/fairdesk/purchase/pending");
     }
 
     const binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
     if (!binding) {
-      req.flash("notification", "Vendor binding not found for this item/coordinator.");
-      return res.redirect("back");
+      req.flash("notification", "Vendor not binded for this item. Purchase Order was not created.");
+      return res.redirect("/fairdesk/purchase/pending");
     }
 
     const poData = {
@@ -342,6 +354,9 @@ router.post("/purchase/status", async (req, res) => {
     });
 
     req.flash("notification", `Purchase Order mark as ${status.toLowerCase()} successfully.`);
+    if (status === "CANCELLED") {
+      return res.redirect("/fairdesk/inventory/reorder");
+    }
     res.redirect("/fairdesk/purchase/pending");
   } catch (err) {
     console.error("PO STATUS UPDATE ERROR:", err);

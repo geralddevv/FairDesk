@@ -5,20 +5,17 @@ const purchaseOrderSchema = new mongoose.Schema(
     /* ================= REFERENCES ================= */
     onBindingModel: {
       type: String,
-      required: true,
       enum: ["VendorTapeBinding", "VendorPosRollBinding", "VendorTafetaBinding", "VendorTtrBinding"],
     },
     vendorBinding: {
       type: mongoose.Schema.Types.ObjectId,
       refPath: "onBindingModel",
-      required: true,
       index: true,
     },
 
     vendorUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "VendorUser",
-      required: true,
       index: true,
     },
 

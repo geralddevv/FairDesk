@@ -22,14 +22,14 @@
 
     <form class="login-form" action="/login" method="post" autocomplete="off">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <label for="login-username">User ID or Email</label>
+      <label for="login-profile-code">Profile Code</label>
       <input
-        id="login-username"
-        name="username"
+        id="login-profile-code"
+        name="profileCode"
         type="text"
         class="form-control"
-        placeholder="Enter your user ID"
-        value="<%= typeof username !== 'undefined' ? username : '' %>"
+        placeholder="Enter your profile code"
+        value="<%= typeof profileCode !== 'undefined' ? profileCode : '' %>"
         required
       />
       <label for="login-password">Password</label>

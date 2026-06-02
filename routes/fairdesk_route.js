@@ -3781,7 +3781,11 @@ router.get("/sales/pending", async (req, res) => {
 // View Pending Purchase Orders
 router.get("/purchase/pending", async (req, res) => {
   try {
-    const pendingPOs = await PurchaseOrder.find({ status: { $in: ["PENDING", "CONFIRMED", "PARTIALLY_RECEIVED"] } })
+    const pendingPOs = await PurchaseOrder.find({
+      status: { $in: ["PENDING", "CONFIRMED", "PARTIALLY_RECEIVED"] },
+      vendorUserId: { $ne: null },
+      vendorBinding: { $ne: null },
+    })
       .populate("vendorUserId", "vendorName userName")
       .populate({
         path: "itemId",
@@ -3791,9 +3795,15 @@ router.get("/purchase/pending", async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    const orders = pendingPOs.map((order) => ({
+      ...order,
+      vendorDisplayName: order.vendorUserId?.vendorName || order.vendorName || "Vendor not binded",
+      coordinatorDisplayName: order.vendorUserId?.userName || order.coordinatorName || "Coordinator not binded",
+    }));
+
     res.render("inventory/pendingPurchaseOrders.ejs", {
       title: "Pending Purchase Orders",
-      orders: pendingPOs,
+      orders,
       notification: req.flash("notification"),
       CSS: "tableDisp.css",
       JS: false,

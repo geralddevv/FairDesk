@@ -173,6 +173,17 @@
                   }
               },
               {
+                  title: "Profile Code",
+                  field: "empProfileCode",
+                  headerFilter: "input",
+                  headerFilterPlaceholder: "Search",
+                  width: 180,
+                  vertAlign: "middle",
+                  formatter: function(cell) {
+                      return `<span style="font-weight:600; color:#0f766e; font-size:13px;">${cell.getValue() || "-"}</span>`;
+                  }
+              },
+              {
                   title: "Assigned Role",
                   field: "role",
                   hozAlign: "center",

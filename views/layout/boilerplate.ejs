@@ -376,6 +376,14 @@
         margin-bottom: 2px;
       }
 
+      .profile-menu-code {
+        display: block;
+        font-size: 11px;
+        color: #0f766e;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+
       .profile-menu-role {
         display: block;
         font-size: 11px;
@@ -499,7 +507,7 @@
             <div class="profile-avatar-circle">
               <i class="fa-solid fa-user"></i>
             </div>
-            <span class="profile-username-label"><%= authUser?.username %></span>
+            <span class="profile-username-label"><%= authUser?.empName || authUser?.username %></span>
           </button>
           
           <div class="profile-menu" id="fdProfileMenu">
@@ -512,7 +520,8 @@
                 <% } %>
               </div>
               <div style="flex: 1; min-width: 0;">
-                <span class="profile-menu-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= authUser?.username %></span>
+                <span class="profile-menu-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><%= authUser?.empName || authUser?.username %></span>
+                <span class="profile-menu-code">Profile Code: <%= authUser?.profileCode || 'N/A' %></span>
                 <span class="profile-menu-role"><%= authUser?.role %> Access</span>
               </div>
             </div>

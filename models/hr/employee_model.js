@@ -28,6 +28,7 @@ const employeeSchema = new mongoose.Schema(
     empDept: { type: String },
     empReportingManager: { type: String },
     empProfile: { type: String },
+    empProfileCode: { type: String },
 
     empOfficeMob: { type: String },
     empOfficeEmailId: { type: String },

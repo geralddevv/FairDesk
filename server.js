@@ -209,7 +209,7 @@ app.use((req, res, next) => {
 
 /* ROUTES */
 const redirectByRole = (role) => {
-  if (["admin", "hod", "sales", "hr"].includes(role)) {
+  if (["admin", "hod", "sales", "hr", "employee"].includes(role)) {
     return "/fairdesk/welcome";
   }
   return "/login";
@@ -230,7 +230,8 @@ app.get("/login", (req, res) => {
 });
 
 app.post("/login", loginLimiter, async (req, res) => {
-  const { username, password } = req.body;
+  const { profileCode, username, password } = req.body;
+  const loginCode = String(profileCode || username || "").trim();
   const adminUser = process.env.ADMIN_USER;
   const adminPass = process.env.ADMIN_PASS;
   const hrUser = process.env.HR_USER;
@@ -240,20 +241,20 @@ app.post("/login", loginLimiter, async (req, res) => {
   const salesUser = process.env.SALES_USER;
   const salesPass = process.env.SALES_PASS;
 
-  if (!username || !password) {
+  if (!loginCode || !password) {
     return res.status(400).render("auth/login", {
       title: "Login",
       CSS: "login.css",
-      username,
+      profileCode: loginCode,
       password,
       error: ["Please enter your credentials."],
     });
   }
 
-  const isAdmin = adminUser && adminPass && username === adminUser && password === adminPass;
-  const isHr = hrUser && hrPass && username === hrUser && password === hrPass;
-  const isHod = hodUser && hodPass && username === hodUser && password === hodPass;
-  const isSales = salesUser && salesPass && username === salesUser && password === salesPass;
+  const isAdmin = adminUser && adminPass && loginCode === adminUser && password === adminPass;
+  const isHr = hrUser && hrPass && loginCode === hrUser && password === hrPass;
+  const isHod = hodUser && hodPass && loginCode === hodUser && password === hodPass;
+  const isSales = salesUser && salesPass && loginCode === salesUser && password === salesPass;
 
   const processLogin = async (authUser) => {
     req.session.authUser = authUser;
@@ -263,7 +264,7 @@ app.post("/login", loginLimiter, async (req, res) => {
         return res.status(500).render("auth/login", {
           title: "Login",
           CSS: "login.css",
-          username,
+          profileCode: loginCode,
           error: ["Unable to start session. Please try again."],
         });
       }
@@ -275,28 +276,35 @@ app.post("/login", loginLimiter, async (req, res) => {
     const role = isAdmin ? "admin" : isHr ? "hr" : isHod ? "hod" : "sales";
     // Super admins get all permissions for now
     const permissions = { sales: true, inventory: true, hr: true, accounting: true, master: true };
-    return processLogin({ username, role, permissions });
+    return processLogin({ username: loginCode, role, permissions, profileCode: loginCode, empName: loginCode });
   }
 
-  const trimmedUser = String(username || "").trim();
+  const trimmedUser = loginCode;
   const trimmedPass = String(password || "").trim();
 
   // Fallback to database check
   try {
-    const employee = await Employee.findOne({ 
-      $or: [
-        { empId: { $regex: new RegExp(`^${trimmedUser}$`, "i") } }, 
-        { empName: { $regex: new RegExp(`^${trimmedUser}$`, "i") } }
-      ],
+    const employee = await Employee.findOne({
+      empProfileCode: { $regex: new RegExp(`^${trimmedUser}$`, "i") },
       password: trimmedPass,
-      isActive: true 
+      isActive: true
     });
 
-    console.log(`[DEBUG] Database login attempt for: "${trimmedUser}". Found: ${employee ? employee.empName : "NULL"}`);
+    console.log(`[DEBUG] Database login attempt for profile code: "${trimmedUser}". Found: ${employee ? employee.empName : "NULL"}`);
 
     if (employee) {
+      if (employee.role === "none") {
+        return res.status(403).render("auth/login", {
+          title: "Login",
+          CSS: "login.css",
+          profileCode: loginCode,
+          error: ["Your account is disabled. Please contact admin."],
+        });
+      }
       return processLogin({ 
-        username: employee.empName, 
+        username: employee.empName,
+        empName: employee.empName,
+        profileCode: employee.empProfileCode,
         role: employee.role || "employee", 
         permissions: employee.permissions,
         empId: employee.empId,
@@ -310,7 +318,7 @@ app.post("/login", loginLimiter, async (req, res) => {
   return res.status(401).render("auth/login", {
     title: "Login",
     CSS: "login.css",
-    username,
+    profileCode: loginCode,
     password,
     error: ["Invalid username or password."],
   });

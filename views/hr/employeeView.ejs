@@ -230,6 +230,9 @@
       <h2><%= employee.empName %></h2>
       <div class="meta">Employee ID: <%= employee.empId %></div>
       <div class="meta">Designation: <%= employee.empProfile %></div>
+      <% if (employee.empProfileCode) { %>
+        <div class="meta">Profile Code: <%= employee.empProfileCode %></div>
+      <% } %>
     </div>
 
     <a href="/fairdesk/employee/edit/<%= employee._id %>" class="edit-btn">Edit</a>

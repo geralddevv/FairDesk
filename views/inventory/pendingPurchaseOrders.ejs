@@ -388,8 +388,8 @@
     if (!order) return;
 
     const itemName = getItemName(order);
-    const vendor = order.vendorUserId?.vendorName || "N/A";
-    const coordinator = order.vendorUserId?.userName || "N/A";
+    const vendor = order.vendorDisplayName || order.vendorUserId?.vendorName || "Vendor not binded";
+    const coordinator = order.coordinatorDisplayName || order.vendorUserId?.userName || "Coordinator not binded";
     const poNumber = order.poNumber || "N/A";
     const remarks = order.remarks || "N/A";
     const quantity = Number(order.quantity) || 0;
@@ -463,13 +463,13 @@
   };
 
   window.requestReceivePO = function (orderId) {
-    window.location.href = `/fairdesk/purchase/receive?orderId=${orderId}`;
+    window.location.href = `/fairdesk/inventory/purchase/receive?orderId=${orderId}`;
   };
 
   function submitStatusUpdate(orderId, status, reason = "") {
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = "/fairdesk/purchase/status";
+    form.action = "/fairdesk/inventory/purchase/status";
     
     const inputs = {
       orderId,
@@ -538,17 +538,19 @@
       },
       {
         title: "Vendor",
-        field: "vendorUserId.vendorName",
+        field: "vendorDisplayName",
         width: 200,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter vendor...",
+        formatter: (cell) => `<span style="font-weight:600; color:#044A78;">${cell.getValue() || "Vendor not binded"}</span>`,
       },
       { 
         title: "Coordinator", 
-        field: "vendorUserId.userName", 
+        field: "coordinatorDisplayName", 
         width: 150, 
         headerFilter: "input",
         headerFilterPlaceholder: "Filter name...",
+        formatter: (cell) => `<span style="font-weight:600; color:#044A78;">${cell.getValue() || "Coordinator not binded"}</span>`,
       },
       {
         title: "Item Type",

@@ -201,7 +201,7 @@
       <input type="text" id="emp-dept" class="form-control input-tag" name="empDept" value="<%= employee?.empDept || '' %>" placeholder="Enter Department" autocomplete="off" required/>
     </div>
 
-    <div class="span-six">
+    <div class="span-five">
       <label for="emp-reporting-manager">Reporting Manager</label>
       <select
         id="emp-reporting-manager"
@@ -224,17 +224,22 @@
       </select>
     </div>
 
-    <div class="span-four">
+    <div class="span-three">
       <label for="emp-profile">Profile</label>
       <input type="text" id="emp-profile" class="form-control input-tag" name="empProfile" value="<%= employee?.empProfile || '' %>" placeholder="Enter Profile" autocomplete="off" required/>
     </div>
 
-    <div class="span-five">
+    <div class="span-four">
+      <label for="emp-profile-code">Profile Code</label>
+      <input type="text" id="emp-profile-code" class="form-control input-tag" name="empProfileCode" value="<%= employee?.empProfileCode || '' %>" placeholder="Enter Profile Code" autocomplete="off"/>
+    </div>
+
+    <div class="span-four">
       <label for="emp-office-mob">Office Mobile No</label>
       <input type="text" inputmode="numeric" id="emp-office-mob" class="form-control input-tag" name="empOfficeMob" value="<%= employee?.empOfficeMob || '' %>" placeholder="Enter Office Mobile No" autocomplete="off"/>
     </div>
 
-    <div class="span-six">
+    <div class="span-five">
       <label for="emp-office-email-id">Office Email ID</label>
       <input type="email" id="emp-office-email-id" class="form-control input-tag" name="empOfficeEmailId" value="<%= employee?.empOfficeEmailId || '' %>" placeholder="Enter Office Email ID" autocomplete="off"/>
     </div>
