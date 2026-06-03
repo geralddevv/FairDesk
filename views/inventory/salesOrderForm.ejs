@@ -443,6 +443,19 @@
       .replace(/\s+/g, " ");
   }
 
+  function inferSalesOrderType(order) {
+    const model = String(order?.onModel || "").toUpperCase();
+    const bindingModel = String(order?.onBindingModel || "").toUpperCase();
+
+    if (model === "TAPE" || bindingModel.includes("TAPEBINDING")) return "TAPE";
+    if (model === "POSROLL" || bindingModel.includes("POSROLLBINDING")) return "POS_ROLL";
+    if (model === "TAFETA" || bindingModel.includes("TAFETABINDING")) return "TAFETA";
+    if (model === "TTR" || bindingModel.includes("TTRBINDING")) return "TTR";
+    if (model === "LABEL" || bindingModel.includes("LABEL")) return "LABEL";
+
+    return "";
+  }
+
   function getUserLocationEntries(user) {
     const details = Array.isArray(user?.locationDetails) ? user.locationDetails : [];
     const entries = details
@@ -910,7 +923,9 @@
             locRadio.checked = true;
             locRadio.dispatchEvent(new Event('change'));
             if (confirmMode) lockDispatchLocation(editLocation);
-
+          } else if (editLocation) {
+            syncSourceLocation(editLocation);
+            if (confirmMode) lockDispatchLocation(editLocation);
           }
         } else {
           // 2) Create mode: preselect user's location if available
@@ -1259,17 +1274,25 @@
     
     // Check Source Location - ALL is not allowed for stock-based items
     if (itemType === "TAPE" || itemType === "POS_ROLL" || itemType === "TAFETA" || itemType === "TTR") {
-      if (radioLocation === "ALL") {
-        showToast("Location cannot be ALL. Please select a specific location.", "error");
-        setSubmittingState(false);
-        return false;
-      }
-      if (!selectedLocation) {
+      const effectiveLocation = normalizeLocationName(
+        selectedLocation || sourceLocationInput.value || currentSourceLocation || locationSelect.value || "",
+      );
+
+      if (!effectiveLocation || effectiveLocation === "ALL") {
         showToast("no location is selected", "error");
         setSubmittingState(false);
         return false;
       }
-      sourceLocationInput.value = selectedLocation;
+
+      if (radioLocation === "ALL") {
+        const fallbackRadio = document.querySelector(`input[name="locationRadio"][value="${effectiveLocation}"]`);
+        if (fallbackRadio) {
+          fallbackRadio.checked = true;
+          fallbackRadio.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+
+      sourceLocationInput.value = effectiveLocation;
     }
 
     const dispatchQty = confirmMode ? (parseInt(confirmQuantityInput?.value) || 0) : qty;
@@ -1376,7 +1399,7 @@
 
     // Fallback to orderToEdit if params are missing (Robust Prefill)
     if (orderToEdit) {
-      if (!type && orderToEdit.tapeBinding) type = "TAPE"; 
+      if (!type) type = inferSalesOrderType(orderToEdit);
       if (!client && orderToEdit.userId && orderToEdit.userId.clientName) client = normalizeLookupText(orderToEdit.userId.clientName);
       if (!userId && orderToEdit.userId && orderToEdit.userId._id) userId = String(orderToEdit.userId._id);
       // Check if tapeBinding is populated or ID

@@ -124,7 +124,12 @@
       <input type="number" name="quantity" class="form-control input-tag" min="1" placeholder="Enter Quantity" required />
     </div>
 
-    <div class="span-half" style="grid-column: span 25;">
+    <div class="span-four">
+      <label>Date</label>
+      <input type="date" id="stock-date" name="date" class="form-control input-tag" required />
+    </div>
+
+    <div class="span-half" style="grid-column: span 21;">
       <label>Remarks</label>
       <input type="text" name="remarks" class="form-control input-tag" placeholder="Enter Remarks" />
     </div>
@@ -141,6 +146,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const locationInput = document.getElementById("locationInput");
   const stockDisplay = document.getElementById("stock-display");
   const allLocations = <%- safeJson(locations || []) %>;
+  const stockDateInput = document.getElementById("stock-date");
+
+  if (stockDateInput) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    stockDateInput.value = `${yyyy}-${mm}-${dd}`;
+  }
 
   const resolvedTtr = document.getElementById("resolvedTtr");
   const resolvedTtrId = document.getElementById("resolvedTtrId");

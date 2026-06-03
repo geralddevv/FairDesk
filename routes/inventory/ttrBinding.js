@@ -801,6 +801,8 @@ router.get("/ttr-vendor/view", async (req, res) => {
         ttrType: binding.ttrId?.ttrType || "",
         ttrColor: binding.ttrId?.ttrColor || "",
         ttrMaterialCode: binding.ttrId?.ttrMaterialCode || "",
+        ttrWidth: binding.ttrId?.ttrWidth || "",
+        ttrMtrs: binding.ttrId?.ttrMtrs || "",
         // Flatten vendor user fields
         vendorName: binding.vendorUserId?.vendorName || "",
         userName: binding.vendorUserId?.userName || "",

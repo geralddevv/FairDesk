@@ -407,6 +407,10 @@ app.use("/fairdesk/advance", requireAuth, requireRole(["admin", "hr"]), advanceR
 app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr"]), employeeRoute);
 app.use("/fairdesk/pettycash", requireAuth, requireRole(["admin", "hr"]), pettycashRoute);
 
+
+
+app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales", "master"]), clientFormRoute);
+
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales", "hr"]), fairdeskRoute);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), tapeBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), posRollBindingRoutes);
@@ -419,7 +423,7 @@ app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sale
 app.use("/fairdesk/ttrstock", requireAuth, requireRole(["admin", "hod", "sales"]), ttrStockRoutes);
 app.use("/fairdesk/stocks", requireAuth, requireRole(["admin", "hod", "sales"]), stockViewRoutes);
 app.use("/fairdesk/inventory", requireAuth, requireRole(["admin", "hod"]), reorderRoutes);
-app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales", "master"]), clientFormRoute);
+
 
 /* 404 */
 app.all("*", (req, res) => {

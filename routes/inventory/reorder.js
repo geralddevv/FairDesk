@@ -21,10 +21,10 @@ const router = express.Router();
 async function getReorderData() {
   const activePOStatuses = ["PENDING", "CONFIRMED", "PARTIALLY_RECEIVED"];
   const types = [
-    { model: Tape, stockModel: TapeStock, stockRef: "tape", minQtyField: "tapeMinQty", typeKey: "Tape", label: "Tape" },
-    { model: PosRoll, stockModel: PosRollStock, stockRef: "posRoll", minQtyField: "posMinQty", typeKey: "PosRoll", label: "POS Roll" },
-    { model: Tafeta, stockModel: TafetaStock, stockRef: "tafeta", minQtyField: "tafetaMinQty", typeKey: "Tafeta", label: "Tafeta" },
-    { model: Ttr, stockModel: TtrStock, stockRef: "ttr", minQtyField: "ttrMinQty", typeKey: "Ttr", label: "TTR" },
+    { model: Tape, stockModel: TapeStock, stockRef: "tape", minQtyField: "tapeMinQty", typeKey: "Tape", label: "Tape", bindingModel: VendorTapeBinding, refField: "tapeId" },
+    { model: PosRoll, stockModel: PosRollStock, stockRef: "posRoll", minQtyField: "posMinQty", typeKey: "PosRoll", label: "POS Roll", bindingModel: VendorPosRollBinding, refField: "posRollId" },
+    { model: Tafeta, stockModel: TafetaStock, stockRef: "tafeta", minQtyField: "tafetaMinQty", typeKey: "Tafeta", label: "Tafeta", bindingModel: VendorTafetaBinding, refField: "tafetaId" },
+    { model: Ttr, stockModel: TtrStock, stockRef: "ttr", minQtyField: "ttrMinQty", typeKey: "Ttr", label: "TTR", bindingModel: VendorTtrBinding, refField: "ttrId" },
   ];
 
   const results = [];
@@ -50,6 +50,25 @@ async function getReorderData() {
     const bookedMap = {};
     salesAgg.forEach(s => bookedMap[s._id.toString()] = s.totalBooked);
 
+    // Fetch Bindings for Vendor/Coordinator info
+    const bindings = await t.bindingModel.find({ [t.refField]: { $in: itemIds } })
+      .populate("vendorUserId", "vendorName userName")
+      .lean();
+
+    const vendorMap = {};
+    const coordinatorMap = {};
+
+    bindings.forEach(b => {
+      const itemId = b[t.refField].toString();
+      if (!vendorMap[itemId]) vendorMap[itemId] = new Set();
+      if (!coordinatorMap[itemId]) coordinatorMap[itemId] = new Set();
+
+      if (b.vendorUserId) {
+        if (b.vendorUserId.vendorName) vendorMap[itemId].add(b.vendorUserId.vendorName);
+        if (b.vendorUserId.userName) coordinatorMap[itemId].add(b.vendorUserId.userName);
+      }
+    });
+
     const activePOs = await PurchaseOrder.find({
       onModel: t.typeKey,
       itemId: { $in: itemIds },
@@ -68,6 +87,7 @@ async function getReorderData() {
       const effectiveStock = stock - booked;
 
       if (effectiveStock < minQty) {
+        const itemIdStr = item._id.toString();
         results.push({
           _id: item._id,
           type: t.label,
@@ -78,7 +98,9 @@ async function getReorderData() {
           booked,
           effectiveStock,
           minQty,
-          shortage: minQty - effectiveStock
+          shortage: minQty - effectiveStock,
+          vendors: Array.from(vendorMap[itemIdStr] || []).join(", "),
+          coordinators: Array.from(coordinatorMap[itemIdStr] || []).join(", ")
         });
       }
     });

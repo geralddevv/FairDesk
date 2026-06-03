@@ -48,7 +48,8 @@ router.use((req, res, next) => {
     const path = req.path || "";
     if (req.method !== "GET") return res.redirect("/login");
 
-    if (path === "/view" || path.startsWith("/api/") || path.startsWith("/profile/")) {
+    const normalizedPath = path.toLowerCase().replace(/\/$/, "");
+    if (normalizedPath === "/view" || path.startsWith("/api/") || path.startsWith("/profile/")) {
       return next();
     }
     return res.redirect("/login");

@@ -478,6 +478,7 @@ router.use((req, res, next) => {
     const allowedGetRoutes = [
       "/welcome",
       "/master/view",
+      "/client/view",
       "/form/client",
       "/tape/view",
       "/pos-roll/view",
