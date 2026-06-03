@@ -365,13 +365,13 @@
 
 <script>
   // Inject data safely using DOM elements for valid IDE linting
-  const orderDataEl = document.createElement('span');
-  orderDataEl.innerHTML = `<%= typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>`;
-  const orderToEdit = JSON.parse(orderDataEl.textContent || 'null');
+  const orderDataEl = document.createElement('textarea');
+  orderDataEl.value = `<%- typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>`;
+  const orderToEdit = JSON.parse(orderDataEl.value || 'null');
 
-  const stockDataEl = document.createElement('span');
-  stockDataEl.innerHTML = `<%= typeof stockInfo !== 'undefined' && stockInfo ? JSON.stringify(stockInfo) : 'null' %>`;
-  const stockInfo = JSON.parse(stockDataEl.textContent || 'null');
+  const stockDataEl = document.createElement('textarea');
+  stockDataEl.value = `<%- typeof stockInfo !== 'undefined' && stockInfo ? JSON.stringify(stockInfo) : 'null' %>`;
+  const stockInfo = JSON.parse(stockDataEl.value || 'null');
 
   const confirmModeStr = `<%= typeof confirmMode !== 'undefined' && confirmMode ? 'true' : 'false' %>`;
   const confirmMode = confirmModeStr === 'true';
@@ -503,6 +503,7 @@
     const resolvedValue = resolveSelectValue(selectEl, rawValue);
     if (!resolvedValue) return false;
     choicesInstance.setChoiceByValue(resolvedValue);
+    if (selectEl) selectEl.value = resolvedValue;
     return true;
   }
 
@@ -629,7 +630,7 @@
       const choicesArray = users.map(user => ({
         value: user._id,
         label: user.userName,
-        selected: user._id === targetUserId || (users.length === 1 && !targetUserId),
+        selected: String(user._id) === String(targetUserId) || (users.length === 1 && !targetUserId),
         customProperties: {
           name: user.userName,
           location: user.userLocation || "",
@@ -647,16 +648,18 @@
 
       // Auto-select logic
       if (targetUserId) {
-        const selected = users.find(u => u._id === targetUserId);
+        const selected = users.find(u => String(u._id) === String(targetUserId));
         if (selected) {
+          setChoiceValue(userChoices, userSelect, targetUserId);
           userNameHidden.value = selected.userName || "";
           setLocationFromUser(selected);
-          await loadItems(targetItemId);
+          await loadItems(targetItemId, targetUserId);
         }
       } else if (users.length === 1) {
+        setChoiceValue(userChoices, userSelect, users[0]._id);
         userNameHidden.value = users[0].userName;
         setLocationFromUser(users[0]);
-        await loadItems();
+        await loadItems(null, users[0]._id);
       }
     } catch (err) {
       console.error("Failed to load users:", err);
@@ -666,8 +669,8 @@
   }
 
   // Load items based on type and user
-  async function loadItems(targetItemId = null) {
-    const userId = userSelect.value;
+  async function loadItems(targetItemId = null, targetUserId = null) {
+    const userId = targetUserId || userSelect.value || userChoices?.getValue(true);
     const itemType = itemTypeSelect.value;
     if (!userId || !itemType) return;
 
@@ -687,7 +690,7 @@
       const itemChoicesArray = items.map(item => ({
         value: item._id,
         label: item.displayName,
-        selected: item._id === targetItemId || (items.length === 1 && !targetItemId),
+        selected: String(item._id) === String(targetItemId) || (items.length === 1 && !targetItemId),
         customProperties: {
           stock: JSON.stringify(item.stock || { totalStock: 0, locations: [] }),
           minQty: item.minOrderQty || 0,
@@ -702,6 +705,12 @@
         "label",
         true
       );
+
+      if (targetItemId) {
+        setChoiceValue(itemChoices, itemSelect, targetItemId);
+      } else if (items.length === 1) {
+        setChoiceValue(itemChoices, itemSelect, items[0]._id);
+      }
       
       // Trigger change event to update stock display
       updateStockDisplay();
@@ -1036,6 +1045,9 @@
     if (!locationChoices) return;
     const entries = getUserLocationEntries(user);
     const preferred = normalizeLocationName(preferredLocation || user?.userLocation || "");
+    if (preferred && !entries.some((entry) => normalizeLocationName(entry.value) === preferred)) {
+      entries.unshift({ value: preferred, label: preferred });
+    }
     const selectedEntry = entries.find((entry) => normalizeLocationName(entry.value) === preferred) || entries[0];
     const loc = normalizeLocationName(selectedEntry?.value || "");
 
@@ -1376,7 +1388,7 @@
 
 
   // Pre-fill form from URL params or Order Data
-  window.addEventListener("DOMContentLoaded", async () => {
+  window.addEventListener("load", async () => {
     // 0. Initialize Choices.js for select fields
     if (clientSelect) clientChoices = new Choices(clientSelect, { searchEnabled: true, itemSelectText: "" });
     if (userSelect) userChoices = new Choices(userSelect, { searchEnabled: true, itemSelectText: "" });
@@ -1399,12 +1411,138 @@
 
     // Fallback to orderToEdit if params are missing (Robust Prefill)
     if (orderToEdit) {
+      console.log("DEBUG: Processing orderToEdit prefill...");
       if (!type) type = inferSalesOrderType(orderToEdit);
       if (!client && orderToEdit.userId && orderToEdit.userId.clientName) client = normalizeLookupText(orderToEdit.userId.clientName);
       if (!userId && orderToEdit.userId && orderToEdit.userId._id) userId = String(orderToEdit.userId._id);
       // Check if tapeBinding is populated or ID
       if (!itemId && orderToEdit.tapeBinding && orderToEdit.tapeBinding._id) itemId = String(orderToEdit.tapeBinding._id);
       else if (!itemId && orderToEdit.tapeBinding) itemId = String(orderToEdit.tapeBinding);
+    }
+
+    if (orderToEdit && !confirmMode) {
+      const orderUser = orderToEdit.userId || {};
+      const orderItem = orderToEdit.tapeId || {};
+      const orderBinding = orderToEdit.tapeBinding || {};
+      const orderType = type || inferSalesOrderType(orderToEdit);
+      const orderClient = client || orderUser.clientName || "";
+      const orderUserId = userId || String(orderUser._id || "");
+      const orderItemId = itemId || String(orderBinding._id || orderBinding || "");
+
+      if (orderType) setChoiceValue(itemTypeChoices, itemTypeSelect, orderType);
+
+      if (orderClient) {
+        clientChoices.clearStore();
+        clientChoices.setChoices([{ value: orderClient, label: orderClient, selected: true }], "value", "label", true);
+        setChoiceValue(clientChoices, clientSelect, orderClient);
+      }
+
+      if (orderUserId) {
+        userChoices.clearStore();
+        userChoices.setChoices([{
+          value: orderUserId,
+          label: orderUser.userName || "User",
+          selected: true,
+          customProperties: {
+            name: orderUser.userName || "User",
+            location: orderUser.userLocation || "",
+            locationDetails: Array.isArray(orderUser.locationDetails) ? orderUser.locationDetails : [],
+          },
+        }], "value", "label", true);
+        setChoiceValue(userChoices, userSelect, orderUserId);
+        userNameHidden.value = orderUser.userName || "";
+      }
+
+      setLocationFromUser(orderUser, orderToEdit.sourceLocation || orderUser.userLocation || "");
+
+      let itemLabel = "Item";
+      if (orderItem.tapePaperCode) itemLabel = `${orderItem.tapePaperCode} ${orderItem.tapeGsm || ""}gsm`.trim();
+      else if (orderItem.posPaperCode) itemLabel = `${orderItem.posPaperCode} ${orderItem.posGsm || ""}gsm`.trim();
+      else if (orderItem.tafetaMaterialCode) itemLabel = `${orderItem.tafetaMaterialCode} ${orderItem.tafetaGsm || ""}gsm`.trim();
+      else if (orderItem.ttrProductId) {
+        const parts = [
+          orderItem.ttrType,
+          orderItem.ttrWidth ? `${orderItem.ttrWidth}mm` : null,
+          orderItem.ttrMtrs ? `x ${orderItem.ttrMtrs}m` : null,
+        ].filter(Boolean);
+        itemLabel = parts.join(" ") || orderItem.ttrProductId;
+      } else if (orderItem.labelWidth) {
+        itemLabel = `${orderItem.labelWidth}x${orderItem.labelHeight}`;
+      }
+
+      const detailsObj = {
+        type: orderType,
+        productId: orderItem.tapeProductId || orderItem.posProductId || orderItem.tafetaProductId || orderItem.ttrProductId || "",
+        paperCode: orderItem.tapePaperCode || orderItem.posPaperCode || "",
+        materialCode: orderItem.tafetaMaterialCode || orderItem.ttrMaterialCode || "",
+        gsm: orderItem.tapeGsm || orderItem.posGsm || orderItem.tafetaGsm || "",
+        paperType: orderItem.tapePaperType || orderItem.posPaperType || "",
+        materialType: orderItem.tafetaMaterialType || "",
+        finish: orderItem.tapeFinish || "",
+        color: orderItem.posColor || orderItem.tafetaColor || orderItem.ttrColor || "",
+        width: orderItem.tapeWidth || orderItem.posWidth || orderItem.tafetaWidth || orderItem.ttrWidth || orderItem.labelWidth || "",
+        mtrs: orderItem.tapeMtrs || orderItem.posMtrs || orderItem.tafetaMtrs || orderItem.ttrMtrs || "",
+        coreId: orderItem.tapeCoreId || orderItem.posCoreId || orderItem.tafetaCoreId || orderItem.ttrCoreId || "",
+        coreLength: orderItem.tafetaCoreLen || orderItem.ttrCoreLength || "",
+        notch: orderItem.tafetaNotch || orderItem.ttrNotch || "",
+        winding: orderItem.ttrWinding || "",
+        inkFace: orderItem.ttrInkFace || "",
+        adhesiveGsm: orderItem.tapeAdhesiveGsm || "",
+        minQty: orderBinding.tapeMinQty || orderBinding.posMinQty || orderBinding.tafetaMinQty || orderBinding.ttrMinQty || "",
+        clientPaperCode: orderBinding.tapeClientPaperCode || orderBinding.posClientPaperCode || "",
+        clientMaterialCode: orderBinding.tafetaClientMaterialCode || orderBinding.ttrClientMaterialCode || "",
+        clientGsm: orderBinding.clientTapeGsm || orderBinding.clientPosGsm || orderBinding.clientTafetaGsm || "",
+        clientType: orderBinding.clientTtrType || "",
+        clientMaterialType: orderBinding.tafetaClientMaterialType || "",
+      };
+
+      itemChoices.clearStore();
+      itemChoices.setChoices([{
+        value: orderItemId,
+        label: itemLabel,
+        selected: true,
+        customProperties: {
+          stock: stockInfo ? JSON.stringify(stockInfo) : JSON.stringify({ totalStock: 0, booked: 0, balance: 0, locations: [] }),
+          details: JSON.stringify(detailsObj),
+          minQty: orderBinding.tapeMinQty || orderBinding.posMinQty || orderBinding.tafetaMinQty || orderBinding.ttrMinQty || 0,
+          rate: orderBinding.tapeRatePerRoll ?? orderBinding.posRatePerRoll ?? orderBinding.tafetaRatePerRoll ?? orderBinding.ttrRatePerRoll ?? null,
+        },
+      }], "value", "label", true);
+      setChoiceValue(itemChoices, itemSelect, orderItemId);
+
+      await updateStockDisplay();
+      if (orderToEdit.sourceLocation) {
+        syncSourceLocation(orderToEdit.sourceLocation);
+        selectStockLocation(orderToEdit.sourceLocation);
+      }
+
+      if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
+      if (orderRateInput && typeof orderToEdit.orderRate !== "undefined" && orderToEdit.orderRate !== null) {
+        orderRateInput.value = String(orderToEdit.orderRate);
+        orderRateInput.dataset.fromOrder = "true";
+      }
+      if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
+      if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
+      if (orderToEdit.estimatedDate) {
+        const d = new Date(orderToEdit.estimatedDate);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        estimatedDateInput.value = `${yyyy}-${mm}-${dd}`;
+      }
+
+      itemTypeChoices?.enable();
+      clientChoices?.enable();
+      userChoices?.enable();
+      itemChoices?.enable();
+      locationChoices?.enable();
+      quantityInput.readOnly = false;
+      poNumberInput.readOnly = false;
+      if (orderRateInput) orderRateInput.readOnly = false;
+      estimatedDateInput.readOnly = false;
+      remarksInput.readOnly = false;
+
+      return;
     }
 
     // ==========================================
@@ -1472,9 +1610,11 @@
              // Client specific fields (from populated binding)
              if (orderToEdit.tapeBinding) {
                 const b = orderToEdit.tapeBinding;
-                detailsObj.clientMaterialCode = b.tapeClientMaterialCode || b.posClientMaterialCode || b.tafetaClientMaterialCode || b.ttrClientMaterialCode || "";
+                detailsObj.clientPaperCode = b.tapeClientPaperCode || b.posClientPaperCode || "";
+                detailsObj.clientMaterialCode = b.tafetaClientMaterialCode || b.ttrClientMaterialCode || "";
                 detailsObj.clientGsm = b.clientTapeGsm || b.clientPosGsm || b.clientTafetaGsm || "";
                 detailsObj.clientType = b.clientTtrType || "";
+                detailsObj.clientMaterialType = b.tafetaClientMaterialType || "";
              }
           }
 

@@ -288,7 +288,6 @@ async function getItemStockSummary(itemType, itemId, excludeOrderId = null) {
   const totalBalance = totalStock - totalBooked;
 
   return {
-    config,
     locations,
     totalStock,
     totalBooked,
@@ -3185,10 +3184,20 @@ router.get("/sales/order", async (req, res) => {
     logsPromise,
   ]);
 
+  let stockInfo = null;
+  if (orderToEdit?.tapeId?._id) {
+    try {
+      stockInfo = await getItemStockSummary(orderToEdit.onModel, orderToEdit.tapeId._id, orderToEdit._id);
+    } catch (err) {
+      console.error("EDIT ORDER STOCK SUMMARY ERROR:", err);
+    }
+  }
+
   res.render("inventory/salesOrderForm.ejs", {
     clients,
     locations: (locations || []).filter(Boolean).sort(),
     orderToEdit,
+    stockInfo,
     logs,
     submissionToken,
     CSS: false,
@@ -3247,8 +3256,8 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
         populate: { path: "ttrId" },
       })
       .populate({
-        path: "label",
-        populate: { path: "labelId" },
+        path: 'label',
+
       })
       .lean();
 
@@ -3411,16 +3420,16 @@ router.get("/sales/items/:type/:userId", async (req, res) => {
     } else if (type === "LABEL") {
       items = (user.label || []).map((lbl) => ({
         _id: lbl._id,
-        displayName: `${lbl.labelId?.labelWidth || ""}x${lbl.labelId?.labelHeight || ""}`,
-        minOrderQty: lbl.labelId?.minOrderQty || 0,
-        rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
+        displayName: `${lbl.labelWidth || ""}x${lbl.labelHeight || ""}`,
+        minOrderQty: lbl.minOrderQty || 0,
+        rate: parseFloat(lbl.ratePerLabel) || 0,
         stock: { locations: [], totalStock: 0, booked: 0, balance: 0 },
         details: {
           type: "LABEL",
-          width: lbl.labelId?.labelWidth || "",
-          height: lbl.labelId?.labelHeight || "",
-          minQty: lbl.labelId?.minOrderQty || 0,
-          rate: parseFloat(lbl.labelId?.ratePerLabel) || 0,
+          width: lbl.labelWidth || "",
+          height: lbl.labelHeight || "",
+          minQty: lbl.minOrderQty || 0,
+          rate: parseFloat(lbl.ratePerLabel) || 0,
         },
       }));
     }
@@ -5388,32 +5397,6 @@ router.post("/form/edit/vendor-user/:userId", async (req, res) => {
     }
     return res.status(400).json({ success: false, message: err.message });
   }
-});
-
-// ----------------------------------Labels display---------------------------------->
-// Centralized Sales Order Form
-router.get("/sales/order", async (req, res) => {
-  const clients = await Client.distinct("clientName");
-  let orderToEdit = null;
-
-  if (req.query.orderId) {
-    try {
-      orderToEdit = await TapeSalesOrder.findById(req.query.orderId)
-        .populate({ path: "userId", select: "clientName userName userLocation" })
-        .lean();
-    } catch (err) {
-      console.error("Error fetching order to edit:", err);
-    }
-  }
-
-  res.render("inventory/salesOrderForm.ejs", {
-    clients,
-    orderToEdit,
-    CSS: false,
-    JS: false,
-    title: orderToEdit ? "Edit Sales Order" : "Sales Order",
-    notification: req.flash("notification"),
-  });
 });
 
 // ----------------------------------Labels display (individual)---------------------------------->
