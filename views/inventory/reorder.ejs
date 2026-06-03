@@ -95,25 +95,25 @@
   </div>
 
   <!-- ===== PO QUEUE PANEL ===== -->
-  <div id="po-cart" style="display:none; width:100%; border-radius:0.5rem; overflow:hidden; box-shadow:0 2px 8px rgba(4,74,120,0.10);">
+  <div id="po-cart" style="display:none; width:100%; border-radius:0.5rem; box-shadow:0 4px 12px rgba(4,74,120,0.15); border:1px solid rgba(4,74,120,0.1); flex-direction:column; max-height:600px; margin-bottom:10px;">
     <!-- Header bar — matches indi-head -->
-    <div style="background:#044A78; color:white; padding:0.4rem 0.8rem; display:flex; justify-content:space-between; align-items:center;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <i class="fa-solid fa-cart-shopping" style="font-size:15px;"></i>
+    <div style="background:#044A78; color:white; padding:0.6rem 1rem; border-radius:0.5rem 0.5rem 0 0; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <i class="fa-solid fa-cart-shopping" style="font-size:20px;"></i>
         <span style="font-size:1rem; font-weight:700; margin:0;">Purchase Order Queue</span>
-        <span id="cart-count-badge" style="background:rgba(255,255,255,0.25); color:white; border-radius:99px; padding:0px 10px; font-size:12px; font-weight:700; border:1px solid rgba(255,255,255,0.4);">0</span>
+        <span id="cart-count-badge" style="background:rgba(255,255,255,0.25); color:white; border-radius:99px; padding:2px 14px; font-size:14px; font-weight:700; border:1px solid rgba(255,255,255,0.4);">0</span>
       </div>
       <button
         onclick="proceedToOrder()"
-        style="padding:5px 18px; background:#04782e; color:white; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:7px; transition:opacity 0.2s; letter-spacing:0.02em;"
+        style="padding:8px 24px; background:#04782e; color:white; border:none; border-radius:6px; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; transition:opacity 0.2s; letter-spacing:0.02em;"
         onmouseover="this.style.opacity='0.85'"
         onmouseout="this.style.opacity='1'"
       >
         <i class="fa-solid fa-paper-plane"></i> Place Order
       </button>
     </div>
-    <!-- Items — one row per item -->
-    <div id="cart-items" style="background:#f8f9fa; padding:12px 15px; display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;"></div>
+    <!-- Items — grid layout -->
+    <div id="cart-items" style="background:#f8f9fa; padding:15px 15px 40px 15px; display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; overflow-y:auto; border-radius:0 0 0.5rem 0.5rem;"></div>
   </div>
 
   <div class="table-spinner"><div class="spinner-circle"></div></div>
@@ -166,23 +166,22 @@
       return;
     }
 
-    cartEl.style.display = 'block';
+    cartEl.style.display = 'flex';
     cartItemsEl.innerHTML = cart.map(item => `
-      <div style="background:#fff; border:1px solid rgba(4,74,120,0.15); border-radius:10px; padding:12px 15px; display:flex; flex-direction:column; gap:10px; box-shadow:0 2px 4px rgba(0,0,0,0.05); min-width:0;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <span style="background:#044A78; color:#fff; border-radius:6px; padding:3px 12px; font-size:12px; font-weight:700; white-space:nowrap; flex-shrink:0;">${item.type}</span>
+      <div style="background:#fff; border:1px solid rgba(4,74,120,0.15); border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 2px 4px rgba(0,0,0,0.05); min-width:0;">
+        <span style="background:#044A78; color:#fff; border-radius:4px; padding:2px 8px; font-size:11px; font-weight:700; white-space:nowrap; flex-shrink:0;">${item.type}</span>
+        
+        <span style="font-size:14px; font-weight:700; color:#0f172a; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-grow:1;" title="${item.name}">${item.name}</span>
+
+        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+          <span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:4px; padding:4px 10px; font-size:14px; font-weight:800; white-space:nowrap;">${item.shortage}</span>
+          
           <button
             onclick="removeFromCart('${item.id}')"
-            style="background:#f8f9fa; border:1px solid #dee2e6; color:#6b7280; border-radius:6px; padding:4px 10px; font-size:14px; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all 0.15s; display:flex; align-items:center; justify-content:center;"
+            style="background:#f8f9fa; border:1px solid #dee2e6; color:#6b7280; border-radius:4px; padding:4px 8px; font-size:14px; cursor:pointer; white-space:nowrap; transition:all 0.15s; display:flex; align-items:center; justify-content:center;"
             onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca';"
             onmouseout="this.style.background='#f8f9fa';this.style.color='#6b7280';this.style.borderColor='#dee2e6';"
-          ><i class="fa-solid fa-xmark"></i></button>
-        </div>
-
-        <span style="font-size:15px; font-weight:700; color:#0f172a; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${item.name}">${item.name}</span>
-
-        <div style="display:flex; justify-content:flex-start;">
-          <span style="background:#fef2f2; color:#dc2626; border:1px solid #fecaca; border-radius:6px; padding:4px 12px; font-size:14px; font-weight:800; white-space:nowrap;">${item.shortage}</span>
+          ><i class="fa-solid fa-trash-can"></i></button>
         </div>
       </div>
     `).join('');
