@@ -501,6 +501,8 @@ router.use((req, res, next) => {
       /^\/form\/tafeta-binding(?:\/.*)?$/,
       /^\/form\/ttr-binding(?:\/.*)?$/,
       /^\/api\/motivational$/,
+      /^\/form\/labels\/.*$/,
+      /^\/api\/locations$/,
     ];
 
     const allowedPostRoutes = [
