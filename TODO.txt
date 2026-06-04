@@ -34,25 +34,14 @@ need to add a dashboard for each role (roles co1, co2, etc)
 vendor:
 after the edit of the form it should redirect to the main page not the edit page
 add user inactive/delete option
-extra address in vendor form
-add reordering option in the stock
 resolve the stock edit error
 clear tsts in the pending logs
 make a purchase heading and store things related to that in that
 in one po there can we multiple orders with differernt date
-fix the booked stock problem
 
 Booked stock problem:
 Booked in pending stock page
-if physical stock 100 and the 
-make the old order appear on top in pending order page
 
 multiple po (purchase) should not be created for a specific item
 
 show mtrs and width in the vendor details item page
-
-things done today:
-solved zaveri problem
-make sales order form working
-make sales order working possible
-added stock view and pettycash in sales login
