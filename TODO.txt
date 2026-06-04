@@ -50,3 +50,9 @@ make the old order appear on top in pending order page
 multiple po (purchase) should not be created for a specific item
 
 show mtrs and width in the vendor details item page
+
+things done today:
+solved zaveri problem
+make sales order form working
+make sales order working possible
+added stock view and pettycash in sales login

@@ -291,8 +291,55 @@
         { title: "ID", field: "productId", width: 140, headerFilter: "input", headerFilterPlaceholder: "Filter ID..." },
         { title: "Type", field: "type", width: 100, headerFilter: "input", headerFilterPlaceholder: "Filter type..." },
         { title: "Item Name", field: "name", headerFilter: "input", headerFilterPlaceholder: "Filter specs..." },
-        { title: "Vendors", field: "vendors", headerFilter: "input", headerFilterPlaceholder: "Filter vendors..." },
-        { title: "Coordinators", field: "coordinators", headerFilter: "input", headerFilterPlaceholder: "Filter coords..." },
+        {
+          title: "Vendors",
+          field: "vendors",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Filter vendors...",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.hasVendors) {
+              return `<a
+                href="${row.bindingPath}?itemId=${row._id}"
+                title="No vendors bound — click to add"
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 5px;
+                  width: 100%;
+                  padding: 4px 0;
+                  background: #fff7ed;
+                  color: #c2410c;
+                  border: 1px solid #fed7aa;
+                  border-radius: 5px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  text-decoration: none;
+                  white-space: nowrap;
+                  box-sizing: border-box;
+                  transition: background 0.15s;
+                "
+                onmouseover="this.style.background='#ffedd5'"
+                onmouseout="this.style.background='#fff7ed'"
+              ><i class='fa-solid fa-link' style='font-size:11px'></i> Bind Vendors</a>`;
+            }
+            return `<span style="color:#374151;">${cell.getValue()}</span>`;
+          },
+        },
+        {
+          title: "Coordinators",
+          field: "coordinators",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Filter coords...",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.hasVendors) {
+              return `<span style="color:#9ca3af; font-size:12px; font-style:italic;">—</span>`;
+            }
+            return `<span style="color:#374151;">${cell.getValue()}</span>`;
+          },
+        },
         {
           title: "Stock",
           field: "stock",

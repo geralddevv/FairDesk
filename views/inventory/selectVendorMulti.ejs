@@ -2,45 +2,68 @@
 
 <style>
   .item-po-row {
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 20px;
-    background: #ffffff;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    transition: transform 0.2s, box-shadow 0.2s;
-  }
-  .item-po-row:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  .item-fields-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 0;
+    width: 100%;
+    background: transparent;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
     gap: 15px;
   }
-  @media (max-width: 1200px) {
-    .item-fields-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
+  .item-po-row:last-child {
+    border-bottom: none;
   }
-  @media (max-width: 768px) {
-    .item-fields-grid {
-      grid-template-columns: 1fr;
+  .item-po-row:hover {
+    background: rgba(4, 74, 120, 0.04);
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #044a78;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 8px 8px 0 0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    width: 100%;
+  }
+  .col-info { width: 260px; flex-shrink: 0; }
+  .col-vendor { flex: 1.2; min-width: 0; }
+  .col-coord { flex: 1; min-width: 0; }
+  .col-loc { flex: 1; min-width: 0; }
+  .col-qty { width: 85px; flex-shrink: 0; }
+  .col-contact { flex: 1.5; min-width: 0; }
+
+  @media (max-width: 1200px) {
+    .header-row { display: none; }
+    .item-po-row {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 15px;
+      gap: 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 12px;
     }
   }
 </style>
 
-<div class="main-content">
+<div class="main-content" style="padding: 1rem 0.5rem;">
 
-  <form id="multi-po-form" action="/fairdesk/inventory/reorder/create-po-multi" method="post">
+  <form id="multi-po-form" action="/fairdesk/inventory/reorder/create-po-multi" method="post" style="border:none; padding:0; gap:20px; background:transparent;">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="hidden" name="items" id="f-items" />
 
-    <div class="span-full form-heading">
+    <div class="span-full form-heading" style="border-radius:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
       <h1>Purchase Order</h1>
     </div>
-
+    
     <!-- PO Info banner -->
-    <div class="span-full" style="display:flex; gap:12px; flex-wrap:wrap; padding: 0; border: none; flex-direction: row;">
+    <div class="span-full" style="display:flex; gap:12px; flex-wrap:wrap; padding: 0; border: none; flex-direction: row; margin-bottom: -8px;">
       <div style="display:flex; align-items:center; gap:12px; background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 20px; flex:1; min-width:220px;">
         <i class="fa-solid fa-boxes-stacked" style="color:#044a78; font-size:22px;"></i>
         <div>
@@ -58,46 +81,48 @@
     </div>
 
     <!-- ===== PER-ITEM VENDOR SELECTION ===== -->
-    <div class="span-full form-subheading">
-      <h1>Vendor Selection Per Item</h1>
-    </div>
-
-    <div class="span-full" id="item-rows-container" style="display:flex; flex-direction:column; gap:16px; padding: 0; border: none;">
+    <div class="span-full" id="item-rows-container" style="display:flex; flex-direction:column; padding: 0; border: none; background: white; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      
+      <div class="header-row">
+        <div class="col-info">Item Details</div>
+        <div class="col-vendor">Select Vendor</div>
+        <div class="col-coord">Coordinator</div>
+        <div class="col-loc">Location</div>
+        <div class="col-qty">Quantity</div>
+        <div class="col-contact">Contact Info</div>
+      </div>
       <% cartItems.forEach((ci, idx) => {
         const gv = ci.groupedVendors || {};
         const hasVendors = Object.keys(gv).length > 0;
       %>
-      <div class="item-po-row" data-index="<%= idx %>">
-
-        <!-- Item header -->
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span style="background:#044a78; color:white; border-radius:6px; padding:4px 14px; font-size:12px; font-weight:700; text-transform:uppercase;"><%= ci.typeKey %></span>
-            <span style="font-size:16px; font-weight:700; color:#1e3a5f;"><%= ci.itemName %></span>
-          </div>
-          <div style="background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 700;">
-            Shortage: <%= ci.shortage %>
-          </div>
-        </div>
-
+      <div class="item-po-row" data-index="<%= idx %>" style="padding: 10px 12px;">
         <% if (!hasVendors) { %>
-        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px 16px; font-size:13px; color:#991b1b; font-weight:600; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-circle-exclamation"></i> No vendor bindings found for this item — it will be skipped.
-        </div>
+          <div class="col-info">
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom: 2px;">
+              <span style="background:#044a78; color:white; border-radius:4px; padding:1px 6px; font-size:9px; font-weight:700;"><%= ci.typeKey %></span>
+              <span style="background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 800;">Shortage: <%= ci.shortage %></span>
+            </div>
+            <div style="font-size:13px; font-weight:700; color:#1e3a5f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="<%= ci.itemName %>"><%= ci.itemName %></div>
+          </div>
+          <div style="flex:1; background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:8px 15px; border-radius:6px; font-size:12px; font-weight:600;">
+            <i class="fa-solid fa-circle-exclamation" style="margin-right:8px;"></i> Skipping: No vendor binding found for this item.
+          </div>
         <% } else { %>
+          <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="itemId"   value="<%= ci._id %>">
+          <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="itemType" value="<%= ci.typeKey %>">
+          <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="shortage" value="<%= ci.shortage %>">
+          <input type="hidden" class="item-binding-id" data-idx="<%= idx %>" value="">
 
-        <!-- Hidden inputs for this item -->
-        <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="itemId"   value="<%= ci._id %>">
-        <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="itemType" value="<%= ci.typeKey %>">
-        <input type="hidden" class="item-field" data-idx="<%= idx %>" data-key="shortage" value="<%= ci.shortage %>">
-        <input type="hidden" class="item-binding-id" data-idx="<%= idx %>" value="">
+          <div class="col-info">
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom: 2px;">
+              <span style="background:#044a78; color:white; border-radius:3px; padding:1px 5px; font-size:9px; font-weight:700; text-transform:uppercase;"><%= ci.typeKey %></span>
+              <span style="background: #fee2e2; color: #dc2626; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 800;">SHORTAGE: <%= ci.shortage %></span>
+            </div>
+            <div style="font-size:13px; font-weight:700; color:#1e3a5f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="<%= ci.itemName %>"><%= ci.itemName %></div>
+          </div>
 
-        <div class="item-fields-grid">
-
-          <!-- Vendor -->
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:6px;">Select Vendor</label>
-            <select class="form-control select-tag vendor-sel" data-idx="<%= idx %>" style="width:100%;">
+          <div class="col-vendor">
+            <select class="form-control select-tag vendor-sel" data-idx="<%= idx %>" style="width:100%; height:34px; font-size:12px; border-color:#d1d5db;">
               <option value="" disabled selected hidden>Select Vendor</option>
               <% Object.values(gv).forEach(v => { %>
                 <option value="<%= v.id %>"><%= v.name %></option>
@@ -105,38 +130,27 @@
             </select>
           </div>
 
-          <!-- Coordinator -->
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:6px;">Coordinator</label>
-            <select class="form-control select-tag coord-sel" data-idx="<%= idx %>" style="width:100%;">
-              <option value="" disabled selected hidden>Select Coordinator</option>
+          <div class="col-coord">
+            <select class="form-control select-tag coord-sel" data-idx="<%= idx %>" style="width:100%; height:34px; font-size:12px; border-color:#d1d5db;">
+              <option value="" disabled selected hidden>Coord</option>
             </select>
           </div>
 
-          <!-- Location -->
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:6px;">Location</label>
-            <select class="form-control select-tag loc-sel" data-idx="<%= idx %>" style="width:100%;">
-              <option value="" disabled selected hidden>Select Location</option>
+          <div class="col-loc">
+            <select class="form-control select-tag loc-sel" data-idx="<%= idx %>" style="width:100%; height:34px; font-size:12px; border-color:#d1d5db;">
+              <option value="" disabled selected hidden>Loc</option>
             </select>
           </div>
 
-          <!-- Quantity -->
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:6px;">Quantity</label>
-            <input type="number" class="form-control qty-input" data-idx="<%= idx %>" min="1" placeholder="Qty" value="<%= ci.shortage %>" style="width:100%;">
+          <div class="col-qty">
+            <input type="number" class="form-control qty-input" data-idx="<%= idx %>" min="1" value="<%= ci.shortage %>" style="width:100%; height:34px; font-size:12px; border-color:#d1d5db; padding: 0 8px;">
           </div>
 
-          <!-- Contact (read-only) -->
-          <div>
-            <label style="font-size:12px; font-weight:600; color:#4b5563; display:block; margin-bottom:6px;">Contact</label>
-            <input type="text" class="form-control contact-disp" data-idx="<%= idx %>" placeholder="—" readonly style="width:100%; background:#f3f4f6; border-color: #d1d5db;">
+          <div class="col-contact">
+            <input type="text" class="form-control contact-disp" data-idx="<%= idx %>" readonly placeholder="—" style="width:100%; height:34px; font-size:12px; background:#f9fafb; border-color:#d1d5db; padding: 0 10px;">
           </div>
-
-        </div>
         <% } %>
-      </div>
-      <% }) %>
+      </div><% }) %>
     </div>
 
     <!-- ===== SHARED PO DETAILS ===== -->

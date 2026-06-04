@@ -100,7 +100,9 @@ async function getReorderData() {
           minQty,
           shortage: minQty - effectiveStock,
           vendors: Array.from(vendorMap[itemIdStr] || []).join(", "),
-          coordinators: Array.from(coordinatorMap[itemIdStr] || []).join(", ")
+          coordinators: Array.from(coordinatorMap[itemIdStr] || []).join(", "),
+          hasVendors: (vendorMap[itemIdStr] || new Set()).size > 0,
+          bindingPath: ({ Tape: "/fairdesk/form/vendor-item-binding/tape", PosRoll: "/fairdesk/form/vendor-item-binding/pos", Tafeta: "/fairdesk/form/vendor-item-binding/tafeta", Ttr: "/fairdesk/form/ttr-vendor-binding" })[t.typeKey] || "/fairdesk/vendor/coordinator/view"
         });
       }
     });
