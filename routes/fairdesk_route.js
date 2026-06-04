@@ -932,15 +932,24 @@ router.get("/form/labels/:name", async (req, res) => {
   try {
     const rawName = String(req.params.name || "");
     const normalizedName = rawName.trim().replace(/\s+/g, " ");
+    
+    // 1. Find the Client document
     const clientData = await Client.findOne({
       clientName: new RegExp(`^${escapeRegex(normalizedName)}$`, "i"),
-    })
-      .populate("users")
-      .lean();
+    }).lean();
 
     if (!clientData) {
       return res.status(404).json({ success: false, message: "Client not found" });
     }
+
+    // 2. Fetch all usernames associated with this client name directly from Username model
+    // This is more robust than relying on the Client.users array being perfectly in sync.
+    const users = await Username.find({
+      clientName: new RegExp(`^${escapeRegex(normalizedName)}$`, "i")
+    }).lean();
+
+    // 3. Attach users to clientData and return
+    clientData.users = users;
 
     res.status(200).json(clientData);
   } catch (err) {

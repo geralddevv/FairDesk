@@ -83,7 +83,7 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 /* STATIC FILES */
 app.use(express.static(path.join(dir_name, "public"), { maxAge: "1d" }));
 app.use("/bootstrap", express.static(dir_name + "/node_modules/bootstrap/dist", { maxAge: "1d" }));
-app.use("/images", express.static("images", { maxAge: "1d" }));
+app.use("/images", express.static(path.join(dir_name, "images"), { maxAge: "1d" }));
 
 /* Image Thumbnail Route (Compression) */
 app.get("/images/thumb/:folder/:filename", async (req, res) => {

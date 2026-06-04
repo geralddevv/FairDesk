@@ -363,15 +363,19 @@
   }
 </style>
 
-<script>
-  // Inject data safely using DOM elements for valid IDE linting
-  const orderDataEl = document.createElement('textarea');
-  orderDataEl.value = `<%- typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>`;
-  const orderToEdit = JSON.parse(orderDataEl.value || 'null');
+</script>
 
-  const stockDataEl = document.createElement('textarea');
-  stockDataEl.value = `<%- typeof stockInfo !== 'undefined' && stockInfo ? JSON.stringify(stockInfo) : 'null' %>`;
-  const stockInfo = JSON.parse(stockDataEl.value || 'null');
+<script type="application/json" id="order-to-edit-data">
+  <%- typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>
+</script>
+<script type="application/json" id="stock-info-data">
+  <%- typeof stockInfo !== 'undefined' && stockInfo ? JSON.stringify(stockInfo) : 'null' %>
+</script>
+
+<script>
+  // Safe JSON extraction
+  const orderToEdit = JSON.parse(document.getElementById('order-to-edit-data')?.textContent || 'null');
+  const stockInfo = JSON.parse(document.getElementById('stock-info-data')?.textContent || 'null');
 
   const confirmModeStr = `<%= typeof confirmMode !== 'undefined' && confirmMode ? 'true' : 'false' %>`;
   const confirmMode = confirmModeStr === 'true';
@@ -500,11 +504,25 @@
 
   function setChoiceValue(choicesInstance, selectEl, rawValue) {
     if (!choicesInstance) return false;
-    const resolvedValue = resolveSelectValue(selectEl, rawValue);
-    if (!resolvedValue) return false;
-    choicesInstance.setChoiceByValue(resolvedValue);
-    if (selectEl) selectEl.value = resolvedValue;
-    return true;
+    const target = normalizeLookupText(rawValue);
+    if (!target) return false;
+
+    // Try setting by value directly first (best for IDs)
+    try {
+      choicesInstance.setChoiceByValue(target);
+      if (selectEl) selectEl.value = target;
+      if (choicesInstance.getValue(true) === target) return true;
+    } catch (_) {}
+
+    // Fallback to label/value resolution
+    const resolvedValue = resolveSelectValue(selectEl, target);
+    if (resolvedValue) {
+      choicesInstance.setChoiceByValue(resolvedValue);
+      if (selectEl) selectEl.value = resolvedValue;
+      return true;
+    }
+
+    return false;
   }
 
   let currentSourceLocation = "";
@@ -592,18 +610,34 @@
     }
   }
 
-  // Load clients filtered by item type
-  async function loadClients(itemType) {
+  // Load clients filtered by item type with an optional target to ensure it exists
+  async function loadClients(itemType, targetToKeep = null) {
+    if (!itemType) return;
+    console.log(`DEBUG: loading clients for ${itemType}, keeping ${targetToKeep || "none"}`);
+    
     clientChoices.clearStore();
     clientChoices.setChoices([{ value: "", label: "Loading...", disabled: true, selected: true }], "value", "label", true);
     resetUsers();
+    
     try {
       const res = await fetch(`/fairdesk/sales/clients/${itemType}`);
       const clientNames = await res.json();
+      
+      const finalNames = [...clientNames];
+      if (targetToKeep && !finalNames.some(n => normalizeLookupText(n) === normalizeLookupText(targetToKeep))) {
+         console.log(`DEBUG: Adding ${targetToKeep} to the filtered list.`);
+         finalNames.push(targetToKeep);
+      }
+      finalNames.sort();
+
       clientChoices.clearStore();
       clientChoices.setChoices(
-        [{ value: "", label: "Select Client", disabled: true, selected: true },
-         ...clientNames.map(name => ({ value: name, label: name }))],
+        [{ value: "", label: "Select Client", disabled: true, selected: !targetToKeep },
+         ...finalNames.map(name => ({ 
+           value: name, 
+           label: name, 
+           selected: normalizeLookupText(name) === normalizeLookupText(targetToKeep) 
+         }))],
         "value", "label", true
       );
     } catch (err) {
@@ -616,6 +650,7 @@
   // Load users when client changes
   async function loadUsers(clientName, targetUserId = null, targetItemId = null) {
     if (!clientName) return;
+    console.log(`DEBUG: loading users for ${clientName}, targetUser=${targetUserId}`);
 
     userChoices.clearStore();
     userChoices.setChoices([{ value: "", label: "Loading...", disabled: true, selected: true }], "value", "label", true);
@@ -624,11 +659,11 @@
 
     try {
       const res = await fetch(`/fairdesk/form/labels/${encodeURIComponent(clientName)}`);
-      const data = await res.json();
-      const users = data.users || [];
+      const clientData = await res.json();
+      const users = clientData?.users || [];
 
       const choicesArray = users.map(user => ({
-        value: user._id,
+        value: String(user._id),
         label: user.userName,
         selected: String(user._id) === String(targetUserId) || (users.length === 1 && !targetUserId),
         customProperties: {
@@ -646,20 +681,21 @@
         true
       );
 
-      // Auto-select logic
+      // Explicitly set value to trigger downstream
+      let selectedUser = null;
       if (targetUserId) {
-        const selected = users.find(u => String(u._id) === String(targetUserId));
-        if (selected) {
-          setChoiceValue(userChoices, userSelect, targetUserId);
-          userNameHidden.value = selected.userName || "";
-          setLocationFromUser(selected);
-          await loadItems(targetItemId, targetUserId);
-        }
+        selectedUser = users.find(u => String(u._id) === String(targetUserId));
       } else if (users.length === 1) {
-        setChoiceValue(userChoices, userSelect, users[0]._id);
-        userNameHidden.value = users[0].userName;
-        setLocationFromUser(users[0]);
-        await loadItems(null, users[0]._id);
+        selectedUser = users[0];
+      }
+
+      if (selectedUser) {
+        const uid = String(selectedUser._id);
+        userChoices.setChoiceByValue(uid);
+        if (userSelect) userSelect.value = uid;
+        userNameHidden.value = selectedUser.userName || "";
+        setLocationFromUser(selectedUser);
+        await loadItems(targetItemId, uid);
       }
     } catch (err) {
       console.error("Failed to load users:", err);
@@ -1409,141 +1445,74 @@
     let userId = normalizeLookupText(params.get("user"));
     let itemId = normalizeLookupText(params.get("item"));
 
+    console.log("DEBUG URL Params:", { type, client, userId, itemId });
+
     // Fallback to orderToEdit if params are missing (Robust Prefill)
     if (orderToEdit) {
       console.log("DEBUG: Processing orderToEdit prefill...");
       if (!type) type = inferSalesOrderType(orderToEdit);
       if (!client && orderToEdit.userId && orderToEdit.userId.clientName) client = normalizeLookupText(orderToEdit.userId.clientName);
       if (!userId && orderToEdit.userId && orderToEdit.userId._id) userId = String(orderToEdit.userId._id);
-      // Check if tapeBinding is populated or ID
-      if (!itemId && orderToEdit.tapeBinding && orderToEdit.tapeBinding._id) itemId = String(orderToEdit.tapeBinding._id);
-      else if (!itemId && orderToEdit.tapeBinding) itemId = String(orderToEdit.tapeBinding);
+      
+      // Resolve Item ID from populated fields or raw ID
+      if (!itemId) {
+        if (orderToEdit.tapeBinding && orderToEdit.tapeBinding._id) itemId = String(orderToEdit.tapeBinding._id);
+        else if (orderToEdit.tapeBinding) itemId = String(orderToEdit.tapeBinding);
+      }
     }
 
+    // 1. Handle Type Prefill
+    if (type) {
+      console.log(`DEBUG: Setting type ${type}`);
+      setChoiceValue(itemTypeChoices, itemTypeSelect, type);
+      await loadClients(type, client); // Pass client here to ensure it's not filtered out
+    }
+
+    // 2. Handle Client & Downstream Prefill
+    if (client) {
+      const decodedClient = normalizeLookupText(client);
+      console.log(`DEBUG: Prefilling client ${decodedClient}`);
+
+      const success = setChoiceValue(clientChoices, clientSelect, decodedClient);
+      if (success) {
+        const selectedValue = resolveSelectValue(clientSelect, decodedClient);
+        await loadUsers(selectedValue, userId || null, itemId || null);
+      } else {
+        // Force attempt user load if client was provided
+        await loadUsers(decodedClient, userId || null, itemId || null);
+      }
+    } else if (orderToEdit && orderToEdit.userId && orderToEdit.userId.clientName) {
+        // Final fallback for edit mode without URL params
+        const editClient = normalizeLookupText(orderToEdit.userId.clientName);
+        await loadUsers(editClient, userId || null, itemId || null);
+    }
+
+    // 3. Handle Order Details Prefill (Edit Mode Only)
     if (orderToEdit && !confirmMode) {
-      const orderUser = orderToEdit.userId || {};
-      const orderItem = orderToEdit.tapeId || {};
-      const orderBinding = orderToEdit.tapeBinding || {};
-      const orderType = type || inferSalesOrderType(orderToEdit);
-      const orderClient = client || orderUser.clientName || "";
-      const orderUserId = userId || String(orderUser._id || "");
-      const orderItemId = itemId || String(orderBinding._id || orderBinding || "");
-
-      if (orderType) setChoiceValue(itemTypeChoices, itemTypeSelect, orderType);
-
-      if (orderClient) {
-        clientChoices.clearStore();
-        clientChoices.setChoices([{ value: orderClient, label: orderClient, selected: true }], "value", "label", true);
-        setChoiceValue(clientChoices, clientSelect, orderClient);
-      }
-
-      if (orderUserId) {
-        userChoices.clearStore();
-        userChoices.setChoices([{
-          value: orderUserId,
-          label: orderUser.userName || "User",
-          selected: true,
-          customProperties: {
-            name: orderUser.userName || "User",
-            location: orderUser.userLocation || "",
-            locationDetails: Array.isArray(orderUser.locationDetails) ? orderUser.locationDetails : [],
-          },
-        }], "value", "label", true);
-        setChoiceValue(userChoices, userSelect, orderUserId);
-        userNameHidden.value = orderUser.userName || "";
-      }
-
-      setLocationFromUser(orderUser, orderToEdit.sourceLocation || orderUser.userLocation || "");
-
-      let itemLabel = "Item";
-      if (orderItem.tapePaperCode) itemLabel = `${orderItem.tapePaperCode} ${orderItem.tapeGsm || ""}gsm`.trim();
-      else if (orderItem.posPaperCode) itemLabel = `${orderItem.posPaperCode} ${orderItem.posGsm || ""}gsm`.trim();
-      else if (orderItem.tafetaMaterialCode) itemLabel = `${orderItem.tafetaMaterialCode} ${orderItem.tafetaGsm || ""}gsm`.trim();
-      else if (orderItem.ttrProductId) {
-        const parts = [
-          orderItem.ttrType,
-          orderItem.ttrWidth ? `${orderItem.ttrWidth}mm` : null,
-          orderItem.ttrMtrs ? `x ${orderItem.ttrMtrs}m` : null,
-        ].filter(Boolean);
-        itemLabel = parts.join(" ") || orderItem.ttrProductId;
-      } else if (orderItem.labelWidth) {
-        itemLabel = `${orderItem.labelWidth}x${orderItem.labelHeight}`;
-      }
-
-      const detailsObj = {
-        type: orderType,
-        productId: orderItem.tapeProductId || orderItem.posProductId || orderItem.tafetaProductId || orderItem.ttrProductId || "",
-        paperCode: orderItem.tapePaperCode || orderItem.posPaperCode || "",
-        materialCode: orderItem.tafetaMaterialCode || orderItem.ttrMaterialCode || "",
-        gsm: orderItem.tapeGsm || orderItem.posGsm || orderItem.tafetaGsm || "",
-        paperType: orderItem.tapePaperType || orderItem.posPaperType || "",
-        materialType: orderItem.tafetaMaterialType || "",
-        finish: orderItem.tapeFinish || "",
-        color: orderItem.posColor || orderItem.tafetaColor || orderItem.ttrColor || "",
-        width: orderItem.tapeWidth || orderItem.posWidth || orderItem.tafetaWidth || orderItem.ttrWidth || orderItem.labelWidth || "",
-        mtrs: orderItem.tapeMtrs || orderItem.posMtrs || orderItem.tafetaMtrs || orderItem.ttrMtrs || "",
-        coreId: orderItem.tapeCoreId || orderItem.posCoreId || orderItem.tafetaCoreId || orderItem.ttrCoreId || "",
-        coreLength: orderItem.tafetaCoreLen || orderItem.ttrCoreLength || "",
-        notch: orderItem.tafetaNotch || orderItem.ttrNotch || "",
-        winding: orderItem.ttrWinding || "",
-        inkFace: orderItem.ttrInkFace || "",
-        adhesiveGsm: orderItem.tapeAdhesiveGsm || "",
-        minQty: orderBinding.tapeMinQty || orderBinding.posMinQty || orderBinding.tafetaMinQty || orderBinding.ttrMinQty || "",
-        clientPaperCode: orderBinding.tapeClientPaperCode || orderBinding.posClientPaperCode || "",
-        clientMaterialCode: orderBinding.tafetaClientMaterialCode || orderBinding.ttrClientMaterialCode || "",
-        clientGsm: orderBinding.clientTapeGsm || orderBinding.clientPosGsm || orderBinding.clientTafetaGsm || "",
-        clientType: orderBinding.clientTtrType || "",
-        clientMaterialType: orderBinding.tafetaClientMaterialType || "",
-      };
-
-      itemChoices.clearStore();
-      itemChoices.setChoices([{
-        value: orderItemId,
-        label: itemLabel,
-        selected: true,
-        customProperties: {
-          stock: stockInfo ? JSON.stringify(stockInfo) : JSON.stringify({ totalStock: 0, booked: 0, balance: 0, locations: [] }),
-          details: JSON.stringify(detailsObj),
-          minQty: orderBinding.tapeMinQty || orderBinding.posMinQty || orderBinding.tafetaMinQty || orderBinding.ttrMinQty || 0,
-          rate: orderBinding.tapeRatePerRoll ?? orderBinding.posRatePerRoll ?? orderBinding.tafetaRatePerRoll ?? orderBinding.ttrRatePerRoll ?? null,
-        },
-      }], "value", "label", true);
-      setChoiceValue(itemChoices, itemSelect, orderItemId);
-
-      await updateStockDisplay();
-      if (orderToEdit.sourceLocation) {
-        syncSourceLocation(orderToEdit.sourceLocation);
-        selectStockLocation(orderToEdit.sourceLocation);
-      }
-
+      console.log("DEBUG: Setting specific order fields...");
       if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
+      
       if (orderRateInput && typeof orderToEdit.orderRate !== "undefined" && orderToEdit.orderRate !== null) {
         orderRateInput.value = String(orderToEdit.orderRate);
         orderRateInput.dataset.fromOrder = "true";
       }
+      
       if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
       if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
+      
       if (orderToEdit.estimatedDate) {
         const d = new Date(orderToEdit.estimatedDate);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        estimatedDateInput.value = `${yyyy}-${mm}-${dd}`;
+        estimatedDateInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       }
-
+      
+      // Ensure all fields are enabled for editing
       itemTypeChoices?.enable();
       clientChoices?.enable();
       userChoices?.enable();
       itemChoices?.enable();
       locationChoices?.enable();
-      quantityInput.readOnly = false;
-      poNumberInput.readOnly = false;
-      if (orderRateInput) orderRateInput.readOnly = false;
-      estimatedDateInput.readOnly = false;
-      remarksInput.readOnly = false;
-
-      return;
     }
+
 
     // ==========================================
     // CONFIRM MODE OPTIMIZATION (INSTANT LOAD)
@@ -1642,6 +1611,7 @@
                   : null
              }
           }], "value", "label", true);
+          setChoiceValue(itemChoices, itemSelect, itemId);
 
           // 4. Update Stock Display
           await updateStockDisplay();
@@ -1715,55 +1685,7 @@
       }
     }
 
-    if (type) {
-      await loadClients(type);
-      setChoiceValue(itemTypeChoices, itemTypeSelect, type);
-    }
-
-    if (client) {
-      const decodedClient = normalizeLookupText(client);
-      const selectedClient = setChoiceValue(clientChoices, clientSelect, decodedClient)
-        ? resolveSelectValue(clientSelect, decodedClient)
-        : decodedClient;
-
-      if (selectedClient) {
-        await loadUsers(selectedClient, userId || null, itemId || null);
-      }
-    }
-
-    // Pre-fill specific order fields if editing (STANDARD MODE)
-    if (orderToEdit && !confirmMode) {
-      if (orderToEdit.poNumber) poNumberInput.value = orderToEdit.poNumber;
-      if (orderRateInput && typeof orderToEdit.orderRate !== "undefined" && orderToEdit.orderRate !== null) {
-        orderRateInput.value = String(orderToEdit.orderRate);
-        orderRateInput.dataset.fromOrder = "true";
-      }
-         if (orderToEdit.userId?.userLocation || orderToEdit.sourceLocation) {
-           setLocationFromUser(orderToEdit.userId, orderToEdit.sourceLocation || orderToEdit.userId?.userLocation || "");
-         }
-      if (orderToEdit.quantity) quantityInput.value = orderToEdit.quantity;
-      if (orderToEdit.remarks) remarksInput.value = orderToEdit.remarks;
-      if (orderToEdit.estimatedDate) {
-        // Format date to YYYY-MM-DD
-        const d = new Date(orderToEdit.estimatedDate);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        estimatedDateInput.value = `${yyyy}-${mm}-${dd}`;
-      }
-
-      // Keep edit-order page fully editable.
-      itemTypeChoices?.enable();
-      clientChoices?.enable();
-      userChoices?.enable();
-      itemChoices?.enable();
-      locationChoices?.enable();
-      quantityInput.readOnly = false;
-      poNumberInput.readOnly = false;
-      if (orderRateInput) orderRateInput.readOnly = false;
-      estimatedDateInput.readOnly = false;
-      remarksInput.readOnly = false;
-    }
+    // End of Load Handler
 
 
   });
