@@ -471,7 +471,9 @@ router.use((req, res, next) => {
 
   if (hasSalesAccess) {
     const path = req.path || "";
+
     if (path.startsWith("/sales/")) return next();
+    if (path === "/stocks/view" || path === "/pettycash/view" || path === "/pettycash/create") return next();
 
     // Explicitly allowed GET routes for Sales
     const allowedGetRoutes = [
@@ -487,6 +489,8 @@ router.use((req, res, next) => {
       "/form/pos-roll-binding",
       "/form/tafeta-binding",
       "/form/ttr-binding",
+      "/stocks/view",
+      "/pettycash/view",
     ];
 
     const allowedGetPatterns = [
@@ -512,16 +516,17 @@ router.use((req, res, next) => {
       /^\/form\/pos-roll-binding$/,
       /^\/form\/tafeta-binding$/,
       /^\/form\/ttr-binding$/,
+      /^\/pettycash\/create$/,
     ];
 
     if (req.method === "GET") {
       const normalizedPath = path.toLowerCase().replace(/\/$/, "");
       
       // Explicit keyword matches for resilience
-      const keywords = ["master/view", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor"];
+      const keywords = ["master/view", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor", "stocks", "pettycash"];
       if (keywords.some(k => normalizedPath.includes(k))) return next();
 
-      if (allowedGetRoutes.includes(path) || allowedGetPatterns.some((re) => re.test(path))) {
+      if (allowedGetRoutes.includes(normalizedPath) || allowedGetPatterns.some((re) => re.test(path))) {
         return next();
       }
     }

@@ -404,25 +404,27 @@ app.post("/fairdesk/profile/password", requireAuth, async (req, res) => {
 
 app.use("/fairdesk/loan", requireAuth, requireRole(["admin", "hr"]), loanRoute);
 app.use("/fairdesk/advance", requireAuth, requireRole(["admin", "hr"]), advanceRoute);
-app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr"]), employeeRoute);
-app.use("/fairdesk/pettycash", requireAuth, requireRole(["admin", "hr"]), pettycashRoute);
+app.use("/fairdesk/employee", requireAuth, requireRole(["admin", "hr", "sales"]), employeeRoute);
+app.use("/fairdesk/pettycash", requireAuth, requireRole(["admin", "hr", "sales"]), pettycashRoute);
 
 
 
 app.use("/fairdesk/client", requireAuth, requireRole(["admin", "hod", "sales", "master"]), clientFormRoute);
+
+
 
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales", "hr"]), fairdeskRoute);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), tapeBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), posRollBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaBindingRoutes);
 app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), ttrBindingRoutes);
-app.use("/fairdesk", requireAuth, requireRole(["admin", "hod"]), vendorItemBindingRoutes);
+app.use("/fairdesk", requireAuth, requireRole(["admin", "hod", "sales"]), vendorItemBindingRoutes);
 app.use("/fairdesk/tapestock", requireAuth, requireRole(["admin", "hod", "sales"]), tapeStockRoutes);
 app.use("/fairdesk/posrollstock", requireAuth, requireRole(["admin", "hod", "sales"]), posRollStockRoutes);
 app.use("/fairdesk/tafetastock", requireAuth, requireRole(["admin", "hod", "sales"]), tafetaStockRoutes);
 app.use("/fairdesk/ttrstock", requireAuth, requireRole(["admin", "hod", "sales"]), ttrStockRoutes);
 app.use("/fairdesk/stocks", requireAuth, requireRole(["admin", "hod", "sales"]), stockViewRoutes);
-app.use("/fairdesk/inventory", requireAuth, requireRole(["admin", "hod"]), reorderRoutes);
+app.use("/fairdesk/inventory", requireAuth, requireRole(["admin", "hod", "sales"]), reorderRoutes);
 
 
 /* 404 */

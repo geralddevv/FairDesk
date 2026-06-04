@@ -632,7 +632,7 @@
         <% const permissions = authUser && authUser.permissions ? authUser.permissions : {}; %>
         
         <% const canView = isAdmin || isHod || isSales || permissions.master; %>
-        <% const canStock = isAdmin || isHod || permissions.inventory || isSales; %>
+        <% const canStock = isAdmin || isHod || isSales || permissions.inventory; %>
         <% const canOrders = isAdmin || isHod || permissions.sales || isSales; %>
         <% const canAccounting = isAdmin || isHr || permissions.accounting; %>
         <% const canHr = isAdmin || isHr || permissions.hr; %>
@@ -944,12 +944,13 @@
 
         <% if (canStock) { %>
         <div class="nav-opt-wrap">
-          <div title="Orders" class="view-toggle nav-items">
+          <div title="Stocks" class="view-toggle nav-items">
             <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
             <p class="nav-items-para">Stocks</p>
           </div>
 
           <div class="nav-labels-opt">
+            <% if ((isAdmin || isHod || permissions.inventory) && !isSales) { %>
             <div title="Tape Stock" class="<%= title === 'Tape Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tapestock'" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
@@ -966,6 +967,13 @@
               <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
               <p class="nav-items-para">TTR</p>
             </div>
+            <% } %>
+            <% if (isSales) { %>
+            <div title="Stock Summary" class="<%= title === 'Stock View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/stocks/view'" style="border-bottom: 2px solid #ffffff9d; border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-table-list" style="color: #ffffff"></i>
+              <p class="nav-items-para">Stock Summary</p>
+            </div>
+            <% } %>
           </div>
         </div>
         <% } %>
@@ -982,10 +990,31 @@
               <i class="fa-solid fa-cart-plus" style="color: #ffffff"></i>
               <p class="nav-items-para">Sales Order</p>
             </div>
-            <div title="Pending Orders" class="<%= title === 'Pending Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/pending'" style="border-bottom: 2px solid #ffffff9d">
+            <div title="Pending Orders" class="<%= title === 'Pending Orders' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/sales/pending'" <%= isSales ? '' : 'style="border-bottom: 2px solid #ffffff9d"' %>>
               <i class="fa-solid fa-clock-rotate-left" style="color: #ffffff"></i>
-            <p class="nav-items-para">Pending Orders</p>
-          </div>  
+              <p class="nav-items-para">Pending Orders</p>
+            </div>
+
+
+          </div>
+        </div>
+        <% } %>
+
+        <% if (isSales) { %>
+        <div class="nav-opt-wrap">
+          <div title="HR" class="view-toggle nav-items">
+            <i class="fa-solid fa-square-caret-down" style="color: #ffffff"></i>
+            <p class="nav-items-para">HR</p>
+          </div>
+          <div class="nav-labels-opt">
+            <div title="Add Petty Cash" class="<%= title === 'Petty Cash' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pettycash/create'" style="border-top: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-plus-square" style="color: #ffffff"></i>
+              <p class="nav-items-para">Add Petty Cash</p>
+            </div>
+            <div title="Petty Cash" class="<%= title === 'Petty Cash View' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/pettycash/view'" style="border-bottom: 2px solid #ffffff9d;">
+              <i class="fa-solid fa-money-bill-1" style="color: #ffffff"></i>
+              <p class="nav-items-para">Petty Cash</p>
+            </div>
           </div>
         </div>
         <% } %>
