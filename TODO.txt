@@ -45,3 +45,9 @@ Booked in pending stock page
 multiple po (purchase) should not be created for a specific item
 
 show mtrs and width in the vendor details item page
+
+5/06
+add option to add items in others (spell check) vendors and add also tape
+client type in ttr details view and client data in details view
+
+ask: add select in the others field in vendor create

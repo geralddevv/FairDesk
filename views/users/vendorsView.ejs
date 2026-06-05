@@ -207,15 +207,14 @@
   const table = new Tabulator("#master-table", {
     data: tableData,
     height: "100%",
-    layout: "fitColumns",
+    // layout: "fitColumns",
     initialSort: [{ column: "vendorName", dir: "asc" }],
 
     columns: [
       withTextFilter({
         title: "Vendor Name",
         field: "vendorName",
-        minWidth: 240,
-
+        headerSort: true,
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const hasUsers = Number(row.userCount || 0) > 0;
@@ -245,19 +244,26 @@
         hozAlign: "center",
         headerHozAlign: "center",
         width: 110,
+        headerSort: true,
         sorter: "number",
         formatter: (cell) => Number(cell.getValue() || 0),
       }),
-      withTextFilter({ title: "H/O Location", field: "hoLocation" }),
-      withTextFilter({ title: "Warehouse Location", field: "warehouseLocation" }),
+      withTextFilter({ title: "H/O Location", field: "hoLocation", headerSort: true }),
+      withTextFilter({ title: "Warehouse Location", field: "warehouseLocation", headerSort: true }),
       withTextFilter({
         title: "Commodities",
         field: "commodities",
+        headerSort: true,
         formatter: (cell) => formatCommodityValue(cell.getValue()),
+        sorter: (a, b) => {
+          const strA = formatCommodityValue(a);
+          const strB = formatCommodityValue(b);
+          return strA.localeCompare(strB);
+        },
       }),
-      withTextFilter({ title: "GST", field: "vendorGst" }),
-      withTextFilter({ title: "MSME", field: "vendorMsme" }),
-      withTextFilter({ title: "PAN", field: "vendorPan" }),
+      withTextFilter({ title: "GST", field: "vendorGst", headerSort: true }),
+      withTextFilter({ title: "MSME", field: "vendorMsme", headerSort: true }),
+      withTextFilter({ title: "PAN", field: "vendorPan", headerSort: true }),
     ],
   });
 

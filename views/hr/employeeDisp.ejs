@@ -139,7 +139,7 @@
       table = new Tabulator("#master-table", {
         data: tableData,
         height: "100%",
-        layout: "fitColumns",
+        // layout: "fitColumns",
         columnMinWidth: 120,
         resizableColumns: true,
         movableColumns: true,
@@ -202,7 +202,7 @@
               const data = cell.getRow().getData();
               const hasPhoto = !isMissingValue(data.empPhoto);
               return `
-                <i class="fa-solid fa-image" 
+                <i class="fa-solid fa-image"
                    style="font-size:16px;color:${hasPhoto ? '#044A78' : '#94a3b8'}">
                 </i>
               `;

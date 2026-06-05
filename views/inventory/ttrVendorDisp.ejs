@@ -90,8 +90,9 @@
   <script id="table-data" type="application/json"><%- safeJson(jsonData || []) %></script>
   <script>
     const tableData = JSON.parse(document.getElementById('table-data').textContent);
+    const hideExtraColumns = <%- JSON.stringify(!!locals.hideExtraColumns) %>;
 
-    console.log(tableData);
+    console.log("Hide Extra Columns:", hideExtraColumns);
 
     let bindingToDelete = "";
     const deleteForm = document.getElementById("deleteBindingForm");
@@ -123,86 +124,98 @@
       deleteForm.submit();
     });
 
+    const columns = [];
+    if (!hideExtraColumns) {
+      columns.push({
+        title: "Action",
+        hozAlign: "center",
+        headerHozAlign: "center",
+        width: 132,
+        minWidth: 132,
+        widthGrow: 0,
+        widthShrink: 0,
+        formatter: function (cell) {
+          const row = cell.getRow().getData();
+          if (!row._id) return `<span style="color:#999">N/A</span>`;
+          return `
+            <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:0 1px;">
+              <button 
+                onclick="window.location.href='/fairdesk/ttr-vendor/compare/${row._id}'"
+                style="padding:2px 8px;min-width:30px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="View Binding">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button
+                onclick="window.location.href='/fairdesk/ttr-vendor-binding/edit/${row._id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}'"
+                style="padding:2px 8px;min-width:30px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Edit Binding">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button
+                onclick="promptDeleteBinding('${row._id}')"
+                style="padding:2px 8px;min-width:30px;background:#d9534f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Remove Binding">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          `;
+        }
+      });
+    }
+
+    columns.push(
+      {
+        title: "Status",
+        field: "status",
+        hozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Filter",
+        formatter: function (cell) {
+          const val = cell.getValue() || "ACTIVE";
+          const isActive = val === "ACTIVE";
+          const bg = isActive ? "#28a745" : "#dc3545";
+          return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${val}</span>`;
+        }
+      }
+    );
+
+    if (!hideExtraColumns) {
+      columns.push({
+        title: "Stock",
+        field: "stock",
+        hozAlign: "center",
+        formatter: (cell) => {
+          const stock = cell.getValue() ?? "-";
+          return `<span style="font-weight:600">${stock}</span>`;
+        }
+      });
+    }
+
+    columns.push(
+      { title: "Sample ID", field: "sampleId", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Vendor", field: "vendorName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Coordinator", field: "userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
+
+      { title: "Location", field: "location", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Width", field: "ttrWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Mtrs", field: "ttrMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "FS Type", field: "ttrType", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Vendor Type", field: "vendorTtrType", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "FS Color", field: "ttrColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Vendor Color", field: "vendorTtrColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "FS Code", field: "ttrMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Vendor Code", field: "vendorTtrMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Minimum Qty", field: "ttrMinQty" },
+    );
+
     const table = new Tabulator("#master-table", {
       data: tableData,
       height: "100%",
-      layout: "fitColumns",
+      // layout: "fitColumns",
       responsiveLayout: false,
       movableColumns: true,
       placeholder: "No data to display",
-      columns: [
-        {
-          title: "Action",
-          hozAlign: "center",
-          headerHozAlign: "center",
-          width: 132,
-          minWidth: 132,
-          widthGrow: 0,
-          widthShrink: 0,
-          formatter: function (cell) {
-            const row = cell.getRow().getData();
-            if (!row._id) return `<span style="color:#999">N/A</span>`;
-            return `
-              <div style="display:flex;align-items:center;justify-content:center;gap:6px;padding:0 1px;">
-                <button 
-                  onclick="window.location.href='/fairdesk/ttr-vendor/compare/${row._id}'"
-                  style="padding:2px 8px;min-width:30px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
-                  title="View Binding">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
-                <button
-                  onclick="window.location.href='/fairdesk/ttr-vendor-binding/edit/${row._id}?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}'"
-                  style="padding:2px 8px;min-width:30px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
-                  title="Edit Binding">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                <button
-                  onclick="promptDeleteBinding('${row._id}')"
-                  style="padding:2px 8px;min-width:30px;background:#d9534f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
-                  title="Remove Binding">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            `;
-          }
-        },
-        {
-          title: "Status",
-          field: "status",
-          hozAlign: "center",
-          headerFilter: "input",
-          headerFilterPlaceholder: "Filter",
-          formatter: function (cell) {
-            const val = cell.getValue() || "ACTIVE";
-            const isActive = val === "ACTIVE";
-            const bg = isActive ? "#28a745" : "#dc3545";
-            return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${val}</span>`;
-          }
-        },
-        {
-          title: "Stock",
-          field: "stock",
-          hozAlign: "center",
-          formatter: (cell) => {
-            const stock = cell.getValue() ?? "-";
-            return `<span style="font-weight:600">${stock}</span>`;
-          }
-        },        
-        { title: "Sample ID", field: "sampleId", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Vendor", field: "vendorName", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Coordinator", field: "userName", headerFilter: "input", headerFilterPlaceholder: "Search" },
-
-        { title: "Location", field: "location", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Width", field: "ttrWidth", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs", field: "ttrMtrs", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "FS Type", field: "ttrType", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Vendor Type", field: "vendorTtrType", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "FS Color", field: "ttrColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Vendor Color", field: "vendorTtrColor", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "FS Code", field: "ttrMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Vendor Code", field: "vendorTtrMaterialCode", headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Minimum Qty", field: "ttrMinQty" },
-      ]
+      columns: columns
     });
 
     const selector = document.getElementById("downloadSelector");

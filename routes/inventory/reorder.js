@@ -52,20 +52,23 @@ async function getReorderData() {
 
     // Fetch Bindings for Vendor/Coordinator info
     const bindings = await t.bindingModel.find({ [t.refField]: { $in: itemIds } })
-      .populate("vendorUserId", "vendorName userName")
+      .populate("vendorUserId", "vendorName userName userLocation")
       .lean();
 
     const vendorMap = {};
     const coordinatorMap = {};
+    const locationMap = {};
 
     bindings.forEach(b => {
       const itemId = b[t.refField].toString();
       if (!vendorMap[itemId]) vendorMap[itemId] = new Set();
       if (!coordinatorMap[itemId]) coordinatorMap[itemId] = new Set();
+      if (!locationMap[itemId]) locationMap[itemId] = new Set();
 
       if (b.vendorUserId) {
         if (b.vendorUserId.vendorName) vendorMap[itemId].add(b.vendorUserId.vendorName);
         if (b.vendorUserId.userName) coordinatorMap[itemId].add(b.vendorUserId.userName);
+        if (b.vendorUserId.userLocation) locationMap[itemId].add(b.vendorUserId.userLocation);
       }
     });
 
@@ -101,6 +104,7 @@ async function getReorderData() {
           shortage: minQty - effectiveStock,
           vendors: Array.from(vendorMap[itemIdStr] || []).join(", "),
           coordinators: Array.from(coordinatorMap[itemIdStr] || []).join(", "),
+          locations: Array.from(locationMap[itemIdStr] || []).join(", "),
           hasVendors: (vendorMap[itemIdStr] || new Set()).size > 0,
           bindingPath: ({ Tape: "/fairdesk/form/vendor-item-binding/tape", PosRoll: "/fairdesk/form/vendor-item-binding/pos", Tafeta: "/fairdesk/form/vendor-item-binding/tafeta", Ttr: "/fairdesk/form/ttr-vendor-binding" })[t.typeKey] || "/fairdesk/vendor/coordinator/view"
         });

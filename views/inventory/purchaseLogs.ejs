@@ -80,7 +80,7 @@
   const logsData = rawLogsData.map((log) => {
     const order = log.orderId || {};
     const vendor = order.vendorUserId || {};
-    
+
     const performedAtDate = log.performedAt ? new Date(log.performedAt) : null;
     const performedAtText = performedAtDate && !Number.isNaN(performedAtDate.getTime())
       ? performedAtDate.toLocaleDateString("en-IN") + " " + performedAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
@@ -102,7 +102,7 @@
 
   const table = new Tabulator("#master-table", {
     data: logsData,
-    layout: "fitColumns",
+    // layout: "fitColumns",
     responsiveLayout: false,
     movableColumns: true,
     placeholder: "No purchase logs found",

@@ -131,6 +131,38 @@
         },
       },
       {
+        title: "B Clients",
+        field: "bindingCount",
+        hozAlign: "center",
+        headerHozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        width: 120,
+        minWidth: 100,
+        formatter: (cell) => {
+          const value = cell.getValue();
+          if (!value || value === 0) return "";
+          const row = cell.getRow().getData();
+          return `<a href="/fairdesk/ttr/master-view/clients/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
+        },
+      },
+      {
+        title: "B Vendors",
+        field: "vendorBindingCount",
+        hozAlign: "center",
+        headerHozAlign: "center",
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        width: 120,
+        minWidth: 100,
+        formatter: (cell) => {
+          const value = cell.getValue();
+          if (!value || value === 0) return "";
+          const row = cell.getRow().getData();
+          return `<a href="/fairdesk/ttr/master-view/vendors/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
+        },
+      },
+      {
         title: "Material Code",
         field: "ttrMaterialCode",
         headerFilter: "input",
@@ -177,7 +209,7 @@
     const table = new Tabulator("#master-table", {
       data: tableData,
       height: "100%",
-      layout: "fitColumns",
+      // layout: "fitColumns",
       responsiveLayout: "hide",
       movableColumns: true,
       placeholder: "No data to display",

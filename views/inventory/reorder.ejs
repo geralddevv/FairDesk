@@ -258,7 +258,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     const table = new Tabulator("#master-table", {
       data: reorderData,
-      layout: "fitColumns",
+      // layout: "fitColumns",
       placeholder: "No items need reordering",
       columns: [
         {
@@ -288,9 +288,6 @@
             ><i class='fa-solid fa-plus'></i> Add</button>`;
           },
         },
-        { title: "ID", field: "productId", width: 140, headerFilter: "input", headerFilterPlaceholder: "Filter ID..." },
-        { title: "Type", field: "type", width: 100, headerFilter: "input", headerFilterPlaceholder: "Filter type..." },
-        { title: "Item Name", field: "name", headerFilter: "input", headerFilterPlaceholder: "Filter specs..." },
         {
           title: "Vendors",
           field: "vendors",
@@ -340,6 +337,22 @@
             return `<span style="color:#374151;">${cell.getValue()}</span>`;
           },
         },
+        {
+          title: "Location",
+          field: "locations",
+          headerFilter: "input",
+          headerFilterPlaceholder: "Filter loc...",
+          formatter: (cell) => {
+            const row = cell.getRow().getData();
+            if (!row.hasVendors) {
+              return `<span style="color:#9ca3af; font-size:12px; font-style:italic;">—</span>`;
+            }
+            return `<span style="color:#374151;">${cell.getValue()}</span>`;
+          },
+        },
+        { title: "ID", field: "productId", width: 140, headerFilter: "input", headerFilterPlaceholder: "Filter ID..." },
+        { title: "Type", field: "type", width: 100, headerFilter: "input", headerFilterPlaceholder: "Filter type..." },
+        { title: "Item Name", field: "name", headerFilter: "input", headerFilterPlaceholder: "Filter specs..." },
         {
           title: "Stock",
           field: "stock",

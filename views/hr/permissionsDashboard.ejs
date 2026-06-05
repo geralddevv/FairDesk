@@ -108,7 +108,7 @@
       const canDelete = rowEl.querySelector(".mode-delete").checked;
 
       const permissions = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS['sales'];
-      
+
       // If role is none, force read/write/delete to false visually as well
       if (role === 'none') {
         rowEl.querySelector(".mode-read").checked = false;
@@ -142,7 +142,7 @@
       new Tabulator("#permissions-table", {
           data: tableData,
           height: "100%",
-          layout: "fitColumns",
+        //   layout: "fitColumns",
           resizableColumns: true,
           initialSort: [{ column: "empName", dir: "asc" }],
           initialHeaderFilter: [

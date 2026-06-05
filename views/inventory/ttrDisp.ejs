@@ -70,6 +70,7 @@
   <script>
     // Render data from Express (passed into EJS)
     const tableData = JSON.parse(document.getElementById('table-data').textContent);
+    const hideExtraColumns = <%= typeof hideExtraColumns !== 'undefined' ? hideExtraColumns : false %>;
 
     console.log(tableData);
 
@@ -80,7 +81,7 @@
     });
 
     // Initialize Tabulator
-    const fixedFieldColumns = [
+    let fixedFieldColumns = [
       { title: "Status", field: "status", hozAlign: "center", headerFilter: "input", headerFilterPlaceholder: "Search", formatter: function (cell) {
         const val = cell.getValue() || "ACTIVE";
         const isActive = val === "ACTIVE";
@@ -128,55 +129,62 @@
       withTextFilter({ title: "Credit Term", field: "ttrCreditTerm", minWidth: 95, widthGrow: 1 }),
     ];
 
+    if (hideExtraColumns) {
+      fixedFieldColumns = fixedFieldColumns.filter(col => col.title !== "Stock" && col.title !== "Order");
+    }
+
+    const columns = [];
+    if (!hideExtraColumns) {
+      columns.push({
+        title: "Actions",
+        hozAlign: "center",
+        headerHozAlign: "center",
+        width: 128,
+        minWidth: 128,
+        widthGrow: 0,
+        widthShrink: 0,
+        formatter: function (cell) {
+          const row = cell.getRow().getData();
+          const bindingId = row._id;
+          if (!bindingId) {
+            return `<span style="color:#999">N/A</span>`;
+          }
+          return `
+            <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+              <button
+                onclick="window.location.href='/fairdesk/ttr/compare/${bindingId}'"
+                style="padding:2px 6px;min-width:28px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="View Binding">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button
+                onclick="window.location.href='/fairdesk/ttr-binding/edit/${bindingId}'"
+                style="padding:2px 6px;min-width:28px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Edit Binding">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              
+              <button
+                onclick="promptDeleteBinding('${bindingId}')"
+                style="padding:2px 6px;min-width:28px;background:#d9534f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Remove Binding">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          `;
+        },
+      });
+    }
+    columns.push(...fixedFieldColumns);
+
     const table = new Tabulator("#master-table", {
       data: tableData,
       height: "100%",
-      layout: "fitColumns",
+      // layout: "fitColumns",
       responsiveLayout: false, // prevent auto-hiding of columns
       movableColumns: true,
       placeholder: "No data to display",
-      columns: [
-        {
-          title: "Actions",
-          hozAlign: "center",
-          headerHozAlign: "center",
-          width: 128,
-          minWidth: 128,
-          widthGrow: 0,
-          widthShrink: 0,
-          formatter: function (cell) {
-            const row = cell.getRow().getData();
-            const bindingId = row._id;
-            if (!bindingId) {
-              return `<span style="color:#999">N/A</span>`;
-            }
-            return `
-              <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
-                <button
-                  onclick="window.location.href='/fairdesk/ttr/compare/${bindingId}'"
-                  style="padding:2px 6px;min-width:28px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
-                  title="View Binding">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
-                <button
-                  onclick="window.location.href='/fairdesk/ttr-binding/edit/${bindingId}'"
-                  style="padding:2px 6px;min-width:28px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
-                  title="Edit Binding">
-                  <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-                
-                <button
-                  onclick="promptDeleteBinding('${bindingId}')"
-                  style="padding:2px 6px;min-width:28px;background:#d9534f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
-                  title="Remove Binding">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            `;
-          },
-        },
-        ...fixedFieldColumns,
-      ]
+      columns: columns
     });
 
     let bindingToDelete = "";

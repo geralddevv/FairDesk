@@ -415,13 +415,11 @@
 
   const table = new Tabulator("#master-table", {
     data: enrichedOrderData,
-    layout: "fitColumns",
+    // layout: "fitColumns",
     responsiveLayout: false,
     movableColumns: true,
     placeholder: "No pending orders found",
-    initialSort: [
-      { column: "createdAt", dir: "asc" },
-    ],
+    initialSort: [{ column: "createdAt", dir: "asc" }],
     columns: [
       {
         title: "Actions",
@@ -585,7 +583,7 @@
           const balance = Math.max(quantity - dispatched, 0);
           const itemId = row.tapeId?._id || row.tapeId;
           const model = row.onModel;
-          
+
           if (!itemId || !model) return val;
 
           let typeSlug = "tape";
@@ -596,7 +594,7 @@
 
           const url = `/fairdesk/${typeSlug}/profile/${itemId}`;
           const color = Number(val) < balance ? "#dc2626" : "#059669";
-          
+
           return `<a href="${url}" style="text-decoration:underline; font-weight:700; color:${color}">${val}</a>`;
         },
       },

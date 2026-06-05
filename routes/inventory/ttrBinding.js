@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import Ttr from "../../models/inventory/ttr.js";
 import TtrBinding from "../../models/inventory/ttrBinding.js";
 import Vendor from "../../models/users/vendor.js";
@@ -1179,6 +1180,134 @@ router.post("/ttr-binding/delete/:id", async (req, res) => {
     console.error("TTR BINDING DELETE ERROR:", err);
     req.flash("notification", "Failed to remove TTR binding");
     return res.redirect("back");
+  }
+});
+
+/* GET : Display all Clients bound to a TTR Master */
+router.get("/ttr/master-view/clients/:ttrId", async (req, res) => {
+  try {
+    const ttrId = req.params.ttrId;
+    const ttr = await Ttr.findById(ttrId).lean();
+    if (!ttr) {
+      req.flash("notification", "TTR Master not found");
+      return res.redirect("back");
+    }
+
+    const ttrDataRaw = await TtrBinding.find({ ttrId })
+      .populate({ path: "ttrId", model: "Ttr" })
+      .populate({ path: "userId", model: "Username" })
+      .lean();
+
+    const stockMap = {};
+    if (mongoose.Types.ObjectId.isValid(ttrId)) {
+      const stockAgg = await TtrStock.aggregate([
+        { $match: { ttr: new mongoose.Types.ObjectId(ttrId) } },
+        { $group: { _id: "$ttr", total: { $sum: "$quantity" } } },
+      ]);
+      if (stockAgg.length) {
+        stockMap[ttrId] = stockAgg[0].total;
+      }
+    }
+
+    const ttrData = ttrDataRaw.map((binding) => {
+      return {
+        ...binding,
+        stock: stockMap[ttrId] || 0,
+        productId: binding.ttrId?.ttrProductId || "",
+        ttrType: binding.ttrId?.ttrType || "",
+        ttrColor: binding.ttrId?.ttrColor || "",
+        ttrMaterialCode: binding.ttrId?.ttrMaterialCode || "",
+        ttrWidth: binding.ttrId?.ttrWidth || "",
+        ttrMtrs: binding.ttrId?.ttrMtrs || "",
+        ttrInkFace: binding.ttrId?.ttrInkFace || "",
+        ttrCoreId: binding.ttrId?.ttrCoreId || "",
+        ttrCoreLength: binding.ttrId?.ttrCoreLength || "",
+        ttrNotch: binding.ttrId?.ttrNotch || "",
+        ttrWinding: binding.ttrId?.ttrWinding || "",
+        clientName: binding.userId?.clientName || "",
+        userName: binding.userId?.userName || "",
+        userContact: binding.userId?.userContact || "",
+        location: binding.userId?.userLocation || "",
+      };
+    });
+
+    res.render("inventory/ttrDisp.ejs", {
+      jsonData: ttrData,
+      CSS: "tableDisp.css",
+      JS: false,
+      title: `Clients bound to ${ttr.ttrProductId}`,
+      clientName: "TTR Master",
+      userName: ttr.ttrProductId,
+      notification: req.flash("notification"),
+      hideExtraColumns: true,
+    });
+  } catch (err) {
+    console.error("TTR MASTER CLIENTS VIEW ERROR:", err);
+    res.redirect("back");
+  }
+});
+
+/* GET : Display all Vendors bound to a TTR Master */
+router.get("/ttr/master-view/vendors/:ttrId", async (req, res) => {
+  try {
+    const ttrId = req.params.ttrId;
+    const ttr = await Ttr.findById(ttrId).lean();
+    if (!ttr) {
+      req.flash("notification", "TTR Master not found");
+      return res.redirect("back");
+    }
+
+    const vendorTtrBindings = await VendorTtrBinding.find({ ttrId })
+      .populate("vendorUserId")
+      .populate("ttrId")
+      .lean();
+
+    const stockMap = {};
+    if (mongoose.Types.ObjectId.isValid(ttrId)) {
+      const stockAgg = await TtrStock.aggregate([
+        { $match: { ttr: new mongoose.Types.ObjectId(ttrId) } },
+        { $group: { _id: "$ttr", total: { $sum: "$quantity" } } },
+      ]);
+      if (stockAgg.length) {
+        stockMap[ttrId] = stockAgg[0].total;
+      }
+    }
+
+    const ttrData = vendorTtrBindings.map((binding) => {
+      return {
+        ...binding,
+        stock: stockMap[ttrId] || 0,
+        sampleId: binding.ttrId?.ttrProductId || "",
+        productId: binding.ttrId?.ttrProductId || "",
+        ttrType: binding.ttrId?.ttrType || "",
+        ttrColor: binding.ttrId?.ttrColor || "",
+        ttrMaterialCode: binding.ttrId?.ttrMaterialCode || "",
+        ttrWidth: binding.ttrId?.ttrWidth || "",
+        ttrMtrs: binding.ttrId?.ttrMtrs || "",
+        vendorName: binding.vendorUserId?.vendorName || "",
+        userName: binding.vendorUserId?.userName || "",
+        userContact: binding.vendorUserId?.userContact || "",
+        location: binding.vendorUserId?.userLocation || "",
+        vendorTtrMaterialCode: binding.vendorTtrMaterialCode || "",
+        vendorTtrType: binding.vendorTtrType || "",
+        vendorTtrColor: binding.vendorTtrColor || "",
+        ttrMinQty: binding.ttrMinQty ?? 0,
+        status: binding.status || "N/A",
+      };
+    });
+
+    res.render("inventory/ttrVendorDisp.ejs", {
+      jsonData: ttrData,
+      CSS: "tableDisp.css",
+      JS: false,
+      title: `Vendors bound to ${ttr.ttrProductId}`,
+      vendorUser: { vendorName: "TTR Master", userName: ttr.ttrProductId },
+      notification: req.flash("notification"),
+      hideExtraColumns: true,
+    });
+  } catch (err) {
+    console.error("TTR MASTER VENDORS VIEW ERROR:", err);
+    res.redirect("back");
   }
 });
 

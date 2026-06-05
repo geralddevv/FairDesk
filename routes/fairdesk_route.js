@@ -29,6 +29,10 @@ import TafetaBinding from "../models/inventory/tafetaBinding.js";
 import PosRollStock from "../models/inventory/PosRollStock.js";
 import TafetaStock from "../models/inventory/TafetaStock.js";
 import TtrBinding from "../models/inventory/ttrBinding.js";
+import VendorTtrBinding from "../models/inventory/vendorTtrBinding.js";
+import VendorTapeBinding from "../models/inventory/vendorTapeBinding.js";
+import VendorPosRollBinding from "../models/inventory/vendorPosRollBinding.js";
+import VendorTafetaBinding from "../models/inventory/vendorTafetaBinding.js";
 import TtrStock from "../models/inventory/TtrStock.js";
 import PosRollStockLog from "../models/inventory/PosRollStockLog.js";
 import TafetaStockLog from "../models/inventory/TafetaStockLog.js";
@@ -523,7 +527,7 @@ router.use((req, res, next) => {
       const normalizedPath = path.toLowerCase().replace(/\/$/, "");
       
       // Explicit keyword matches for resilience
-      const keywords = ["master/view", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor", "stocks", "pettycash"];
+      const keywords = ["master/view", "compare", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor", "stocks", "pettycash"];
       if (keywords.some(k => normalizedPath.includes(k))) return next();
 
       if (allowedGetRoutes.includes(normalizedPath) || allowedGetPatterns.some((re) => re.test(path))) {
@@ -1983,25 +1987,68 @@ router.delete("/api/locations/:id", async (req, res) => {
 router.get("/tape/view", async (req, res) => {
   const tapes = await Tape.find().sort({ tapeProductId: 1 }).lean();
   const tapeIds = tapes.map((t) => t._id).filter(Boolean);
-  const stockAgg = tapeIds.length
-    ? await TapeStock.aggregate([
-        { $match: { tape: { $in: tapeIds } } },
-        {
-          $group: {
-            _id: "$tape",
-            qty: { $sum: "$quantity" },
+
+  const [stockAgg, bindingAgg, vendorBindingAgg] = await Promise.all([
+    tapeIds.length
+      ? TapeStock.aggregate([
+          { $match: { tape: { $in: tapeIds } } },
+          {
+            $group: {
+              _id: "$tape",
+              qty: { $sum: "$quantity" },
+            },
           },
-        },
-      ])
-    : [];
+        ])
+      : [],
+    tapeIds.length
+      ? TapeBinding.aggregate([
+          { $match: { tapeId: { $in: tapeIds } } },
+          {
+            $group: {
+              _id: "$tapeId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [],
+    tapeIds.length
+      ? VendorTapeBinding.aggregate([
+          { $match: { tapeId: { $in: tapeIds } } },
+          {
+            $group: {
+              _id: "$tapeId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : []
+  ]);
+
   const stockByItem = {};
   stockAgg.forEach((row) => {
     const itemId = String(row._id || "");
     stockByItem[itemId] = Number(row.qty || 0);
   });
-  tapes.forEach((t) => {
-    t.stock = stockByItem[String(t._id)] ?? 0;
+
+  const bindingsByItem = {};
+  bindingAgg.forEach((row) => {
+    const itemId = String(row._id || "");
+    bindingsByItem[itemId] = Number(row.count || 0);
   });
+
+  const vendorBindingsByItem = {};
+  vendorBindingAgg.forEach((row) => {
+    const itemId = String(row._id || "");
+    vendorBindingsByItem[itemId] = Number(row.count || 0);
+  });
+
+  tapes.forEach((t) => {
+    const itemId = String(t._id);
+    t.stock = stockByItem[itemId] ?? 0;
+    t.bindingCount = bindingsByItem[itemId] ?? 0;
+    t.vendorBindingCount = vendorBindingsByItem[itemId] ?? 0;
+  });
+
   res.render("inventory/tapeMasterDisp.ejs", {
     jsonData: tapes,
     CSS: "tableDisp.css",
@@ -2015,25 +2062,68 @@ router.get("/tape/view", async (req, res) => {
 router.get("/tafeta/view", async (req, res) => {
   const tafetas = await Tafeta.find().sort({ tafetaProductId: 1 }).lean();
   const tafetaIds = tafetas.map((t) => t._id).filter(Boolean);
-  const stockAgg = tafetaIds.length
-    ? await TafetaStock.aggregate([
-        { $match: { tafeta: { $in: tafetaIds } } },
-        {
-          $group: {
-            _id: "$tafeta",
-            qty: { $sum: "$quantity" },
+
+  const [stockAgg, bindingAgg, vendorBindingAgg] = await Promise.all([
+    tafetaIds.length
+      ? TafetaStock.aggregate([
+          { $match: { tafeta: { $in: tafetaIds } } },
+          {
+            $group: {
+              _id: "$tafeta",
+              qty: { $sum: "$quantity" },
+            },
           },
-        },
-      ])
-    : [];
+        ])
+      : [],
+    tafetaIds.length
+      ? TafetaBinding.aggregate([
+          { $match: { tafetaId: { $in: tafetaIds } } },
+          {
+            $group: {
+              _id: "$tafetaId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [],
+    tafetaIds.length
+      ? VendorTafetaBinding.aggregate([
+          { $match: { tafetaId: { $in: tafetaIds } } },
+          {
+            $group: {
+              _id: "$tafetaId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : []
+  ]);
+
   const stockByItem = {};
   stockAgg.forEach((row) => {
     const itemId = String(row._id || "");
     stockByItem[itemId] = Number(row.qty || 0);
   });
-  tafetas.forEach((t) => {
-    t.stock = stockByItem[String(t._id)] ?? 0;
+
+  const bindingsByItem = {};
+  bindingAgg.forEach((row) => {
+    const itemId = String(row._id || "");
+    bindingsByItem[itemId] = Number(row.count || 0);
   });
+
+  const vendorBindingsByItem = {};
+  vendorBindingAgg.forEach((row) => {
+    const itemId = String(row._id || "");
+    vendorBindingsByItem[itemId] = Number(row.count || 0);
+  });
+
+  tafetas.forEach((t) => {
+    const itemId = String(t._id);
+    t.stock = stockByItem[itemId] ?? 0;
+    t.bindingCount = bindingsByItem[itemId] ?? 0;
+    t.vendorBindingCount = vendorBindingsByItem[itemId] ?? 0;
+  });
+
   res.render("inventory/tafetaMasterDisp.ejs", {
     jsonData: tafetas,
     CSS: "tableDisp.css",
@@ -2070,7 +2160,7 @@ function buildTafetaSignature(source) {
 }
 
 function flexTafetaValue(val) {
-  if (val === undefined || val === null) return val;
+  if (val === undefined || value === null) return val;
   const arr = [val];
   if (typeof val === "string") {
     const t = val.trim();
@@ -2087,25 +2177,68 @@ function flexTafetaValue(val) {
 router.get("/pos-roll/view", async (req, res) => {
   const posRolls = await PosRoll.find().sort({ posProductId: 1 }).lean();
   const posRollIds = posRolls.map((p) => p._id).filter(Boolean);
-  const stockAgg = posRollIds.length
-    ? await PosRollStock.aggregate([
-        { $match: { posRoll: { $in: posRollIds } } },
-        {
-          $group: {
-            _id: "$posRoll",
-            qty: { $sum: "$quantity" },
+
+  const [stockAgg, bindingAgg, vendorBindingAgg] = await Promise.all([
+    posRollIds.length
+      ? PosRollStock.aggregate([
+          { $match: { posRoll: { $in: posRollIds } } },
+          {
+            $group: {
+              _id: "$posRoll",
+              qty: { $sum: "$quantity" },
+            },
           },
-        },
-      ])
-    : [];
+        ])
+      : [],
+    posRollIds.length
+      ? PosRollBinding.aggregate([
+          { $match: { posRollId: { $in: posRollIds } } },
+          {
+            $group: {
+              _id: "$posRollId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [],
+    posRollIds.length
+      ? VendorPosRollBinding.aggregate([
+          { $match: { posRollId: { $in: posRollIds } } },
+          {
+            $group: {
+              _id: "$posRollId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : []
+  ]);
+
   const stockByItem = {};
   stockAgg.forEach((row) => {
     const itemId = String(row._id || "");
     stockByItem[itemId] = Number(row.qty || 0);
   });
-  posRolls.forEach((p) => {
-    p.stock = stockByItem[String(p._id)] ?? 0;
+
+  const bindingsByItem = {};
+  bindingAgg.forEach((row) => {
+    const itemId = String(row._id || "");
+    bindingsByItem[itemId] = Number(row.count || 0);
   });
+
+  const vendorBindingsByItem = {};
+  vendorBindingAgg.forEach((row) => {
+    const itemId = String(row._id || "");
+    vendorBindingsByItem[itemId] = Number(row.count || 0);
+  });
+
+  posRolls.forEach((p) => {
+    const itemId = String(p._id);
+    p.stock = stockByItem[itemId] ?? 0;
+    p.bindingCount = bindingsByItem[itemId] ?? 0;
+    p.vendorBindingCount = vendorBindingsByItem[itemId] ?? 0;
+  });
+
   res.render("inventory/posRollMasterDisp.ejs", {
     jsonData: posRolls,
     CSS: "tableDisp.css",
@@ -2119,17 +2252,42 @@ router.get("/pos-roll/view", async (req, res) => {
 router.get("/ttr/view", async (req, res) => {
   const ttrs = await Ttr.find().sort({ ttrProductId: 1 }).lean();
   const ttrIds = ttrs.map((t) => t._id).filter(Boolean);
-  const stockAgg = ttrIds.length
-    ? await TtrStock.aggregate([
-        { $match: { ttr: { $in: ttrIds } } },
-        {
-          $group: {
-            _id: "$ttr",
-            qty: { $sum: "$quantity" },
+  
+  const [stockAgg, bindingAgg, vendorBindingAgg] = await Promise.all([
+    ttrIds.length
+      ? TtrStock.aggregate([
+          { $match: { ttr: { $in: ttrIds } } },
+          {
+            $group: {
+              _id: "$ttr",
+              qty: { $sum: "$quantity" },
+            },
           },
-        },
-      ])
-    : [];
+        ])
+      : [],
+    ttrIds.length
+      ? TtrBinding.aggregate([
+          { $match: { ttrId: { $in: ttrIds } } },
+          {
+            $group: {
+              _id: "$ttrId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [],
+    ttrIds.length
+      ? VendorTtrBinding.aggregate([
+          { $match: { ttrId: { $in: ttrIds } } },
+          {
+            $group: {
+              _id: "$ttrId",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : []
+  ]);
 
   const stockByTtr = {};
   stockAgg.forEach((row) => {
@@ -2137,8 +2295,23 @@ router.get("/ttr/view", async (req, res) => {
     stockByTtr[ttrId] = Number(row.qty || 0);
   });
 
+  const bindingsByTtr = {};
+  bindingAgg.forEach((row) => {
+    const ttrId = String(row._id || "");
+    bindingsByTtr[ttrId] = Number(row.count || 0);
+  });
+
+  const vendorBindingsByTtr = {};
+  vendorBindingAgg.forEach((row) => {
+    const ttrId = String(row._id || "");
+    vendorBindingsByTtr[ttrId] = Number(row.count || 0);
+  });
+
   ttrs.forEach((t) => {
-    t.stock = stockByTtr[String(t._id)] ?? 0;
+    const ttrId = String(t._id);
+    t.stock = stockByTtr[ttrId] ?? 0;
+    t.bindingCount = bindingsByTtr[ttrId] ?? 0;
+    t.vendorBindingCount = vendorBindingsByTtr[ttrId] ?? 0;
   });
 
   res.render("inventory/ttrMasterDisp.ejs", {

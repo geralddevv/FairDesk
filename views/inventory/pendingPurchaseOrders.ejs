@@ -15,10 +15,16 @@
     margin-left: 8px;
     display: inline-block;
   }
-  
+
   @keyframes detailsPopIn {
-    0% { transform: scale(0.96); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+      transform: scale(0.96);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .tape-details-card {
@@ -42,7 +48,7 @@
     gap: 16px;
     align-items: flex-start;
     padding: 26px 26px 24px;
-    background: 
+    background:
       radial-gradient(circle at top right, rgba(255, 255, 255, 0.16), transparent 34%),
       linear-gradient(135deg, #044a78 0%, #03365a 100%);
     color: #fff;
@@ -107,7 +113,8 @@
     overflow: hidden;
   }
 
-  .diff-table th, .diff-table td {
+  .diff-table th,
+  .diff-table td {
     padding: 10px 12px;
     border-bottom: 1px solid #e6eaf2;
     text-align: left;
@@ -115,9 +122,20 @@
     vertical-align: top;
   }
 
-  .diff-table th { background: #f4f7ff; color: #044a78; font-weight: 700; }
-  .diff-table .key-col { width: 32%; color: #5a6586; font-weight: 600; }
-  .diff-table .resolved { font-weight: 700; color: #1f2a44; }
+  .diff-table th {
+    background: #f4f7ff;
+    color: #044a78;
+    font-weight: 700;
+  }
+  .diff-table .key-col {
+    width: 32%;
+    color: #5a6586;
+    font-weight: 600;
+  }
+  .diff-table .resolved {
+    font-weight: 700;
+    color: #1f2a44;
+  }
 
   .btn-action {
     height: 24px;
@@ -133,19 +151,25 @@
     gap: 4px;
     font-weight: 600;
   }
-  .btn-action:hover { opacity: 0.85; }
+  .btn-action:hover {
+    opacity: 0.85;
+  }
 
   @keyframes popIn {
-    0% { transform: scale(0.9); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 </style>
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <div class="indi-head">
-    <h1>
-      Pending Purchase Orders
-    </h1>
+    <h1>Pending Purchase Orders</h1>
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
       <div style="position: relative; display: inline-block">
         <select
@@ -337,8 +361,14 @@
 
 <style>
   @keyframes popIn {
-    0% { transform: scale(0.9); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
   #custom-dialog-no:hover {
     background: #f3f4f6;
@@ -437,26 +467,27 @@
     document.getElementById("pending-order-details-dialog").style.display = "flex";
   };
 
-  window.closeOrderDetailsDialog = () => document.getElementById("pending-order-details-dialog").style.display = "none";
+  window.closeOrderDetailsDialog = () =>
+    (document.getElementById("pending-order-details-dialog").style.display = "none");
 
   window.requestCancelPO = function (orderId) {
     const dialog = document.getElementById("custom-confirm-dialog");
     const yesBtn = document.getElementById("custom-dialog-yes");
     const msg = document.getElementById("custom-dialog-message");
     const reasonWrap = document.getElementById("cancel-reason-wrap");
-    
+
     msg.textContent = "Are you sure you want to CANCEL this Purchase Order?";
     yesBtn.style.background = "#ef4444";
     yesBtn.textContent = "Yes, Cancel PO";
     reasonWrap.style.display = "block";
-    
+
     dialog.style.display = "flex";
-    
+
     yesBtn.onclick = () => {
       const reason = document.getElementById("cancel-reason-input").value.trim();
       if (!reason) {
-          alert("Please provide a reason for cancellation.");
-          return;
+        alert("Please provide a reason for cancellation.");
+        return;
       }
       submitStatusUpdate(orderId, "CANCELLED", reason);
     };
@@ -470,12 +501,12 @@
     const form = document.createElement("form");
     form.method = "POST";
     form.action = "/fairdesk/purchase/status";
-    
+
     const inputs = {
       orderId,
       status,
       remarks: reason,
-      _csrf: "<%= csrfToken %>"
+      _csrf: "<%= csrfToken %>",
     };
 
     for (const [name, value] of Object.entries(inputs)) {
@@ -490,26 +521,24 @@
     form.submit();
   }
 
-  window.closeCustomDialog = () => document.getElementById("custom-confirm-dialog").style.display = "none";
+  window.closeCustomDialog = () => (document.getElementById("custom-confirm-dialog").style.display = "none");
 
   const table = new Tabulator("#master-table", {
     data: orderData,
-    layout: "fitColumns",
+    // layout: "fitColumns",
     placeholder: "No pending purchase orders found",
-    initialSort: [
-      { column: "createdAt", dir: "asc" },
-    ],
+    initialSort: [{ column: "createdAt", dir: "asc" }],
     columns: [
       {
         title: "Actions",
         hozAlign: "center",
         headerSort: false,
-        width: 180,
+        // width: 180,
         formatter: (cell) => {
           const row = cell.getRow().getData();
           // Adjust URLs for Edit and Confirm as needed
           const editUrl = `/fairdesk/inventory/reorder/select-vendor/${row.onModel.toLowerCase()}/${row.itemId?._id || row.itemId}?poId=${row._id}`;
-          
+
           return `
             <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
               <button onclick="viewPendingPO('${row._id}')" class="btn-action" style="background:#111827;" title="View Details">
@@ -531,31 +560,40 @@
       {
         title: "Date",
         field: "createdAt",
-        width: 105,
+        // width: 105,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter date...",
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
       {
+        title: "PO Number",
+        field: "poNumber",
+        // width: 150,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Filter PO...",
+      },
+      {
         title: "Vendor",
         field: "vendorDisplayName",
-        width: 200,
+        // width: 200,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter vendor...",
-        formatter: (cell) => `<span style="font-weight:600; color:#044A78;">${cell.getValue() || "Vendor not binded"}</span>`,
+        formatter: (cell) =>
+          `<span style="font-weight:600; color:#044A78;">${cell.getValue() || "Vendor not binded"}</span>`,
       },
-      { 
-        title: "Coordinator", 
-        field: "coordinatorDisplayName", 
-        width: 150, 
+      {
+        title: "Coordinator",
+        field: "coordinatorDisplayName",
+        // width: 150,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter name...",
-        formatter: (cell) => `<span style="font-weight:600; color:#044A78;">${cell.getValue() || "Coordinator not binded"}</span>`,
+        formatter: (cell) =>
+          `<span style="font-weight:600; color:#044A78;">${cell.getValue() || "Coordinator not binded"}</span>`,
       },
       {
         title: "Item Type",
         field: "onModel",
-        width: 120,
+        // width: 120,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter type...",
         formatter: (cell) => {
@@ -567,7 +605,7 @@
       {
         title: "Item Details",
         field: "itemId",
-        width: 250,
+        // width: 250,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter specs...",
         headerFilterFunc: (headerValue, rowValue, rowData) => {
@@ -583,7 +621,7 @@
         title: "Qty",
         field: "quantity",
         hozAlign: "center",
-        width: 80,
+        // width: 80,
         headerFilter: "input",
         headerFilterPlaceholder: "#",
       },
@@ -591,14 +629,14 @@
         title: "Inwarded",
         field: "receivedQuantity",
         hozAlign: "center",
-        width: 80,
+        // width: 80,
         headerFilter: "input",
         headerFilterPlaceholder: "#",
       },
       {
         title: "Bal",
         hozAlign: "center",
-        width: 80,
+        // width: 80,
         headerFilter: "input",
         headerFilterPlaceholder: "#",
         headerFilterFunc: (headerValue, rowValue, rowData) => {
@@ -614,23 +652,16 @@
         },
       },
       {
-        title: "PO Number",
-        field: "poNumber",
-        width: 150,
-        headerFilter: "input",
-        headerFilterPlaceholder: "Filter PO...",
-      },
-      {
         title: "Est. Delivery",
         field: "estimatedDate",
-        width: 130,
+        // width: 130,
         headerFilter: "input",
         headerFilterPlaceholder: "Filter date...",
         formatter: (cell) => new Date(cell.getValue()).toLocaleDateString("en-IN"),
       },
-      { 
-        title: "Remarks", 
-        field: "remarks", 
+      {
+        title: "Remarks",
+        field: "remarks",
         headerFilter: "input",
         headerFilterPlaceholder: "Filter remarks...",
       },
