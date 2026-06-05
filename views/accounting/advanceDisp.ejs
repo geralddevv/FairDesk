@@ -49,9 +49,33 @@
 
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
       <a
+        href="/fairdesk/advance/create"
+        class="header-action-btn"
+        style="
+          height: 30px;
+          padding: 0 14px;
+          background: #f0f0f0;
+          color: #044a78;
+          border-radius: 6px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <i class="fa-solid fa-plus"></i>
+        <span>Add Advance</span>
+      </a>
+
+      <a
         href="/fairdesk/advance/logs"
         style="
-          padding: 6px 14px;
+          height: 30px;
+          padding: 0 14px;
           background: #044a78;
           color: white;
           border-radius: 6px;
@@ -71,9 +95,9 @@
       </a>
 
       <div class="download-selector" id="downloadSelector">
-        <button class="download-selector__trigger">
+        <button class="download-selector__trigger" style="height: 30px; display: flex; align-items: center; padding: 0 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer;">
           <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
-          <i class="fas fa-chevron-down"></i>
+          <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 6px;"></i>
         </button>
 
         <div class="download-selector__menu">
@@ -194,29 +218,31 @@
     withTextFilter({
       title: "Employee Name",
       field: "employeeName",
+      minWidth: 180,
       formatter: function (cell) {
         const data = cell.getRow().getData();
         return `<a href="/fairdesk/advance/employee/${data.employeeId}/view-logs" 
                    style="color: #044a78; font-weight: 600; text-decoration: underline;"
                    title="View History">
-                  ${data.employeeName}
+                   ${data.employeeName}
                 </a>`;
       }
     }),
-    withTextFilter({ title: "Employee ID", field: "empId" }),
+    withTextFilter({ title: "Employee ID", field: "empId", minWidth: 120 }),
     withTextFilter({
       title: "Current Balance",
       field: "currentBalance",
+      minWidth: 150,
       formatter: (c) => formatINRCurrency(c.getValue()),
     }),
-    withTextFilter({ title: "Status", field: "status" }),
-    withTextFilter({ title: "Last Updated", field: "updatedAt" }),
+    withTextFilter({ title: "Status", field: "status", minWidth: 100 }),
+    withTextFilter({ title: "Last Updated", field: "updatedAt", minWidth: 140 }),
   ];
 
   const table = new Tabulator("#master-table", {
     data: tableData,
     height: "100%",
-    layout: "fitColumns",
+    // layout: "fitColumns",
     movableColumns: true,
     columns: baseColumns,
   });

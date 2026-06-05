@@ -83,6 +83,7 @@
     const withTextFilter = (column) => ({
       headerFilter: "input",
       headerFilterPlaceholder: "Search",
+      minWidth: 100, // Ensure columns don't shrink too much
       ...column,
     });
 
@@ -114,7 +115,7 @@
         title: "Stock",
         field: "stock",
         hozAlign: "left",
-        headerHozAlign: "center",
+        headerHozAlign: "left",
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
         width: 90,
@@ -129,12 +130,18 @@
           const row = cell.getRow().getData();
           return `<a href="/fairdesk/ttr/profile/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
         },
+        cellClick: (e, cell) => {
+          const row = cell.getRow().getData();
+          if (row._id && Number(row.stock) !== 0) {
+            window.location.href = `/fairdesk/ttr/profile/${row._id}`;
+          }
+        },
       },
       {
         title: "B Clients",
         field: "bindingCount",
-        hozAlign: "center",
-        headerHozAlign: "center",
+        hozAlign: "left",
+        headerHozAlign: "left",
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
         width: 120,
@@ -145,12 +152,19 @@
           const row = cell.getRow().getData();
           return `<a href="/fairdesk/ttr/master-view/clients/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
         },
+        cellClick: (e, cell) => {
+          const row = cell.getRow().getData();
+          const val = Number(cell.getValue());
+          if (row._id && val > 0) {
+            window.location.href = `/fairdesk/ttr/master-view/clients/${row._id}`;
+          }
+        },
       },
       {
         title: "B Vendors",
         field: "vendorBindingCount",
-        hozAlign: "center",
-        headerHozAlign: "center",
+        hozAlign: "left",
+        headerHozAlign: "left",
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
         width: 120,
@@ -160,6 +174,13 @@
           if (!value || value === 0) return "";
           const row = cell.getRow().getData();
           return `<a href="/fairdesk/ttr/master-view/vendors/${row._id}" style="color:#044A78;text-decoration:underline;font-weight:700;">${value}</a>`;
+        },
+        cellClick: (e, cell) => {
+          const row = cell.getRow().getData();
+          const val = Number(cell.getValue());
+          if (row._id && val > 0) {
+            window.location.href = `/fairdesk/ttr/master-view/vendors/${row._id}`;
+          }
         },
       },
       {
@@ -210,7 +231,7 @@
       data: tableData,
       height: "100%",
       // layout: "fitColumns",
-      responsiveLayout: "hide",
+      responsiveLayout: false,
       movableColumns: true,
       placeholder: "No data to display",
       columns: normalizedBaseColumns,

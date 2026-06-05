@@ -52,13 +52,35 @@
     </span>
 
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
-
+      <a
+        href="/fairdesk/pettycash/create"
+        class="header-action-btn"
+        style="
+          height: 30px;
+          padding: 0 14px;
+          background: #f0f0f0;
+          color: #044a78;
+          border-radius: 6px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <i class="fa-solid fa-plus"></i>
+        <span>Add Petty Cash</span>
+      </a>
 
       <a
         href="/fairdesk/pettycash/logs/all/view"
         id="view-all-logs-btn"
         style="
-          padding: 6px 14px;
+          height: 30px;
+          padding: 0 14px;
           background: #044a78;
           color: white;
           border-radius: 6px;
@@ -78,14 +100,18 @@
       </a>
 
       <div class="download-selector" id="downloadSelector">
-        <div class="download-selector__trigger">
-          <span><i class="fa-solid fa-file-arrow-down"></i> Download</span>
-          <i class="fa-solid fa-chevron-down"></i>
-        </div>
+        <button class="download-selector__trigger" style="height: 30px; display: flex; align-items: center; padding: 0 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer;">
+          <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
+          <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 6px;"></i>
+        </button>
 
         <div class="download-selector__menu">
-          <div class="download-selector__option" id="download-pdf">PDF</div>
-          <div class="download-selector__option" id="download-xlsx">Excel</div>
+          <div class="download-selector__option" id="download-pdf">
+            <i class="fas fa-file-pdf"></i> PDF
+          </div>
+          <div class="download-selector__option" id="download-xlsx">
+            <i class="fas fa-file-excel"></i> Excel
+          </div>
         </div>
       </div>
     </div>

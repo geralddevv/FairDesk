@@ -59,9 +59,33 @@
 
     <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
       <a
+        href="/fairdesk/loan/create"
+        class="header-action-btn"
+        style="
+          height: 30px;
+          padding: 0 14px;
+          background: #f0f0f0;
+          color: #044a78;
+          border-radius: 6px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        "
+      >
+        <i class="fa-solid fa-plus"></i>
+        <span>Add Loan</span>
+      </a>
+
+      <a
         href="/fairdesk/loan/logs"
         style="
-          padding: 6px 14px;
+          height: 30px;
+          padding: 0 14px;
           background: #044a78;
           color: white;
           border-radius: 6px;
@@ -81,9 +105,9 @@
       </a>
 
       <div class="download-selector" id="downloadSelector">
-        <button class="download-selector__trigger">
+        <button class="download-selector__trigger" style="height: 30px; display: flex; align-items: center; padding: 0 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer;">
           <span> <i class="fa-solid fa-file-arrow-down"></i> Download </span>
-          <i class="fas fa-chevron-down"></i>
+          <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 6px;"></i>
         </button>
 
         <div class="download-selector__menu">

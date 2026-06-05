@@ -133,14 +133,14 @@ nav h1 {
 }
 
 .contain {
-  width: 100%;
+  min-width: 100%;
+  width: auto;
   height: calc(100vh - 38px);
   background-color: #f8f9fa;
   display: flex;
   justify-content: start;
-  align-items: center;
+  align-items: stretch;
   /* padding: 1.4rem; */
-  overflow-y: auto;
 }
 
 .side-nav {
@@ -278,8 +278,8 @@ nav h1 {
 .main-content {
   height: 100%;
   flex: 1;
+  min-width: 0;
   overflow: auto;
-  padding: 1rem;
 }
 
 .main-content::-webkit-scrollbar {
