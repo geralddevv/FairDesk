@@ -2,11 +2,9 @@
 
 
 (function () {
-  const navToggle = document.querySelector(".nav-toggle");
   const sideNav = document.querySelector(".side-nav");
 
-  // Storage key
-  const STORAGE_KEY_NAV = "fd_navExpanded";
+  // Storage keys
   const SESSION_EXPIRES_HEADER = "x-session-expires-at";
   const SESSION_KEEPALIVE_MIN_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -183,22 +181,7 @@
     }
   });
 
-  // Sync toggle button state (sidebar class is already set by inline script in HTML)
-  if (navToggle && localStorage.getItem(STORAGE_KEY_NAV) === "collapsed") {
-    navToggle.classList.add("active");
-  }
 
-
-  if (navToggle && sideNav) {
-    navToggle.addEventListener("click", () => {
-      navToggle.classList.toggle("active");
-      sideNav.classList.toggle("nav-panel-toggle");
-
-      // Persist state
-      const isExpanded = sideNav.classList.contains("nav-panel-toggle");
-      localStorage.setItem(STORAGE_KEY_NAV, isExpanded ? "expanded" : "collapsed");
-    });
-  }
 
   // ================= GENERIC NAV GROUP TOGGLE =================
 

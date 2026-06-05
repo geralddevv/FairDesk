@@ -795,35 +795,8 @@ input::-webkit-inner-spin-button {
     grid-column: span 16;
   }
 
-  /* Permanently open sidebar for mobile/tablet */
-  .side-nav {
-    position: static;
-    height: 100%;
-    transform: none !important;
-    width: 160px !important; /* Slightly narrower to save space */
-    display: flex !important;
-    min-width: 160px !important;
-    box-shadow: none;
-  }
-
-  /* Force expanded items */
-  .side-nav .nav-items-para {
-    display: block !important;
-  }
-  .side-nav .nav-items {
-    justify-content: flex-start !important;
-    padding: 8px 12px !important;
-    gap: 10px !important;
-    height: 3.5rem !important;
-  }
-
-  /* Hide toggle controls */
-  .nav-toggle, #fdMobileToggle {
-    display: none !important;
-  }
-
-  .nav-backdrop {
-    display: none !important;
+  .contain {
+    height: 100vh;
   }
 
   .contain {

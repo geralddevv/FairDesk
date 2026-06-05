@@ -610,24 +610,11 @@
     </style>
     <div class="contain">
       <!-- Navigation bar -->
-      <div class="side-nav">
-        <script>
-          // Instant sidebar restore — runs synchronously before paint
-          (function() {                                                                                                     
-            if (localStorage.getItem('fd_navExpanded') === 'expanded' || !localStorage.getItem('fd_navExpanded')) {                                                   
-              var el = document.querySelector('.side-nav');                                                                 
-              if (el) el.classList.add('nav-panel-toggle');                                                              
-            }                                                                                                               
-          })();                                                                                                             
-        </script> 
-        <div title="Expand" class="nav-items nav-toggle">
-          <i class="fa-solid fa-bars" style="color: #ffffff"></i>
-          <p class="nav-items-para">Navigation</p>
-        </div>
+      <div class="side-nav nav-panel-toggle">
 
-        <div title="Home" class="<%= title === 'Welcome' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/welcome'">
+        <div title="Dashboard" class="<%= title === 'Welcome' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/welcome'">
           <i class="fa-solid fa-house" style="color: #ffffff"></i>
-          <p class="nav-items-para">Home</p>
+          <p class="nav-items-para">Dashboard</p>
         </div>
 
         <% const isAdmin = authUser && authUser.role === "admin"; %>
