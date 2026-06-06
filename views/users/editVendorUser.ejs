@@ -64,7 +64,7 @@
       action="/fairdesk/form/edit/vendor-user/<%= user._id %>"
       method="post"
       class="user-content span-full needs-validation"
-      style="display:grid;grid-template-columns:repeat(32,1fr);gap:1.25rem;"
+      style="display:grid;grid-template-columns:repeat(32,1fr);gap:10px;"
       autocomplete="off"
       novalidate
     >
@@ -233,7 +233,7 @@
 
       <div
         class="span-full hardware-options"
-        style="display:<%= !user.SelfDispatch ? 'grid' : 'none' %>;grid-template-columns:repeat(32,1fr);gap:1.25rem;"
+        style="display:<%= !user.SelfDispatch ? 'grid' : 'none' %>;grid-template-columns:repeat(32,1fr);gap:10px;"
       >
         <div class="span-three">
           <label for="transport-name">Name</label>

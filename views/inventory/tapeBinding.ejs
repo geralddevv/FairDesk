@@ -16,7 +16,7 @@
     </style>
 
       <!-- The main content -->
-      <div class="main-content">
+      <div class="main-content" style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
         <form action="/fairdesk/form/tape-binding" method="post" onsubmit="return validateTapeBeforeSubmit()" class="needs-validation" autocomplete="off" novalidate>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="span-full form-heading">

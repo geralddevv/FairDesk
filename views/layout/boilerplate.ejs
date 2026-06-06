@@ -959,6 +959,10 @@
 
           <div class="nav-labels-opt">
             <% if ((isAdmin || isHod || permissions.inventory) && !isSales) { %>
+            <div title="TTR Stock" class="<%= title === 'TTR Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/ttrstock'" style="border-top: 2px solid #ffffff9d;" >
+              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
+              <p class="nav-items-para">TTR</p>
+            </div>              
             <div title="Tape Stock" class="<%= title === 'Tape Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tapestock'" >
               <i class="fa-solid fa-tape" style="color: #ffffff"></i>
               <p class="nav-items-para">Tape</p>
@@ -967,13 +971,9 @@
               <i class="fa-solid fa-scroll" style="color: #ffffff"></i>
               <p class="nav-items-para">POS Roll</p>
             </div>
-            <div title="Tafeta Stock" class="<%= title === 'Tafeta Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tafetastock'" >
+            <div title="Tafeta Stock" class="<%= title === 'Tafeta Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/tafetastock'" style="border-bottom: 2px solid #ffffff9d;" >
               <i class="fa-solid fa-toilet-paper" style="color: #ffffff"></i>
               <p class="nav-items-para">Tafeta</p>
-            </div>
-            <div title="TTR Stock" class="<%= title === 'TTR Stock' ? 'nav-items active' : 'nav-items' %>" onclick="window.location.href = '/fairdesk/ttrstock'" style="border-bottom: 2px solid #ffffff9d;" >
-              <i class="fa-solid fa-ribbon" style="color: #ffffff"></i>
-              <p class="nav-items-para">TTR</p>
             </div>
             <% } %>
             <% if (isSales) { %>

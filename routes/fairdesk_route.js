@@ -231,7 +231,7 @@ async function getItemStockSummary(itemType, itemId, excludeOrderId = null) {
   const bookedMatch = {
     tapeId: itemObjectId,
     onModel: config.onModel,
-    status: "PENDING",
+    status: { $in: ["PENDING", "CONFIRMED"] },
   };
   if (excludeOrderId) {
     bookedMatch._id = { $ne: new mongoose.Types.ObjectId(excludeOrderId) };
@@ -301,13 +301,19 @@ async function getItemStockSummary(itemType, itemId, excludeOrderId = null) {
   };
 }
 
-async function applyItemStockDelta({ itemType, itemId, location, delta, remarks, createdBy }) {
+async function applyItemStockDelta({ itemType, itemId, location, delta, remarks, createdBy, extraFields = {} }) {
   const config = getProfileStockConfig(itemType);
   if (!config) throw new Error(`Unsupported stock item type: ${itemType}`);
   const normalizedLocation = canonicalizeLocationName(location) || "UNKNOWN";
   const itemObjectId = new mongoose.Types.ObjectId(itemId);
+
+  const matchQuery = { [config.itemField]: itemObjectId, location: normalizedLocation };
+  if (extraFields.tapeFinish) {
+    matchQuery.tapeFinish = extraFields.tapeFinish;
+  }
+
   const [balanceRow] = await config.stockModel.aggregate([
-    { $match: { [config.itemField]: itemObjectId, location: normalizedLocation } },
+    { $match: matchQuery },
     { $group: { _id: null, qty: { $sum: "$quantity" } } },
   ]);
   const openingStock = toNumber(balanceRow?.qty);
@@ -322,6 +328,7 @@ async function applyItemStockDelta({ itemType, itemId, location, delta, remarks,
     location: normalizedLocation,
     quantity: delta,
     remarks,
+    ...extraFields,
   });
 
   await config.logModel.create({
@@ -334,6 +341,7 @@ async function applyItemStockDelta({ itemType, itemId, location, delta, remarks,
     source: "MANUAL",
     remarks,
     createdBy: createdBy || "SYSTEM",
+    ...extraFields,
   });
 
   return { openingStock, closingStock, changed: true };
@@ -341,7 +349,9 @@ async function applyItemStockDelta({ itemType, itemId, location, delta, remarks,
 
 async function handleProfileStockEdit(req, res, { itemType, model, redirectPath }) {
   try {
-    const item = await model.findById(req.params.id).select("_id").lean();
+    const selectFields = ["_id"];
+    if (itemType === "Tape") selectFields.push("tapeFinish");
+    const item = await model.findById(req.params.id).select(selectFields.join(" ")).lean();
     if (!item) {
       req.flash("notification", `${itemType} not found`);
       return res.redirect(redirectPath);
@@ -363,17 +373,16 @@ async function handleProfileStockEdit(req, res, { itemType, model, redirectPath 
     const sourceBooked = toNumber(sourceEntry?.booked);
     const createdBy = req.user?.username || req.session?.authUser?.username || "SYSTEM";
 
-    if (!sourceEntry && currentQuantity === 0) {
+    console.log(`[STOCK_EDIT] ${itemType} ${item._id} | From: ${fromLocation} To: ${toLocation} | ReqQty: ${requestedQuantity} | CurrQty: ${currentQuantity} | Booked: ${sourceBooked}`);
+
+    if (!sourceEntry && currentQuantity === 0 && sourceBooked === 0) {
       req.flash("notification", "Stock location not found");
       return res.redirect(itemProfileUrl);
     }
 
-    if (fromLocation === toLocation) {
-      if (requestedQuantity < sourceBooked) {
-        req.flash("notification", `Quantity cannot go below booked stock (${sourceBooked})`);
-        return res.redirect(itemProfileUrl);
-      }
+    const extraFields = itemType === "Tape" ? { tapeFinish: item.tapeFinish } : {};
 
+    if (fromLocation === toLocation) {
       const delta = requestedQuantity - currentQuantity;
       if (delta === 0) {
         req.flash("notification", "Stock is already up to date");
@@ -387,6 +396,7 @@ async function handleProfileStockEdit(req, res, { itemType, model, redirectPath 
         delta,
         remarks: `${itemType} stock adjusted to ${requestedQuantity} from profile`,
         createdBy,
+        extraFields,
       });
       req.flash("notification", `${itemType} stock updated successfully.`);
       return res.redirect(itemProfileUrl);
@@ -405,6 +415,7 @@ async function handleProfileStockEdit(req, res, { itemType, model, redirectPath 
         delta: -currentQuantity,
         remarks: `${itemType} stock moved from ${fromLocation} to ${toLocation} via profile`,
         createdBy,
+        extraFields,
       });
     }
 
@@ -416,6 +427,7 @@ async function handleProfileStockEdit(req, res, { itemType, model, redirectPath 
         delta: requestedQuantity,
         remarks: `${itemType} stock moved from ${fromLocation} to ${toLocation} via profile`,
         createdBy,
+        extraFields,
       });
     }
 

@@ -26,7 +26,7 @@ const tapeStockSchema = new mongoose.Schema(
     },
     tapeFinish: {
       type: String,
-      enum: ["MATTE", "GLOSSY"],
+      enum: ["MATTE", "GLOSSY", "CLEAR"],
       required: true,
     },
   },

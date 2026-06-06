@@ -254,15 +254,7 @@ router.get("/view", async (req, res) => {
         itemType: "Tape",
         buildProductId: (master) => master.tapeProductId,
         buildSpec: (master) =>
-          formatSpec([
-            master.tapePaperCode,
-            master.tapeGsm && `${master.tapeGsm} GSM`,
-            master.tapePaperType,
-            master.tapeWidth && `${master.tapeWidth} W`,
-            master.tapeMtrs && `${master.tapeMtrs} M`,
-            master.tapeCoreId && `Core ${master.tapeCoreId}`,
-            master.tapeFinish,
-          ]),
+          `${master.tapePaperCode || ""} ${master.tapeGsm ? master.tapeGsm + "gsm" : ""}`.trim() || master.tapeProductId,
         buildProfileUrl: (itemId) => `/fairdesk/tape/profile/${itemId}`,
       }),
       loadStockRows({
@@ -274,15 +266,7 @@ router.get("/view", async (req, res) => {
         itemType: "POS Roll",
         buildProductId: (master) => master.posProductId,
         buildSpec: (master) =>
-          formatSpec([
-            master.posPaperCode,
-            master.posPaperType,
-            master.posColor,
-            master.posGsm && `${master.posGsm} GSM`,
-            master.posWidth && `${master.posWidth} W`,
-            master.posMtrs && `${master.posMtrs} M`,
-            master.posCoreId && `Core ${master.posCoreId}`,
-          ]),
+          `${master.posPaperCode || ""} ${master.posGsm ? master.posGsm + "gsm" : ""}`.trim() || master.posProductId,
         buildProfileUrl: (itemId) => `/fairdesk/pos-roll/profile/${itemId}`,
       }),
       loadStockRows({
@@ -295,15 +279,7 @@ router.get("/view", async (req, res) => {
         itemType: "Tafeta",
         buildProductId: (master) => master.tafetaProductId,
         buildSpec: (master) =>
-          formatSpec([
-            master.tafetaMaterialCode,
-            master.tafetaMaterialType,
-            master.tafetaColor,
-            master.tafetaGsm && `${master.tafetaGsm} GSM`,
-            master.tafetaWidth && `${master.tafetaWidth} W`,
-            master.tafetaMtrs && `${master.tafetaMtrs} M`,
-            master.tafetaCoreId && `Core ${master.tafetaCoreId}`,
-          ]),
+          `${master.tafetaMaterialCode || ""} ${master.tafetaGsm ? master.tafetaGsm + "gsm" : ""}`.trim() || master.tafetaProductId,
         buildProfileUrl: (itemId) => `/fairdesk/tafeta/profile/${itemId}`,
       }),
       loadStockRows({
@@ -316,16 +292,7 @@ router.get("/view", async (req, res) => {
         itemType: "TTR",
         buildProductId: (master) => master.ttrProductId,
         buildSpec: (master) =>
-          formatSpec([
-            master.ttrType,
-            master.ttrColor,
-            master.ttrMaterialCode,
-            master.ttrWidth && `${master.ttrWidth} W`,
-            master.ttrMtrs && `${master.ttrMtrs} M`,
-            master.ttrCoreId && `Core ${master.ttrCoreId}`,
-            master.ttrCoreLength && `${master.ttrCoreLength} CL`,
-            master.ttrWinding,
-          ]),
+          `${master.ttrType || ""} ${master.ttrWidth || ""}mm x ${master.ttrMtrs || ""}m`.replace(/\s+/g, " ").trim() || master.ttrProductId,
         buildProfileUrl: (itemId) => `/fairdesk/ttr/profile/${itemId}`,
       }),
     ]);
@@ -342,6 +309,10 @@ router.get("/view", async (req, res) => {
     const summary = {
       totalLines: rows.length,
       totalQuantity: rows.reduce((sum, row) => sum + toNumber(row.quantity), 0),
+      posQty: rows.filter(r => r.itemType === "POS Roll").reduce((sum, row) => sum + toNumber(row.quantity), 0),
+      tafetaQty: rows.filter(r => r.itemType === "Tafeta").reduce((sum, row) => sum + toNumber(row.quantity), 0),
+      tapeQty: rows.filter(r => r.itemType === "Tape").reduce((sum, row) => sum + toNumber(row.quantity), 0),
+      ttrQty: rows.filter(r => r.itemType === "TTR").reduce((sum, row) => sum + toNumber(row.quantity), 0),
       totalBooked: rows.reduce((sum, row) => sum + toNumber(row.booked), 0),
       totalBalance: rows.reduce((sum, row) => sum + toNumber(row.balance), 0),
       totalLocations: new Set(rows.map((row) => row.location)).size,

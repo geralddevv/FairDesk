@@ -4,6 +4,20 @@
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
   <style>
+    .order-highlight {
+      padding: 0.3rem 0.85rem;
+      border-radius: 0.35rem;
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background-color: rgba(255, 255, 255, 0.12);
+      margin-left: 8px;
+      display: inline-block;
+    }
+    .order-highlight.active {
+      background-color: rgba(255, 255, 255, 0.18);
+    }
     #stock-summary-table {
       width: 100%;
       flex: 1 1 auto;
@@ -80,7 +94,14 @@
   </style>
 
   <div class="indi-head">
-    <h1>Stock View</h1>
+    <h1>
+      Stock View
+      <span class="order-highlight active">Total: <%= summary.totalQuantity %></span>
+      <span class="order-highlight active" style="background-color: rgba(4, 74, 120, 0.4);">POS: <%= summary.posQty %></span>
+      <span class="order-highlight active" style="background-color: rgba(4, 74, 120, 0.4);">Tafeta: <%= summary.tafetaQty %></span>
+      <span class="order-highlight active" style="background-color: rgba(4, 74, 120, 0.4);">Tape: <%= summary.tapeQty %></span>
+      <span class="order-highlight active" style="background-color: rgba(4, 74, 120, 0.4);">TTR: <%= summary.ttrQty %></span>
+    </h1>
     <div style="display: flex; gap: 10px; align-items: center">
       <div class="download-selector" id="downloadSelector">
         <button class="download-selector__trigger">
@@ -193,6 +214,17 @@
         },
       },
       {
+        title: "Item Details",
+        field: "specification",
+        minWidth: 250,
+        headerFilter: "input",
+        headerFilterPlaceholder: "Search",
+        formatter: (cell) => {
+          const row = cell.getRow().getData();
+          return `<span class="product-link" onclick="window.location.href='${row.profileUrl}'">${cell.getValue()}</span>`;
+        },
+      },
+      {
         title: "Location",
         field: "location",
         minWidth: 130,
@@ -208,10 +240,6 @@
         minWidth: 170,
         headerFilter: "input",
         headerFilterPlaceholder: "Search",
-        formatter: (cell) => {
-          const row = cell.getRow().getData();
-          return `<span class="product-link" onclick="window.location.href='${row.profileUrl}'">${cell.getValue()}</span>`;
-        },
       },
       {
         title: "Total",

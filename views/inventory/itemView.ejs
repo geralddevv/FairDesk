@@ -682,14 +682,13 @@
           return;
         }
 
-        if (toLocation === activeRow.location && quantity < activeRow.booked) {
-          alert(`Quantity cannot go below booked stock (${activeRow.booked}).`);
-          return;
-        }
-
-        if (toLocation !== activeRow.location && activeRow.booked > 0) {
-          alert(`Cannot move stock while booked stock (${activeRow.booked}) exists at ${activeRow.location}.`);
-          return;
+        if (toLocation === activeRow.location) {
+          // No restriction on adjustment at same location
+        } else {
+          if (activeRow.booked > 0) {
+            alert(`Validation Failed: Cannot move stock from ${activeRow.location} because ${activeRow.booked} units are booked here.`);
+            return;
+          }
         }
 
         toLocationHidden.value = toLocation;

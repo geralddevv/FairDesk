@@ -38,7 +38,7 @@
 
 <div class="main-content" style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
   <div>
-    <div class="span-full form-subheading gap" style="margin-bottom: 1rem;">
+    <div class="span-full form-subheading gap" style="margin-bottom: 10px;">
       <div>
         <h1>Edit User Details</h1>
       </div>
@@ -48,7 +48,7 @@
       action="/fairdesk/form/edit/user/<%= user._id %>"
       method="post"
       class="span-full needs-validation"
-      style="display: grid; grid-template-columns: repeat(32, 1fr); gap: 1.25rem;"
+      style="display: grid; grid-template-columns: repeat(32, 1fr); gap: 10px;"
       autocomplete="off"
       novalidate
     >
@@ -178,7 +178,7 @@
         </div>
       </div>
 
-      <div class="span-full hardware-options" style="display: <%= !user.SelfDispatch ? 'grid' : 'none' %>; grid-template-columns: repeat(32, 1fr); gap: 1.25rem;">
+      <div class="span-full hardware-options" style="display: <%= !user.SelfDispatch ? 'grid' : 'none' %>; grid-template-columns: repeat(32, 1fr); gap: 10px;">
         <div class="span-six">
           <label for="transport-name">Name</label>
           <input type="text" id="transport-name" class="form-control input-tag" name="transportName" value="<%= user.transportName || '' %>" placeholder="Enter Transport Name" />
@@ -218,7 +218,7 @@
         </div>
       </div>
 
-      <div class="span-full software-options" style="display: <%= user.SelfDispatch ? 'grid' : 'none' %>; grid-template-columns: repeat(32, 1fr); gap: 1.25rem;">
+      <div class="span-full software-options" style="display: <%= user.SelfDispatch ? 'grid' : 'none' %>; grid-template-columns: repeat(32, 1fr); gap: 10px;">
         <input type="hidden" id="self-dispatch-value" name="SelfDispatch" value="<%= user.SelfDispatch || '' %>" />
         <input type="text" id="self-dispatch" class="form-control input-tag span-full" value="Self Dispatch" readonly />
       </div>

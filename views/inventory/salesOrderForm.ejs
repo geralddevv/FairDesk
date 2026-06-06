@@ -1,6 +1,6 @@
 <% layout('/layout/boilerplate') -%>
 
-<div class="main-content">
+<div class="main-content" style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
   <form id="sales-order-form" action="<%= typeof confirmMode !== 'undefined' && confirmMode ? '/fairdesk/sales/order/status' : '/fairdesk/sales/order' %>" method="post" class="needs-validation" autocomplete="off" novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <input type="hidden" name="orderId" value="<%= typeof orderToEdit !== 'undefined' && orderToEdit ? orderToEdit._id : '' %>" />
