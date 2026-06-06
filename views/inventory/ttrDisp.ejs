@@ -2,47 +2,33 @@
 
 <!-- Tabulator CSS -->
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
+<link href="https://unpkg.com/tabulator-tables@5.6.2/dist/css/tabulator_modern.min.css" rel="stylesheet">
+</head>
 
-<div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
-    <div class="indi-head">
-      <h1 id="page-title">
-          <% if(jsonData.length > 0) { %>
-            TTR — <%= jsonData[0].clientName %>
-          <% } else { %>
-            TTR View
+<body>
+  <style>
+    #master-table {
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+  </style>
+  <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px" >
+      <div class="indi-head">
+        <h1>
+          TTR's
+          <% if (typeof clientName !== "undefined" && (clientName || userName)) { %>
+            - <%= clientName || "" %><%= clientName && userName ? " / " : "" %><%= userName || "" %>
           <% } %>
         </h1>
-        <div class="download-btns" style="display: flex; gap: 10px; align-items: center">
-          <a
-            href="/fairdesk/form/ttr"
-            class="header-action-btn"
-            style="
-              height: 30px;
-              padding: 0 14px;
-              background: #f0f0f0;
-              color: #044a78;
-              border-radius: 6px;
-              text-decoration: none;
-              font-size: 14px;
-              font-weight: 500;
-              display: inline-flex;
-              align-items: center;
-              gap: 6px;
-              transition: all 0.2s;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            "
-          >
-            <i class="fa-solid fa-plus"></i>
-            <span>Add TTR</span>
-          </a>
-
+        <div class="download-btns">
           <div class="download-selector" id="downloadSelector">
-            <button class="download-selector__trigger" style="height: 30px; display: flex; align-items: center; padding: 0 12px; border: 1.5px solid #e2e8f0; border-radius: 6px; background: #fff; font-size: 14px; font-weight: 500; cursor: pointer;">
+            <button class="download-selector__trigger">
               <span>
                 <i class="fa-solid fa-file-arrow-down"></i>
                 <span class="download-typo">Download</span>
               </span>
-              <i class="fas fa-chevron-down download-selector__trigger-icon" style="font-size: 12px; margin-left: 6px;"></i>
+              <i class="fas fa-chevron-down download-selector__trigger-icon"></i>
             </button>
             <div class="download-selector__menu" id="downloads">
               <span class="download-selector__option" id="download-pdf">
@@ -66,108 +52,216 @@
   <script src="https://unpkg.com/tabulator-tables@5.5.2/dist/js/tabulator.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 
   <form id="deleteBindingForm" method="POST" style="display:none;"></form>
   <div class="logout-modal" id="deleteBindingModal" aria-hidden="true">
     <div class="logout-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteBindingTitle">
       <h2 class="logout-title" id="deleteBindingTitle">Remove binding?</h2>
-      <p class="logout-message" id="deleteBindingMessage">This will permanently delete this TTR record.</p>
-      <div class="logout-buttons">
-        <button type="button" class="logout-btn logout-cancel" onclick="closeDeleteModal()">Cancel</button>
-        <button type="button" class="logout-btn logout-confirm" onclick="confirmDelete()">Delete</button>
+      <p class="logout-text">This will permanently remove this client item binding.</p>
+      <div class="logout-actions">
+        <button class="logout-btn" type="button" id="deleteBindingCancel">Cancel</button>
+        <button class="logout-btn primary" type="button" id="deleteBindingConfirm">Remove</button>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-
+  <script id="table-data" type="application/json"><%- safeJson(jsonData) %></script>
   <script>
-    // ================= DOWNLOAD DROPDOWN =================
-    const downloadSelector = document.getElementById("downloadSelector");
-    const triggerBtn = downloadSelector.querySelector(".download-selector__trigger");
+    // Render data from Express (passed into EJS)
+    const tableData = JSON.parse(document.getElementById('table-data').textContent);
+    const hideExtraColumns = <%= typeof hideExtraColumns !== 'undefined' ? hideExtraColumns : false %>;
 
-    triggerBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      downloadSelector.classList.toggle("download-selector--active");
-      const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
-      icon.style.transform = downloadSelector.classList.contains("download-selector--active") ? "rotate(180deg)" : "rotate(0deg)";
+    console.log(tableData);
+
+    const withTextFilter = (column) => ({
+      headerFilter: "input",
+      headerFilterPlaceholder: "Search",
+      ...column,
     });
 
-    document.addEventListener("click", () => {
-      downloadSelector.classList.remove("download-selector--active");
-      const icon = triggerBtn.querySelector(".download-selector__trigger-icon");
-      if (icon) icon.style.transform = "rotate(0deg)";
-    });
+    // Initialize Tabulator
+    let fixedFieldColumns = [
+      { title: "Status", field: "status", hozAlign: "center", headerFilter: "input", headerFilterPlaceholder: "Search", formatter: function (cell) {
+        const val = cell.getValue() || "ACTIVE";
+        const isActive = val === "ACTIVE";
+        const bg = isActive ? "#28a745" : "#dc3545";
+        return `<span style="background:${bg};color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${val}</span>`;
+      }, width: 84, minWidth: 84, widthGrow: 0, widthShrink: 0 },
+      { title: "Stock", field: "stock", hozAlign: "center", headerFilter: "input", headerFilterPlaceholder: "Search", formatter: (cell) => {
+        const row = cell.getRow().getData();
+        const stock = row.stock ?? "-";
+        return `<span style="font-weight:600">${stock}</span>`;
+      }, width: 80, minWidth: 80, widthGrow: 0, widthShrink: 0 },
+      { title: "Order", hozAlign: "center", formatter: (cell) => {
+        const row = cell.getRow().getData();
+        const clientName = row.userId?.clientName || row.clientName || "";
+        const userId = row.userId?._id || row.userId || "";
+        return `
+              <button 
+                onclick="window.location.href='/fairdesk/sales/order?type=TTR&client=${encodeURIComponent(clientName)}&user=${userId}&item=${row._id}'"
+                style="padding:2px 10px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;">
+                <i class="fa-solid fa-cart-plus"></i>
+              </button>
+            `;
+      }, width: 74, minWidth: 74, widthGrow: 0, widthShrink: 0 },
+      { title: "Product ID", field: "productId", minWidth: 120, widthGrow: 2, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Client Name", field: "clientName", minWidth: 120, widthGrow: 2, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "User Name", field: "userName", minWidth: 110, widthGrow: 2, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "User Contact", field: "userContact", minWidth: 110, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Location", field: "location", minWidth: 110, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Type", field: "ttrType", minWidth: 110, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Color", field: "ttrColor", minWidth: 95, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Material Code", field: "ttrMaterialCode", minWidth: 120, widthGrow: 2, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Width", field: "ttrWidth", minWidth: 80, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Mtrs", field: "ttrMtrs", minWidth: 80, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Mtrs Del", field: "ttrMtrsDel", minWidth: 90, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Ink Face", field: "ttrInkFace", minWidth: 90, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Core ID", field: "ttrCoreId", minWidth: 80, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Core Length", field: "ttrCoreLength", minWidth: 95, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Notch", field: "ttrNotch", minWidth: 80, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      { title: "Winding", field: "ttrWinding", minWidth: 90, widthGrow: 1, headerFilter: "input", headerFilterPlaceholder: "Search" },
+      withTextFilter({ title: "Rate Per Roll", field: "ttrRatePerRoll", minWidth: 96, widthGrow: 1 }),
+      withTextFilter({ title: "Sale Cost", field: "ttrSaleCost", minWidth: 90, widthGrow: 1 }),
+      withTextFilter({ title: "Min Qty", field: "ttrMinQty", minWidth: 85, widthGrow: 1 }),
+      withTextFilter({ title: "Single Odr Qty", field: "ttrSinOdrQty", minWidth: 105, widthGrow: 1 }),
+      withTextFilter({ title: "Odr Freq", field: "ttrOdrFreq", minWidth: 90, widthGrow: 1 }),
+      withTextFilter({ title: "Credit Term", field: "ttrCreditTerm", minWidth: 95, widthGrow: 1 }),
+    ];
 
-    // ================= DATA =================
-    const tableData = <%- safeJson(jsonData || []) %>;
-
-    // ================= DELETE LOGIC =================
-    let deleteId = null;
-    function openDeleteModal(id) {
-      deleteId = id;
-      document.getElementById("deleteBindingModal").classList.add("logout-modal--active");
-    }
-    function closeDeleteModal() {
-      document.getElementById("deleteBindingModal").classList.remove("logout-modal--active");
-      deleteId = null;
-    }
-    async function confirmDelete() {
-      if(!deleteId) return;
-      const form = document.getElementById("deleteBindingForm");
-      form.action = `/fairdesk/stock/ttr/delete/${deleteId}?_method=DELETE`;
-      form.submit();
+    if (hideExtraColumns) {
+      fixedFieldColumns = fixedFieldColumns.filter(col => col.title !== "Stock" && col.title !== "Order");
     }
 
-    // ================= TABULATOR =================
+    const columns = [];
+    if (!hideExtraColumns) {
+      columns.push({
+        title: "Actions",
+        hozAlign: "center",
+        headerHozAlign: "center",
+        width: 128,
+        minWidth: 128,
+        widthGrow: 0,
+        widthShrink: 0,
+        formatter: function (cell) {
+          const row = cell.getRow().getData();
+          const bindingId = row._id;
+          if (!bindingId) {
+            return `<span style="color:#999">N/A</span>`;
+          }
+          return `
+            <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+              <button
+                onclick="window.location.href='/fairdesk/ttr/compare/${bindingId}'"
+                style="padding:2px 6px;min-width:28px;background:#044A78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="View Binding">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button
+                onclick="window.location.href='/fairdesk/ttr-binding/edit/${bindingId}'"
+                style="padding:2px 6px;min-width:28px;background:#e67e22;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Edit Binding">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              
+              <button
+                onclick="promptDeleteBinding('${bindingId}')"
+                style="padding:2px 6px;min-width:28px;background:#d9534f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;"
+                title="Remove Binding">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          `;
+        },
+      });
+    }
+    columns.push(...fixedFieldColumns);
+
     const table = new Tabulator("#master-table", {
       data: tableData,
       height: "100%",
       // layout: "fitColumns",
-      responsiveLayout: false,
+      responsiveLayout: false, // prevent auto-hiding of columns
       movableColumns: true,
-      initialSort: [{ column: "productId", dir: "asc" }],
-      columns: [
-        { title: "Product ID", field: "productId", minWidth: 120, widthGrow: 2, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Type", field: "type", width: 100, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Quality", field: "quality", width: 120, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Color", field: "color", width: 100, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Width", field: "width", width: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Mtrs", field: "metersPerRoll", width: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Core", field: "coreDia", width: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Ink", field: "inkFace", width: 80, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        { title: "Price/sqm", field: "purchasePricePerSqm", width: 120, headerFilter: "input", headerFilterPlaceholder: "Search" },
-        {
-          title: "Actions",
-          width: 80,
-          hozAlign: "center",
-          headerSort: false,
-          formatter: (cell) => {
-            const id = cell.getRow().getData()._id;
-            return `
-              <div style="display:flex;gap:8px;">
-                <button onclick="openDeleteModal('${id}')" style="border:none;background:transparent;color:#dc2626;cursor:pointer;" title="Delete">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              </div>
-            `;
-          }
-        }
-      ]
+      placeholder: "No data to display",
+      columns: columns
     });
 
-    // ================= DOWNLOAD =================
+    let bindingToDelete = "";
+    const deleteModal = document.getElementById("deleteBindingModal");
+    const deleteForm = document.getElementById("deleteBindingForm");
+    const deleteConfirmBtn = document.getElementById("deleteBindingConfirm");
+    const deleteCancelBtn = document.getElementById("deleteBindingCancel");
+    const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+
+    window.promptDeleteBinding = function (bindingId) {
+      bindingToDelete = String(bindingId || "");
+      deleteModal.classList.add("show");
+      deleteModal.setAttribute("aria-hidden", "false");
+    };
+
+    function closeDeleteModal() {
+      deleteModal.classList.remove("show");
+      deleteModal.setAttribute("aria-hidden", "true");
+      bindingToDelete = "";
+    }
+
+    deleteCancelBtn.addEventListener("click", closeDeleteModal);
+    deleteModal.addEventListener("click", (e) => {
+      if (e.target === deleteModal) closeDeleteModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (!deleteModal.classList.contains("show")) return;
+      if (e.key !== "Enter") return;
+      if (e.target && ["INPUT", "TEXTAREA"].includes(e.target.tagName) && e.target !== deleteConfirmBtn) return;
+      e.preventDefault();
+      deleteConfirmBtn.click();
+    });
+    deleteConfirmBtn.addEventListener("click", () => {
+      if (!bindingToDelete) return closeDeleteModal();
+      let csrfInput = deleteForm.querySelector('input[name="_csrf"]');
+      if (!csrfInput) {
+        csrfInput = document.createElement("input");
+        csrfInput.type = "hidden";
+        csrfInput.name = "_csrf";
+        deleteForm.appendChild(csrfInput);
+      }
+      csrfInput.value = getCsrfToken();
+      deleteForm.action = `/fairdesk/ttr-binding/delete/${bindingToDelete}`;
+      deleteForm.submit();
+    });
+
+    // Dropdown toggle
+    const selector = document.getElementById("downloadSelector");
+    const trigger = selector.querySelector(".download-selector__trigger");
+    
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selector.classList.toggle("download-selector--active");
+    });
+  
+    // Close dropdown on outside click
+    document.addEventListener("click", () => {
+      selector.classList.remove("download-selector--active");
+    });
+  
+    // PDF download
     document.getElementById("download-pdf").addEventListener("click", () => {
-      table.download("pdf", "ttr-details.pdf", {
+      table.download("pdf", "ttr.pdf", {
         orientation: "landscape",
-        title: "TTR Details",
+        title: "TTR Data",
       });
+      selector.classList.remove("download-selector--active");
     });
-
+  
+    // Excel download
     document.getElementById("download-xlsx").addEventListener("click", () => {
-      table.download("xlsx", "ttr-details.xlsx", {
+      table.download("xlsx", "ttr.xlsx", {
         sheetName: "TTR",
       });
+      selector.classList.remove("download-selector--active");
     });
+
   </script>
+</body>

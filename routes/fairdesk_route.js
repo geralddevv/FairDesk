@@ -504,6 +504,10 @@ router.use((req, res, next) => {
       /^\/pos-roll\/profile\/[^/]+$/,
       /^\/tafeta\/profile\/[^/]+$/,
       /^\/ttr\/profile\/[^/]+$/,
+      /^\/tape\/edit\/[^/]+$/,
+      /^\/pos-roll\/edit\/[^/]+$/,
+      /^\/tafeta\/edit\/[^/]+$/,
+      /^\/ttr\/edit\/[^/]+$/,
       /^\/form\/tape-binding(?:\/.*)?$/,
       /^\/form\/pos-roll-binding(?:\/.*)?$/,
       /^\/form\/tafeta-binding(?:\/.*)?$/,
@@ -520,6 +524,10 @@ router.use((req, res, next) => {
       /^\/form\/pos-roll-binding$/,
       /^\/form\/tafeta-binding$/,
       /^\/form\/ttr-binding$/,
+      /^\/tape\/edit\/[^/]+$/,
+      /^\/pos-roll\/edit\/[^/]+$/,
+      /^\/tafeta\/edit\/[^/]+$/,
+      /^\/ttr\/edit\/[^/]+$/,
       /^\/pettycash\/create$/,
     ];
 

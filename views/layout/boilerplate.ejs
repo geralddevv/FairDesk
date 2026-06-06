@@ -438,6 +438,44 @@
         background: #f1f5f9;
         margin: 6px 0;
       }
+
+      /* Password Validation Styles */
+      .password-requirement {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: #94a3b8;
+        margin-top: 4px;
+        transition: color 0.2s ease;
+      }
+      .password-requirement i {
+        font-size: 10px;
+        color: #cbd5e1;
+      }
+      .password-requirement.met {
+        color: #10b981;
+      }
+      .password-requirement.met i {
+        color: #10b981;
+      }
+      .password-input-wrapper {
+        position: relative;
+      }
+      .password-toggle-icon {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 14px;
+        transition: color 0.2s;
+        z-index: 10;
+      }
+      .password-toggle-icon:hover {
+        color: #044a78;
+      }
     </style>
   </head>
   <body>
@@ -573,12 +611,25 @@
             
             <div class="password-input-group">
               <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">Current Password</label>
-              <input type="password" name="oldPassword" required class="form-control premium-input" style="padding: 12px 14px !important;" placeholder="Enter current password">
+              <div class="password-input-wrapper">
+                <input type="password" name="oldPassword" required class="form-control premium-input" style="padding: 12px 40px 12px 14px !important;" placeholder="Enter current password">
+                <i class="fa-solid fa-eye password-toggle-icon" onclick="togglePasswordVisibility(this)"></i>
+              </div>
             </div>
 
             <div class="password-input-group">
               <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">New Password</label>
-              <input type="password" name="newPassword" required class="form-control premium-input" style="padding: 12px 14px !important;" placeholder="Enter new password">
+              <div class="password-input-wrapper">
+                <input type="password" name="newPassword" id="newPasswordInput" required class="form-control premium-input" style="padding: 12px 40px 12px 14px !important;" placeholder="Enter new password">
+                <i class="fa-solid fa-eye password-toggle-icon" onclick="togglePasswordVisibility(this)"></i>
+              </div>
+              <div id="passwordRequirements" style="margin-top: 12px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px;">
+                <div class="password-requirement" data-req="length" style="margin: 0;"><i class="fa-solid fa-circle"></i> 10+ Characters</div>
+                <div class="password-requirement" data-req="uppercase" style="margin: 0;"><i class="fa-solid fa-circle"></i> 1+ Uppercase</div>
+                <div class="password-requirement" data-req="lowercase" style="margin: 0;"><i class="fa-solid fa-circle"></i> 1+ Lowercase</div>
+                <div class="password-requirement" data-req="number" style="margin: 0;"><i class="fa-solid fa-circle"></i> 1+ Number</div>
+                <div class="password-requirement" data-req="special" style="margin: 0; grid-column: span 2;"><i class="fa-solid fa-circle"></i> 1+ Symbol (!@#$%^&*)</div>
+              </div>
             </div>
             
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
@@ -1106,6 +1157,55 @@
       const passwordModal = document.getElementById("passwordModal");
       const passwordCancel = document.getElementById("passwordCancel");
       const changePasswordForm = document.getElementById("changePasswordForm");
+      const newPasswordInput = document.getElementById("newPasswordInput");
+      const submitPasswordBtn = changePasswordForm?.querySelector('button[type="submit"]');
+
+      window.togglePasswordVisibility = function(icon) {
+        const input = icon.parentElement.querySelector('input');
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      };
+
+      if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', () => {
+          const val = newPasswordInput.value;
+          const checks = {
+            length: val.length >= 10,
+            uppercase: /[A-Z]/.test(val),
+            lowercase: /[a-z]/.test(val),
+            number: /[0-9]/.test(val),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(val)
+          };
+
+          let allMet = true;
+          Object.keys(checks).forEach(key => {
+            const el = document.querySelector(`.password-requirement[data-req="${key}"]`);
+            if (el) {
+              if (checks[key]) {
+                el.classList.add('met');
+                el.querySelector('i').className = 'fa-solid fa-circle-check';
+              } else {
+                el.classList.remove('met');
+                el.querySelector('i').className = 'fa-solid fa-circle';
+                allMet = false;
+              }
+            }
+          });
+
+          if (submitPasswordBtn) {
+            submitPasswordBtn.disabled = !allMet;
+            submitPasswordBtn.style.opacity = allMet ? '1' : '0.6';
+            submitPasswordBtn.style.cursor = allMet ? 'pointer' : 'not-allowed';
+          }
+        });
+      }
 
       if (fdLogout) {
         fdLogout.addEventListener("click", (e) => {

@@ -749,6 +749,15 @@ router.get("/ttr/view/:id", async (req, res) => {
         userName: binding.userId?.userName || "",
         userContact: binding.userId?.userContact || "",
         location: binding.userId?.userLocation || "",
+        // Explicit binding overrides
+        ttrSinOdrQty: binding.ttrOdrQty ?? 0,
+        ttrMinQty: binding.ttrMinQty ?? 0,
+        ttrRatePerRoll: binding.ttrRatePerRoll ?? 0,
+        ttrSaleCost: binding.ttrSaleCost ?? 0,
+        ttrMtrsDel: binding.ttrMtrsDel || "",
+        ttrOdrFreq: binding.ttrOdrFreq || "",
+        ttrCreditTerm: binding.ttrCreditTerm || "",
+        status: binding.status || "ACTIVE",
       };
     });
 
@@ -1228,6 +1237,15 @@ router.get("/ttr/master-view/clients/:ttrId", async (req, res) => {
         userName: binding.userId?.userName || "",
         userContact: binding.userId?.userContact || "",
         location: binding.userId?.userLocation || "",
+        // Explicit binding overrides
+        ttrSinOdrQty: binding.ttrOdrQty ?? 0,
+        ttrMinQty: binding.ttrMinQty ?? 0,
+        ttrRatePerRoll: binding.ttrRatePerRoll ?? 0,
+        ttrSaleCost: binding.ttrSaleCost ?? 0,
+        ttrMtrsDel: binding.ttrMtrsDel || "",
+        ttrOdrFreq: binding.ttrOdrFreq || "",
+        ttrCreditTerm: binding.ttrCreditTerm || "",
+        status: binding.status || "ACTIVE",
       };
     });
 
