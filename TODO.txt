@@ -23,7 +23,6 @@ Am Main:
 rate and current rate in the sales order
 consider item combo options in the sales order page (hold)
 if single digit add a 0 before the number
-allow the location editing in the sales order edit form
 add a pop up message when logged out default (partial need to check)
 want to add daily log⬇️
 (it should be more like an automated activity log (showing things like "Order #123 created by Gerald")?)
@@ -51,3 +50,9 @@ add option to add items in others (spell check) vendors and add also tape
 client type in ttr details view and client data in details view
 
 ask: add select in the others field in vendor create
+
+6/06
+in stock summary add master details in top
+-> total stock, items seprately
+extra stock can come when inward
+po and billing rate

@@ -46,12 +46,19 @@ router.use((req, res, next) => {
 
   if (hasClientAccess) {
     const path = req.path || "";
-    if (req.method !== "GET") return res.redirect("/login");
+    const nPath = path.toLowerCase().replace(/\/$/, "");
 
-    const normalizedPath = path.toLowerCase().replace(/\/$/, "");
-    if (normalizedPath === "/view" || path.startsWith("/api/") || path.startsWith("/profile/")) {
+    if (
+      req.method === "GET" &&
+      (nPath === "/view" || path.startsWith("/api/") || path.startsWith("/profile/") || path.startsWith("/details/"))
+    ) {
       return next();
     }
+
+    if (req.method === "POST" && path.includes("/delete")) {
+      return next();
+    }
+
     return res.redirect("/login");
   }
 
@@ -266,6 +273,101 @@ router.get("/profile/:id", async (req, res) => {
     console.error(err);
     req.flash("notification", "Invalid client link");
     res.redirect("/fairdesk/client/view");
+  }
+});
+
+/* ================= USER DETAILS ================= */
+router.get("/details/:userId", async (req, res) => {
+  try {
+    const user = await Username.findById(req.params.userId)
+      .populate("label")
+      .populate("ttr")
+      .populate({
+        path: "tape",
+        populate: { path: "tapeId" },
+      })
+      .populate({
+        path: "posRoll",
+        populate: { path: "posRollId" },
+      })
+      .populate({
+        path: "tafeta",
+        populate: { path: "tafetaId" },
+      });
+
+    if (!user) {
+      req.flash("notification", "User not found");
+      return res.redirect("/fairdesk/master/view");
+    }
+
+    const userData = {
+      _id: user._id,
+      clientId: user.clientId,
+      clientName: user.clientName,
+      clientType: user.clientType,
+      hoLocation: user.hoLocation,
+      accountHead: user.accountHead,
+      userName: user.userName,
+      userContact: user.userContact,
+      userEmail: user.userEmail,
+      userLocation: user.userLocation,
+      locationDetails: Array.isArray(user.locationDetails) ? user.locationDetails : [],
+      userDepartment: user.userDepartment,
+      SelfDispatch: user.SelfDispatch,
+      dispatchAddress: user.dispatchAddress,
+      transportName: user.transportName,
+      transportContact: user.transportContact,
+      dropLocation: user.dropLocation,
+      deliveryMode: user.deliveryMode,
+      deliveryLocation: user.deliveryLocation,
+      clientPayment: user.clientPayment,
+    };
+
+    const stats = {
+      labels: (user.label || []).length,
+      ttrs: (user.ttr || []).length,
+      tapes: (user.tape || []).length,
+      posRolls: (user.posRoll || []).length,
+      tafetas: (user.tafeta || []).length,
+    };
+
+    res.render("users/clientDetails.ejs", {
+      title: "User Details",
+      CSS: false,
+      JS: false,
+      userData,
+      labels: user.label || [],
+      ttrs: user.ttr || [],
+      tapes: user.tape || [],
+      posRolls: user.posRoll || [],
+      tafetas: user.tafeta || [],
+      stats,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("USER DETAILS ERROR:", err);
+    req.flash("notification", "Failed to load user details");
+    res.redirect("/fairdesk/master/view");
+  }
+});
+
+/* ================= DELETE USER ================= */
+router.post("/details/:userId/delete", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await Username.findById(userId).lean();
+    if (!user) {
+      req.flash("notification", "User not found");
+      return res.redirect("/fairdesk/master/view");
+    }
+    await Client.updateOne({ clientId: user.clientId }, { $pull: { users: user._id } });
+    await Username.deleteOne({ _id: user._id });
+    req.flash("notification", `User ${user.userName} deleted successfully`);
+    return res.redirect("/fairdesk/master/view");
+  } catch (err) {
+    console.error("USER DELETE ERROR:", err);
+    req.flash("notification", "Failed to delete user");
+    return res.redirect(`/fairdesk/client/details/${req.params.userId}`);
   }
 });
 
