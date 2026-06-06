@@ -24,7 +24,7 @@
 .hardware-options {
   display: grid;
   grid-template-columns: repeat(32, 1fr);
-  gap: 1.25rem;
+  gap: 10px;
 }
 
 .hardware:hover {
@@ -38,7 +38,7 @@
 .software-options {
   display: grid;
   grid-template-columns: repeat(32, 1fr);
-  gap: 1.25rem;
+  gap: 10px;
   display: none;
 }
 
@@ -51,13 +51,13 @@
 .client-content {
   display: grid;
   grid-template-columns: repeat(32, 1fr);
-  gap: 1.25rem;
+  gap: 10px;
 }
 
 .user-content {
   /* display: grid;
   grid-template-columns: repeat(32, 1fr);
-  gap: 1.25rem; */
+  gap: 10px; */
   display: none;
 }
 
@@ -98,13 +98,13 @@
 .rottary-content {
   display: grid;
   grid-template-columns: repeat(32, 1fr);
-  gap: 1.25rem;
+  gap: 10px;
 }
 
 .flatbed-content {
   /* display: grid;
   grid-template-columns: repeat(32, 1fr);
-  gap: 1.25rem; */
+  gap: 10px; */
   display: none;
 }
 

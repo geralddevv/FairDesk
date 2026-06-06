@@ -50,12 +50,12 @@ router.use((req, res, next) => {
 
     if (
       req.method === "GET" &&
-      (nPath === "/view" || path.startsWith("/api/") || path.startsWith("/profile/") || path.startsWith("/details/"))
+      (nPath === "/view" || path.startsWith("/api/") || path.startsWith("/profile/") || path.startsWith("/details/") || path.startsWith("/edit/"))
     ) {
       return next();
     }
 
-    if (req.method === "POST" && path.includes("/delete")) {
+    if (req.method === "POST" && (path.includes("/delete") || path.includes("/edit/"))) {
       return next();
     }
 

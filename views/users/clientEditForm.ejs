@@ -6,8 +6,8 @@
   const accountHeadMatch = (employees || []).find((employee) => String(employee.empName || "").trim().toLowerCase() === normalizedCurrentAccountHead);
 %>
 
-<div class="main-content">
-  <form class="client-content span-full needs-validation" action="/fairdesk/client/edit/<%= client._id %>" method="post" autocomplete="off" novalidate>
+<div class="main-content" style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
+  <form class="client-content span-full needs-validation" action="/fairdesk/client/edit/<%= client._id %>" method="post" autocomplete="off" novalidate style="gap: 10px;">
     <div class="span-full form-heading">
       <h1>Edit Client</h1>
     </div>
