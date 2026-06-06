@@ -535,7 +535,7 @@ router.use((req, res, next) => {
       const normalizedPath = path.toLowerCase().replace(/\/$/, "");
       
       // Explicit keyword matches for resilience
-      const keywords = ["master/view", "compare", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor", "stocks", "pettycash"];
+      const keywords = ["master/view", "compare", "binding", "welcome", "api/motivational", "tape/view", "pos-roll/view", "tafeta/view", "ttr/view", "client", "vendor", "user", "stocks", "pettycash"];
       if (keywords.some(k => normalizedPath.includes(k))) return next();
 
       if (allowedGetRoutes.includes(normalizedPath) || allowedGetPatterns.some((re) => re.test(path))) {
@@ -543,7 +543,7 @@ router.use((req, res, next) => {
       }
     }
 
-    if (req.method === "POST" && (path.includes("binding") || allowedPostRoutes.some((re) => re.test(path)))) {
+    if (req.method === "POST" && (path.includes("binding") || path.includes("user") || allowedPostRoutes.some((re) => re.test(path)))) {
       return next();
     }
 
