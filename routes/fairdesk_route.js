@@ -2893,18 +2893,17 @@ router.get("/ttr/profile/:id", async (req, res) => {
     : "/fairdesk/ttr/view";
   const stockSummary = await getTtrStockSummary(ttr._id);
   const locationOptions = await Location.find().sort({ locationName: 1 }).lean();
-  const ttrHeading = `${ttr.ttrType || "TTR"} ${ttr.ttrCoreLength ?? ""} x ${ttr.ttrMtrs ?? ""} m`
+  const ttrHeading = `${primaryBinding?.clientTtrType || ttr.ttrType || "TTR"} ${ttr.ttrCoreLength ?? ""}`
     .replace(/\s+/g, " ")
     .trim();
 
   const rows = [
     { label: "Product ID", value: ttr.ttrProductId || "N/A" },
-    { label: "Material Code", value: ttr.ttrMaterialCode || "N/A" },
-    { label: "Type", value: ttr.ttrType || "N/A" },
+    { label: "Client Material Code", value: primaryBinding?.ttrClientMaterialCode || "N/A" },
+    { label: "Client Type", value: primaryBinding?.clientTtrType || "N/A" },
     { label: "Color", value: ttr.ttrColor || "N/A" },
     { label: "Ink Face", value: ttr.ttrInkFace || "N/A" },
     { label: "Width", value: ttr.ttrWidth ?? "N/A" },
-    { label: "Meters", value: ttr.ttrMtrs ?? "N/A" },
     { label: "Core ID", value: ttr.ttrCoreId ?? "N/A" },
     { label: "Core Length", value: ttr.ttrCoreLength ?? "N/A" },
     { label: "Notch", value: ttr.ttrNotch || "N/A" },
