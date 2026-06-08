@@ -290,7 +290,10 @@ router.get("/details/:userId", async (req, res) => {
   try {
     const user = await Username.findById(req.params.userId)
       .populate("label")
-      .populate("ttr")
+      .populate({
+        path: "ttr",
+        populate: { path: "ttrId" },
+      })
       .populate({
         path: "tape",
         populate: { path: "tapeId" },
