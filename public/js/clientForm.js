@@ -95,8 +95,18 @@
     // Handle URL query parameter for tab switching
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get("tab");
+    const clientNameParam = urlParams.get("clientName");
+
     if (tabParam === "user" && dom.userSwitch) {
       toggleViews("user");
+      if (clientNameParam && dom.clientNameSelect) {
+        if (choicesInstance) {
+          choicesInstance.setChoiceByValue(clientNameParam);
+        } else {
+          dom.clientNameSelect.value = clientNameParam;
+        }
+        handleClientChange(clientNameParam);
+      }
     } else if (tabParam === "client" && dom.clientSwitch) {
       toggleViews("client");
     }

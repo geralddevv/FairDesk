@@ -10,6 +10,14 @@
       flex: 1 1 auto;
       min-height: 0;
     }
+    /* Hide scrollbars in Tabulator's custom list dropdown */
+    .tabulator-edit-list {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    .tabulator-edit-list::-webkit-scrollbar {
+      display: none !important;
+    }
   </style>
   <div class="indi-head">
     <h1>Clients</h1>
@@ -206,6 +214,15 @@
     ...column,
   });
 
+  const withSelectFilter = (column, values) => ({
+    headerFilter: "list",
+    headerFilterParams: {
+      values: values,
+      clearable: true,
+    },
+    ...column,
+  });
+
   const table = new Tabulator("#master-table", {
     data: tableData,
     height: "100%",
@@ -230,7 +247,7 @@
 
         cellClick: (e, cell) => {
           const row = cell.getRow().getData();
-          openClientModal(row._id);
+          window.location.href = `/fairdesk/client/profile/${row._id}`;
         },
       }),
       withTextFilter({
@@ -245,15 +262,15 @@
           return `<span style="font-weight:600;color:#044a78">${value}</span>`;
         },
       }),
-      withTextFilter({
+      withSelectFilter({
         title: "Type",
         field: "clientType",
         headerSort: true,
         width: 100,
-      }),
+      }, { "": "All", "DEALER": "DEALER", "CLIENT": "CLIENT" }),
       withTextFilter({ title: "HO Location", field: "hoLocation" }),
       withTextFilter({ title: "Account Head", field: "accountHead" }),
-      withTextFilter({
+      withSelectFilter({
         title: "Status",
         field: "clientStatus",
         headerSort: true,
@@ -263,6 +280,14 @@
           const color = status === "ACTIVE" ? "#28a745" : "#dc3545";
           return `<span style="font-weight:600;color:${color}">${v || "-"}</span>`;
         },
+      }, {
+        "": "All",
+        "ACTIVE": "ACTIVE",
+        "INACTIVE": "INACTIVE",
+        "FOLLOW UP": "FOLLOW UP",
+        "BLACKLISTED": "BLACKLISTED",
+        "ADVANCED": "ADVANCED",
+        "OTHERS": "OTHERS"
       }),
     ],
   });

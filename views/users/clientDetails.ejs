@@ -470,7 +470,7 @@
     <i class="fa-solid fa-building"></i>
   </div>
   <div class="fab-divider"></div>
-  <div title="Add User" class="fab-item" onclick="window.location.href='/fairdesk/form/client?tab=user'" style="cursor: pointer;">
+  <div title="Add User" class="fab-item" onclick="window.location.href='/fairdesk/form/client?tab=user&clientName=<%= encodeURIComponent(userData.clientName) %>'" style="cursor: pointer;">
     <i class="fa-solid fa-user-plus"></i>
   </div>
   <div class="fab-divider"></div>

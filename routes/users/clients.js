@@ -255,7 +255,16 @@ router.post("/edit/:id", async (req, res) => {
 /* ================= CLIENT PROFILE (OPTIONAL) ================= */
 router.get("/profile/:id", async (req, res) => {
   try {
-    const client = await Client.findById(req.params.id);
+    const client = await Client.findById(req.params.id).populate({
+      path: "users",
+      populate: [
+        { path: "label" },
+        { path: "ttr", populate: { path: "ttrId" } },
+        { path: "tape", populate: { path: "tapeId" } },
+        { path: "posRoll", populate: { path: "posRollId" } },
+        { path: "tafeta", populate: { path: "tafetaId" } },
+      ],
+    });
 
     if (!client) {
       req.flash("notification", "Client not found");
