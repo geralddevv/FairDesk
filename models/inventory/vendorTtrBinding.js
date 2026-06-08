@@ -62,12 +62,12 @@ const vendorTtrBindingSchema = new mongoose.Schema(
     ttrMinQty: {
       type: Number,
       required: true,
-      min: 1,
+      min: 0,
     },
     ttrOdrQty: {
       type: Number,
       required: true,
-      min: 1,
+      min: 0,
     },
     ttrOdrFreq: {
       type: String,

@@ -96,6 +96,16 @@
     } else if (tabParam === "client" && dom.clientSwitch) {
       toggleViews("client");
     }
+
+    const vendorNameParam = urlParams.get("vendorName") || (dom.vendorNameSelect ? dom.vendorNameSelect.value : null);
+    if (vendorNameParam && dom.vendorNameSelect && vendorNameParam !== "") {
+      if (choicesInstance) {
+        choicesInstance.setChoiceByValue(vendorNameParam);
+      } else {
+        dom.vendorNameSelect.value = vendorNameParam;
+      }
+      handleVendorChange(vendorNameParam);
+    }
   }
 
   function toggleTabs(activeTab) {
@@ -260,11 +270,15 @@
       const whEl = document.getElementById("coordinator-warehouse-location");
       const statusEl = document.getElementById("coordinator-vendor-status");
       const statusHiddenEl = document.getElementById("coordinator-vendor-status-hidden");
+      const gstEl = document.getElementById("coordinator-vendor-gst");
+      const msmeEl = document.getElementById("coordinator-vendor-msme");
       const idEl = document.getElementById("object-id");
       if (hoEl) hoEl.value = "";
       if (whEl) whEl.value = "";
       if (statusEl) statusEl.value = "";
       if (statusHiddenEl) statusHiddenEl.value = "";
+      if (gstEl) gstEl.value = "";
+      if (msmeEl) msmeEl.value = "";
       if (idEl) idEl.value = "";
       return;
     }
@@ -295,6 +309,8 @@ function feedVendorData(data) {
   const whEl = document.getElementById("coordinator-warehouse-location");
   const statusEl = document.getElementById("coordinator-vendor-status");
   const statusHiddenEl = document.getElementById("coordinator-vendor-status-hidden");
+  const gstEl = document.getElementById("coordinator-vendor-gst");
+  const msmeEl = document.getElementById("coordinator-vendor-msme");
   const objEl = document.getElementById("object-id");
 
   if (idEl) idEl.value = data.vendorId || "";
@@ -302,5 +318,17 @@ function feedVendorData(data) {
   if (whEl) whEl.value = data.warehouseLocation || data.hoLocation || "";
   if (statusEl) statusEl.value = data.vendorStatus || "";
   if (statusHiddenEl) statusHiddenEl.value = data.vendorStatus || "";
+  if (gstEl) gstEl.value = data.vendorGst || "";
+  if (msmeEl) msmeEl.value = data.vendorMsme || "";
   if (objEl) objEl.value = data._id || "";
+
+  // Prefill first location row if empty
+  const firstLocationInput = document.querySelector('input[name="locationDetails[0][userLocation]"]');
+  const firstAddressInput = document.querySelector('input[name="locationDetails[0][dispatchAddress]"]');
+  if (firstLocationInput && !firstLocationInput.value) {
+    firstLocationInput.value = (data.hoLocation || "").toUpperCase();
+  }
+  if (firstAddressInput && !firstAddressInput.value) {
+    firstAddressInput.value = (data.hoLocation || "").toUpperCase();
+  }
 }

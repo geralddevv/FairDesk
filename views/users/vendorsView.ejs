@@ -4,6 +4,21 @@
 <link href="https://unpkg.com/tabulator-tables@5.5.2/dist/css/tabulator.min.css" rel="stylesheet" />
 
 <div class="contain" style="flex-direction: column; padding: 10px; gap: 10px">
+  <style>
+    #master-table {
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    /* Hide scrollbars in Tabulator's custom list dropdown */
+    .tabulator-edit-list {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    .tabulator-edit-list::-webkit-scrollbar {
+      display: none !important;
+    }
+  </style>
   <div class="indi-head">
     <h1>Vendors</h1>
 
@@ -11,7 +26,7 @@
       .header-action-btn {
         background-color: #f0f0f0;
         color: #044a78;
-        padding: 2px 14px;
+        padding: 2px 14px; /* Matches Download button padding exactly */
         font-size: 14px;
         font-weight: 500;
         border: none;
@@ -26,19 +41,14 @@
       .header-action-btn:hover {
         background-color: #e4e4e4;
       }
-      #master-table {
-        width: 100%;
-        flex: 1 1 auto;
-        min-height: 0;
-      }
     </style>
 
     <div style="display: flex; gap: 10px; align-items: center">
-      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/vendor'">
-        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Vendor
-      </button>
       <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/vendor?tab=user'">
-        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Vendor User
+        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Coordinator
+      </button>
+      <button class="header-action-btn" onclick="window.location.href = '/fairdesk/form/vendor?tab=vendor'">
+        <i class="fa-solid fa-plus" style="margin-right: 4px"></i> Vendor
       </button>
 
       <div class="download-selector" id="downloadSelector">
@@ -59,7 +69,7 @@
   <div id="master-table"></div>
 </div>
 
-<!-- ================= VENDOR DETAILS POPUP ================= -->
+<!-- ================= VENDOR DETAILS POPUP (Legacy support or quick view) ================= -->
 <style>
   .vendor-modal-backdrop {
     position: fixed;
@@ -100,7 +110,7 @@
     gap: 12px;
   }
 
-  .vendor-action-btn {
+  .vendor-edit-btn {
     color: #044a78;
     background: #fff;
     padding: 0px 10px;
@@ -111,7 +121,7 @@
     transition: opacity 0.15s ease;
   }
 
-  .vendor-action-btn:hover {
+  .vendor-edit-btn:hover {
     opacity: 0.85;
   }
 
@@ -162,8 +172,8 @@
       <div class="vendor-modal-title" id="vendorModalTitle"></div>
 
       <div class="vendor-modal-actions">
-        <a href="#" class="vendor-action-btn" id="vendorEditLink">Edit</a>
-        <span class="vendor-close" onclick="closeVendorModal()">&times;</span>
+        <a id="editVendorBtn" class="vendor-edit-btn">Edit</a>
+        <span class="vendor-close" onclick="closeVendorModal()">✕</span>
       </div>
     </div>
 
@@ -190,19 +200,28 @@
     downloadSelector.classList.remove("download-selector--active");
   });
 
-  const formatCommodityValue = (commodities) => {
-    if (Array.isArray(commodities)) return commodities.filter(Boolean).join(", ");
-    return commodities || "-";
-  };
+  /* ===== Table ===== */
+  const tableData = <%- safeJson(jsonData) %>;
+
+  function normalizeStatus(value) {
+    return String(value ?? "").trim().toUpperCase();
+  }
 
   const withTextFilter = (column, placeholder = "Search") => ({
     headerFilter: "input",
     headerFilterPlaceholder: placeholder,
+    minWidth: 100,
     ...column,
   });
 
-  /* ===== Table ===== */
-  const tableData = <%- safeJson(jsonData) %>;
+  const withSelectFilter = (column, values) => ({
+    headerFilter: "list",
+    headerFilterParams: {
+      values: values,
+      clearable: true,
+    },
+    ...column,
+  });
 
   const table = new Tabulator("#master-table", {
     data: tableData,
@@ -214,82 +233,73 @@
       withTextFilter({
         title: "Vendor Name",
         field: "vendorName",
-        headerSort: true,
+        minWidth: 220,
+
         formatter: (cell) => {
           const row = cell.getRow().getData();
           const hasUsers = Number(row.userCount || 0) > 0;
-          const color = hasUsers ? "#044a78" : "#dc2626";
-          return `<span class="client-name-cell" style="color:${color};text-decoration:underline;text-underline-offset:2px;">${cell.getValue()}</span>`;
+          cell.getElement().classList.add("client-name-cell");
+          if (!hasUsers) {
+            return `<span style="color:#dc2626;font-weight:600;text-decoration:underline;text-decoration-color:#dc2626;">${cell.getValue()}</span>`;
+          }
+          return cell.getValue();
         },
 
         cellClick: (e, cell) => {
           const row = cell.getRow().getData();
-          openVendorModal(row.vendorName);
+          window.location.href = `/fairdesk/vendor/profile/${row._id}`;
         },
       }),
       withTextFilter({
+        title: "Coordinators",
+        field: "userCount",
+        width: 120,
+        hozAlign: "center",
+        headerHozAlign: "center",
+        sorter: "number",
+        formatter: (cell) => {
+          const value = Number(cell.getValue() || 0);
+          return `<span style="font-weight:600;color:#044a78">${value}</span>`;
+        },
+      }),
+      withTextFilter({ title: "HO Location", field: "hoLocation" }),
+      withTextFilter({ title: "Warehouse Location", field: "warehouseLocation" }),
+      withSelectFilter({
         title: "Status",
         field: "vendorStatus",
         headerSort: true,
-        width: 120,
         formatter: (cell) => {
           const v = cell.getValue();
-          const color = v === "ACTIVE" ? "#28a745" : "#dc3545";
-          return `<span style="font-weight:600;color:${color}">${v}</span>`;
+          const status = normalizeStatus(v);
+          const color = status === "ACTIVE" ? "#28a745" : "#dc3545";
+          return `<span style="font-weight:600;color:${color}">${v || "-"}</span>`;
         },
+      }, {
+        "": "All",
+        "ACTIVE": "ACTIVE",
+        "INACTIVE": "INACTIVE"
       }),
-      withTextFilter({
-        title: "Users",
-        field: "userCount",
-        hozAlign: "center",
-        headerHozAlign: "center",
-        width: 110,
-        headerSort: true,
-        sorter: "number",
-        formatter: (cell) => Number(cell.getValue() || 0),
-      }),
-      withTextFilter({ title: "H/O Location", field: "hoLocation", headerSort: true }),
-      withTextFilter({ title: "Warehouse Location", field: "warehouseLocation", headerSort: true }),
-      withTextFilter({
-        title: "Commodities",
-        field: "commodities",
-        headerSort: true,
-        formatter: (cell) => formatCommodityValue(cell.getValue()),
-        sorter: (a, b) => {
-          const strA = formatCommodityValue(a);
-          const strB = formatCommodityValue(b);
-          return strA.localeCompare(strB);
-        },
-      }),
-      withTextFilter({ title: "GST", field: "vendorGst", headerSort: true }),
-      withTextFilter({ title: "MSME", field: "vendorMsme", headerSort: true }),
-      withTextFilter({ title: "PAN", field: "vendorPan", headerSort: true }),
     ],
   });
 
-  /* ===== POPUP LOGIC ===== */
-  async function openVendorModal(vendorName) {
-    const res = await fetch(`/fairdesk/form/vendor/${encodeURIComponent(vendorName)}`);
+  /* ===== POPUP LOGIC (Legacy support) ===== */
+  async function openVendorModal(id) {
+    const res = await fetch(`/fairdesk/form/vendor/api/${id}`);
     const vendor = await res.json();
-    const editLink = document.getElementById("vendorEditLink");
 
-    document.getElementById("vendorModalTitle").innerText = vendor.vendorName || vendorName;
-    if (editLink) {
-      editLink.href = vendor._id ? `/fairdesk/vendor/edit/${encodeURIComponent(vendor._id)}` : "#";
-      editLink.style.pointerEvents = vendor._id ? "auto" : "none";
-      editLink.style.opacity = vendor._id ? "1" : "0.5";
-    }
+    document.getElementById("vendorModalTitle").innerText = vendor.vendorName;
+    document.getElementById("editVendorBtn").href =
+      `/fairdesk/vendor/edit/${vendor._id}`;
 
     const fields = [
       ["Vendor ID", vendor.vendorId],
       ["Status", vendor.vendorStatus],
-      ["H/O Location", vendor.hoLocation],
+      ["HO Location", vendor.hoLocation],
       ["Warehouse Location", vendor.warehouseLocation],
-      ["Commodities", formatCommodityValue(vendor.commodities)],
       ["GST", vendor.vendorGst],
+      ["PAN", vendor.vendorPan],
       ["MSME", vendor.vendorMsme],
       ["Gumasta", vendor.vendorGumasta],
-      ["PAN", vendor.vendorPan],
     ];
 
     const body = document.getElementById("vendorModalBody");

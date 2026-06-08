@@ -233,9 +233,9 @@
     <div class="span-dual">
       <label for="userform-client-name">Vendor Name</label>
       <select name="vendorName" id="userform-client-name">
-        <option value="" disabled selected hidden>Search</option>        
+        <option value="" disabled <%= !vendorName ? 'selected' : '' %> hidden>Search</option>        
         <% for (vendor of vendors) { %>
-          <option value="<%= vendor %>"><%= vendor %></option>
+          <option value="<%= vendor %>" <%= (typeof vendorName !== 'undefined' && vendor === vendorName) ? 'selected' : '' %>><%= vendor %></option>
         <% } %>
       </select>
     </div>
@@ -265,6 +265,16 @@
     <div class="span-seven">
       <label for="coordinator-warehouse-location">Warehouse Location</label>
       <input type="text" id="coordinator-warehouse-location" class="form-control input-tag" name="warehouseLocation" placeholder="Enter Warehouse Location" readonly required />
+    </div>
+
+    <div class="span-six">
+      <label for="coordinator-vendor-gst">Vendor GST</label>
+      <input type="text" id="coordinator-vendor-gst" class="form-control input-tag" name="vendorGst" placeholder="Vendor GST" readonly />
+    </div>
+
+    <div class="span-six">
+      <label for="coordinator-vendor-msme">Vendor MSME</label>
+      <input type="text" id="coordinator-vendor-msme" class="form-control input-tag" name="vendorMsme" placeholder="Vendor MSME" readonly />
     </div>
 
     <div class="span-full form-subheading">

@@ -2950,6 +2950,7 @@ router.post("/ttr/profile/:id/stock/edit", async (req, res) =>
 
 // route for vendor form.
 router.get("/form/vendor", async (req, res) => {
+  const { tab, vendorName } = req.query;
   let vendors = await Vendor.distinct("vendorName");
   let userCount = await VendorUser.countDocuments();
   let vendorCount = vendors.length;
@@ -2960,6 +2961,8 @@ router.get("/form/vendor", async (req, res) => {
     vendorCount,
     userCount,
     vendors,
+    tab,
+    vendorName,
     notification: req.flash("notification"),
   });
 });
@@ -5275,6 +5278,38 @@ router.get("/vendor/view", async (req, res) => {
   }
 });
 
+router.get("/vendor/profile/:id", async (req, res) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id).populate({
+      path: "users",
+      populate: [
+        { path: "label" },
+        { path: "ttr", populate: { path: "ttrId" } },
+        { path: "tape", populate: { path: "tapeId" } },
+        { path: "posRoll", populate: { path: "posRollId" } },
+        { path: "tafeta", populate: { path: "tafetaId" } },
+      ],
+    });
+
+    if (!vendor) {
+      req.flash("notification", "Vendor not found");
+      return res.redirect("/fairdesk/vendor/view");
+    }
+
+    res.render("users/vendorProfile.ejs", {
+      title: "Vendor Profile",
+      vendor,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("VENDOR PROFILE ERROR:", err);
+    req.flash("notification", "Invalid vendor link");
+    res.redirect("/fairdesk/vendor/view");
+  }
+});
+
 // Backward-compatible redirect for the old vendor coordinator URL.
 router.get("/vendor/user/view", async (req, res) => {
   return res.redirect("/fairdesk/vendor/coordinator/view");
@@ -5312,7 +5347,26 @@ router.get("/vendor/coordinator/view", async (req, res) => {
 // ----------------------------------Vendor coordinator details----------------------------------
 router.get("/vendor/coordinator/details/:userId", async (req, res) => {
   try {
-    const vendorUser = await VendorUser.findById(req.params.userId).lean();
+    const vendorUser = await VendorUser.findById(req.params.userId)
+      .populate("label")
+      .populate({
+        path: "ttr",
+        populate: { path: "ttrId" },
+      })
+      .populate({
+        path: "tape",
+        populate: { path: "tapeId" },
+      })
+      .populate({
+        path: "posRoll",
+        populate: { path: "posRollId" },
+      })
+      .populate({
+        path: "tafeta",
+        populate: { path: "tafetaId" },
+      })
+      .lean();
+
     if (!vendorUser) {
       req.flash("notification", "Vendor coordinator not found");
       return res.redirect("/fairdesk/vendor/coordinator/view");
@@ -5321,10 +5375,11 @@ router.get("/vendor/coordinator/details/:userId", async (req, res) => {
     const vendor = await Vendor.findOne({ vendorId: vendorUser.vendorId }).lean();
 
     const stats = {
-      ttrs: vendorUser.ttr?.length || 0,
-      tapes: vendorUser.tape?.length || 0,
-      posRolls: vendorUser.posRoll?.length || 0,
-      tafetas: vendorUser.tafeta?.length || 0,
+      labels: (vendorUser.label || []).length,
+      ttrs: (vendorUser.ttr || []).length,
+      tapes: (vendorUser.tape || []).length,
+      posRolls: (vendorUser.posRoll || []).length,
+      tafetas: (vendorUser.tafeta || []).length,
     };
 
     res.render("users/vendorUserDetails.ejs", {
@@ -5333,6 +5388,11 @@ router.get("/vendor/coordinator/details/:userId", async (req, res) => {
       JS: false,
       vendorUser,
       vendor,
+      labels: vendorUser.label || [],
+      ttrs: vendorUser.ttr || [],
+      tapes: vendorUser.tape || [],
+      posRolls: vendorUser.posRoll || [],
+      tafetas: vendorUser.tafeta || [],
       stats,
       notification: req.flash("notification"),
     });

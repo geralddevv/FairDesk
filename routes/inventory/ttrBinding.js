@@ -36,8 +36,8 @@ const DEFAULT_VENDOR_TTR_OVERRIDES = {
   ttrMtrsDel: "0",
   ttrRatePerRoll: 0,
   ttrSaleCost: 0,
-  ttrMinQty: 1,
-  minimumOrderQty: 1,
+  ttrMinQty: 0,
+  minimumOrderQty: 0,
   ttrOdrFreq: "N/A",
   ttrCreditTerm: "N/A",
 };
@@ -977,7 +977,7 @@ router.post("/ttr-vendor-binding/edit/:id", async (req, res) => {
     binding.vendorTtrMaterialCode = incomingVendorCode;
     binding.vendorTtrType = vendorTtrType;
     binding.vendorTtrColor = vendorTtrColor;
-    binding.ttrMinQty = Number(req.body.ttrMinQty || 1);
+    binding.ttrMinQty = numOr(req.body.ttrMinQty, DEFAULT_VENDOR_TTR_OVERRIDES.ttrMinQty);
 
     await binding.save();
 
