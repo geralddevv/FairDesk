@@ -382,7 +382,7 @@
           </thead>
           <tbody>
             <% client.users.forEach(user => { %>
-              <tr class="user-row" onclick="toggleUserExpand(this)">
+              <tr class="user-row expanded" onclick="toggleUserExpand(this)">
                 <td><i class="fa-solid fa-chevron-right toggle-icon"></i></td>
                 <td><a href="/fairdesk/client/details/<%= user._id %>" class="user-link" onclick="event.stopPropagation()"><%= user.userName %></a></td>
                 <td><%= user.userLocation %></td>
