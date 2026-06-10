@@ -6,13 +6,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "backfill:master-signatures": "node scripts/backfill-master-signatures.js",
-    "sync:vendor-coordinators": "node scripts/sync_vendor_to_vendor_user.js"
+    "sync:vendor-coordinators": "node scripts/sync_vendor_to_vendor_user.js",
+    "audit": "npm audit --audit-level=moderate && snyk test",
+    "audit:fix": "npm audit fix && snyk fix",
+    "audit:report": "npm audit --json > audit-report.json && echo 'Audit report saved to audit-report.json'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "bootstrap": "^5.3.7",
     "choices.js": "^11.1.0",
     "compression": "^1.8.1",
@@ -39,5 +43,9 @@
     "url": "https://github.com/Geraldx2005/FairDesk/issues"
   },
   "homepage": "https://github.com/Geraldx2005/FairDesk#readme",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "npm-audit-resolver": "^3.0.0-RC.0",
+    "snyk": "^1.1305.1"
+  }
 }

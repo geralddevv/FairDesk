@@ -4,6 +4,8 @@ import TapeBinding from "../../models/inventory/tapeBinding.js";
 import TapeStock from "../../models/inventory/TapeStock.js";
 import Client from "../../models/users/client.js";
 import Username from "../../models/users/username.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -45,7 +47,7 @@ router.get("/form/tape-binding", async (req, res) => {
 });
 
 /* POST : Save Tape Binding */
-router.post("/form/tape-binding", async (req, res) => {
+router.post("/form/tape-binding", requireAuth, createLimiter, async (req, res) => {
   try {
     const { userId, tapeId } = req.body;
 
@@ -343,7 +345,7 @@ router.get("/tape-binding/edit/:id", async (req, res) => {
 });
 
 /* POST : Update Tape Binding */
-router.post("/tape-binding/edit/:id", async (req, res) => {
+router.post("/tape-binding/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -402,7 +404,7 @@ router.post("/tape-binding/edit/:id", async (req, res) => {
   }
 });
 
-router.post("/tape-binding/delete/:id", async (req, res) => {
+router.post("/tape-binding/delete/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const binding = await TapeBinding.findById(id).select("userId").lean();

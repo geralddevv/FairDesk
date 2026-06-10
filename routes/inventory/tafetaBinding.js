@@ -4,6 +4,8 @@ import TafetaBinding from "../../models/inventory/tafetaBinding.js";
 import TafetaStock from "../../models/inventory/TafetaStock.js";
 import Client from "../../models/users/client.js";
 import Username from "../../models/users/username.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -48,7 +50,7 @@ router.get("/form/tafeta-binding", async (req, res) => {
 });
 
 /* POST : Save Tafeta Binding */
-router.post("/form/tafeta-binding", async (req, res) => {
+router.post("/form/tafeta-binding", requireAuth, createLimiter, async (req, res) => {
   try {
     const { userId, tafetaId } = req.body;
 
@@ -384,7 +386,7 @@ router.get("/tafeta-binding/edit/:id", async (req, res) => {
 });
 
 /* POST : Update Tafeta Binding */
-router.post("/tafeta-binding/edit/:id", async (req, res) => {
+router.post("/tafeta-binding/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -443,7 +445,7 @@ router.post("/tafeta-binding/edit/:id", async (req, res) => {
   }
 });
 
-router.post("/tafeta-binding/delete/:id", async (req, res) => {
+router.post("/tafeta-binding/delete/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const binding = await TafetaBinding.findById(id).select("userId").lean();

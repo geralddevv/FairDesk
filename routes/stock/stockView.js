@@ -13,6 +13,8 @@ import TafetaStockLog from "../../models/inventory/TafetaStockLog.js";
 import TtrStock from "../../models/inventory/TtrStock.js";
 import TtrStockLog from "../../models/inventory/TtrStockLog.js";
 import TapeSalesOrder from "../../models/inventory/TapeSalesOrder.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -334,7 +336,7 @@ router.get("/view", async (req, res) => {
   }
 });
 
-router.post("/edit/:itemType/:itemId/:location", async (req, res) => {
+router.post("/edit/:itemType/:itemId/:location", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { itemType, itemId, location } = req.params;
     const { quantity } = req.body;
@@ -389,7 +391,7 @@ router.post("/edit/:itemType/:itemId/:location", async (req, res) => {
   }
 });
 
-router.post("/delete/:itemType/:itemId/:location", async (req, res) => {
+router.post("/delete/:itemType/:itemId/:location", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { itemType, itemId, location } = req.params;
     const cfg = getStockConfig(itemType);

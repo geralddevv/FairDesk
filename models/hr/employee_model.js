@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 
 /* ================= DEPENDENTS ================= */
 const dependentSchema = new mongoose.Schema(
@@ -109,6 +110,21 @@ const employeeSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+employeeSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+employeeSchema.methods.comparePassword = async function (plainPassword) {
+  return await bcrypt.compare(plainPassword, this.password);
+};
 
 const Employee = mongoose.model("Employee", employeeSchema);
 export default Employee;

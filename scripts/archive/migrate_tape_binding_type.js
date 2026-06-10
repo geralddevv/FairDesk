@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import TapeBinding from "../models/inventory/tapeBinding.js";
+import TapeBinding from "../../models/inventory/tapeBinding.js";
 import dotenv from "dotenv";
 
 dotenv.config();

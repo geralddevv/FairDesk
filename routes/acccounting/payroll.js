@@ -6,6 +6,8 @@ import Loan from "../../models/accounting/Loan.js";
 import LoanLog from "../../models/accounting/LoanLog.js";
 import Advance from "../../models/accounting/Advance.js";
 import AdvanceLog from "../../models/accounting/AdvanceLog.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -25,7 +27,7 @@ router.get("/create", async (req, res) => {
 });
 
 /* CREATE PAYROLL */
-router.post("/create", async (req, res) => {
+router.post("/create", requireAuth, createLimiter, async (req, res) => {
   try {
     const { employeeId, month, year, presentDays, absentDays, othrs = 0, incentive = 0 } = req.body;
 

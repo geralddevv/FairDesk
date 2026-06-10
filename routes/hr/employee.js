@@ -5,6 +5,9 @@ import Username from "../../models/users/username.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { randomBytes } from "crypto";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -22,14 +25,25 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
+    const randomName = randomBytes(16).toString("hex") + path.extname(file.originalname);
+    cb(null, randomName);
   },
 });
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image/")) cb(null, true);
-  else cb(new Error("Only image files allowed"), false);
+  // 1. Check MIME type
+  if (!file.mimetype.startsWith("image/")) {
+    return cb(new Error("Only image files allowed"), false);
+  }
+
+  // 2. Check file extension
+  const allowedExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (!allowedExts.includes(ext)) {
+    return cb(new Error("Invalid file extension. Use JPG, PNG, GIF, or WebP."), false);
+  }
+
+  cb(null, true);
 };
 
 const upload = multer({
@@ -133,7 +147,7 @@ router.get("/view", async (req, res) => {
 });
 
 /* ================= CREATE EMPLOYEE ================= */
-router.post("/form", handleUpload, async (req, res) => {
+router.post("/form", requireAuth, createLimiter, handleUpload, async (req, res) => {
   try {
     const existingProfileCode = await findEmployeeByProfileCode(req.body.empProfileCode);
     if (existingProfileCode) {
@@ -206,7 +220,7 @@ router.get("/edit/:id", async (req, res) => {
 });
 
 /* ================= UPDATE EMPLOYEE ================= */
-router.post("/edit/:id", handleUpload, async (req, res) => {
+router.post("/edit/:id", requireAuth, updateLimiter, handleUpload, async (req, res) => {
   try {
     const emp = await Employee.findById(req.params.id);
     if (!emp) return res.status(400).json({ success: false, message: "Employee not found" });
@@ -284,7 +298,7 @@ router.get("/admin/permissions", async (req, res) => {
 });
 
 /* ================= UPDATE PERMISSIONS (AJAX) ================= */
-router.post("/admin/permissions/:id", async (req, res) => {
+router.post("/admin/permissions/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     // Role checking is already handled by middleware in server.js
     // ensure the route processes the request.

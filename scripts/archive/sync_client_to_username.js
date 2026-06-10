@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import Client from "../models/users/client.js";
-import Username from "../models/users/username.js";
+import Client from "../../models/users/client.js";
+import Username from "../../models/users/username.js";
 
 const MONGO_URI = "mongodb://127.0.0.1:27017/fairdesk";
 const SYNC_FIELDS = ["clientId", "clientName", "clientType", "clientStatus", "hoLocation", "accountHead"];

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import Employee from "../models/hr/employee_model.js";
+import Employee from "../../models/hr/employee_model.js";
 import { configDotenv } from "dotenv";
 
 configDotenv();

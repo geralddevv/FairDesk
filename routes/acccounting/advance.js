@@ -3,6 +3,8 @@ import mongoose from "mongoose";
 import Employee from "../../models/hr/employee_model.js";
 import Advance from "../../models/accounting/Advance.js";
 import AdvanceLog from "../../models/accounting/AdvanceLog.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -100,7 +102,7 @@ router.get("/create", async (req, res) => {
 });
 
 /* ADD / UPDATE ADVANCE (WITH 100% RULE + LOGS) */
-router.post("/create", async (req, res) => {
+router.post("/create", requireAuth, createLimiter, async (req, res) => {
   try {
     const { employeeId, advanceAmount } = req.body;
     const amount = Number(advanceAmount) || 0;
@@ -344,7 +346,7 @@ router.get("/employee/:employeeId/logs", async (req, res) => {
   });
 });
 
-router.patch("/logs/:id", async (req, res) => {
+router.patch("/logs/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const amount = Number(req.body.amount) || 0;
@@ -381,7 +383,7 @@ router.patch("/logs/:id", async (req, res) => {
   }
 });
 
-router.delete("/logs/:id", async (req, res) => {
+router.delete("/logs/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const log = await AdvanceLog.findById(id);

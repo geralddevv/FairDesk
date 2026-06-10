@@ -5,6 +5,8 @@ import TafetaStock from "../../models/inventory/TafetaStock.js";
 import TafetaStockLog from "../../models/inventory/TafetaStockLog.js";
 import TapeSalesOrder from "../../models/inventory/TapeSalesOrder.js";
 import Location from "../../models/system/location.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -227,7 +229,7 @@ router.get("/stock-info/:tafetaId", async (req, res) => {
 });
 
 /* CREATE (INWARD ONLY) */
-router.post("/create", async (req, res) => {
+router.post("/create", requireAuth, createLimiter, async (req, res) => {
   try {
     const { tafetaId, location, quantity, remarks } = req.body;
     const qty = Number(quantity);

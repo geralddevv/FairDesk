@@ -8,6 +8,8 @@ import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
 import TtrStock from "../../models/inventory/TtrStock.js";
 import Username from "../../models/users/username.js";
 import Client from "../../models/users/client.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 import { escapeRegex } from "../../utils/security.js";
 
 const router = express.Router();
@@ -214,7 +216,7 @@ router.get("/form/ttr-vendor-binding", async (req, res) => {
 });
 
 /* POST : Save Vendor TTR Binding */
-router.post("/form/ttr-vendor-binding", async (req, res) => {
+router.post("/form/ttr-vendor-binding", requireAuth, createLimiter, async (req, res) => {
   try {
     const vendorUserId = trimOr(req.body.vendorUserId);
     const ttrId = trimOr(req.body.ttrId);
@@ -507,7 +509,7 @@ router.get("/form/ttr-vendor-binding/resolve-ttr", async (req, res) => {
 });
 
 /* POST : Save TTR Binding */
-router.post("/form/ttr-binding", async (req, res) => {
+router.post("/form/ttr-binding", requireAuth, createLimiter, async (req, res) => {
   try {
     const { userId, ttrId } = req.body;
 
@@ -920,7 +922,7 @@ router.get("/ttr-vendor-binding/edit/:id", async (req, res) => {
 });
 
 /* POST : Update Vendor TTR Binding */
-router.post("/ttr-vendor-binding/edit/:id", async (req, res) => {
+router.post("/ttr-vendor-binding/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const binding = await VendorTtrBinding.findById(id);
@@ -1001,7 +1003,7 @@ router.post("/ttr-vendor-binding/edit/:id", async (req, res) => {
   }
 });
 
-router.post("/ttr-vendor-binding/delete/:id", async (req, res) => {
+router.post("/ttr-vendor-binding/delete/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const binding = await VendorTtrBinding.findById(id).select("vendorUserId").lean();
@@ -1113,7 +1115,7 @@ router.get("/ttr-binding/edit/:id", async (req, res) => {
 });
 
 /* POST : Update TTR Binding */
-router.post("/ttr-binding/edit/:id", async (req, res) => {
+router.post("/ttr-binding/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -1170,7 +1172,7 @@ router.post("/ttr-binding/edit/:id", async (req, res) => {
   }
 });
 
-router.post("/ttr-binding/delete/:id", async (req, res) => {
+router.post("/ttr-binding/delete/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const binding = await TtrBinding.findById(id).select("userId").lean();

@@ -7,6 +7,8 @@ import VendorUser from "../../models/users/vendorUser.js";
 import VendorTapeBinding from "../../models/inventory/vendorTapeBinding.js";
 import VendorPosRollBinding from "../../models/inventory/vendorPosRollBinding.js";
 import VendorTafetaBinding from "../../models/inventory/vendorTafetaBinding.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -346,7 +348,7 @@ async function resolveMaster(req, res, kind) {
 }
 
 router.get("/form/vendor-item-binding/:kind", async (req, res) => renderBindingForm(req, res, req.params.kind));
-router.post("/form/vendor-item-binding/:kind", async (req, res) => saveBinding(req, res, req.params.kind));
+router.post("/form/vendor-item-binding/:kind", requireAuth, createLimiter, async (req, res) => saveBinding(req, res, req.params.kind));
 router.get("/form/vendor-item-binding/:kind/vendor/:name", fetchVendorByName);
 router.get("/form/vendor-item-binding/:kind/filter-specs", async (req, res) => filterSpecs(req, res, req.params.kind));
 router.get("/form/vendor-item-binding/:kind/resolve", async (req, res) => resolveMaster(req, res, req.params.kind));
@@ -473,7 +475,7 @@ router.get("/vendor-item/edit/:kind/:id", async (req, res) => {
 });
 
 /* POST : Update Vendor Binding */
-router.post("/vendor-item/edit/:kind/:id", async (req, res) => {
+router.post("/vendor-item/edit/:kind/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { kind, id } = req.params;
     const config = getConfig(kind);
@@ -595,7 +597,7 @@ router.get("/vendor-item/compare/:kind/:id", async (req, res) => {
 });
 
 /* POST : Delete Vendor Binding */
-router.post("/vendor-item/delete/:kind/:id", async (req, res) => {
+router.post("/vendor-item/delete/:kind/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { kind, id } = req.params;
     const config = getConfig(kind);

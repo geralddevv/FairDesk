@@ -1,6 +1,8 @@
 import express from "express";
 import PettyCash from "../../models/accounting/PettyCash.js";
 import PettyCashLog from "../../models/accounting/PettyCashLog.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -173,7 +175,7 @@ router.get("/create", async (req, res) => {
 });
 
 /* ADD TRANSACTION */
-router.post("/create", async (req, res) => {
+router.post("/create", requireAuth, createLimiter, async (req, res) => {
   try {
     const { location, from, to, amount, type, reason, entryDate } = req.body;
     const txnAmount = Number(amount) || 0;
@@ -340,7 +342,7 @@ router.get("/logs/:location/view", async (req, res) => {
 });
 
 /* EDIT LOG */
-router.patch("/logs/:id", async (req, res) => {
+router.patch("/logs/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const log = await PettyCashLog.findById(id);
@@ -404,7 +406,7 @@ router.patch("/logs/:id", async (req, res) => {
 });
 
 /* DELETE LOG */
-router.delete("/logs/:id", async (req, res) => {
+router.delete("/logs/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const log = await PettyCashLog.findById(id);

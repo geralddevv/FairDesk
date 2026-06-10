@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from "url";
 import { configDotenv } from "dotenv";
-import connectDB from "../config/db.js";
-import Vendor from "../models/users/vendor.js";
-import VendorUser from "../models/users/vendorUser.js";
+import connectDB from "../../config/db.js";
+import Vendor from "../../models/users/vendor.js";
+import VendorUser from "../../models/users/vendorUser.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

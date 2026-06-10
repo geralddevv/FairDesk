@@ -5,6 +5,8 @@ import TapeStock from "../../models/inventory/TapeStock.js";
 import TapeStockLog from "../../models/inventory/TapeStockLog.js";
 import TapeSalesOrder from "../../models/inventory/TapeSalesOrder.js";
 import Location from "../../models/system/location.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -197,7 +199,7 @@ router.get("/stock-info/:tapeId", async (req, res) => {
 });
 
 /* CREATE (INWARD ONLY) */
-router.post("/create", async (req, res) => {
+router.post("/create", requireAuth, createLimiter, async (req, res) => {
   try {
     const { tapeId, tapeFinish, location, quantity, remarks } = req.body;
     const qty = Number(quantity);

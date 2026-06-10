@@ -4,6 +4,8 @@ import PosRollBinding from "../../models/inventory/posRollBinding.js";
 import PosRollStock from "../../models/inventory/PosRollStock.js";
 import Client from "../../models/users/client.js";
 import Username from "../../models/users/username.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -64,7 +66,7 @@ router.get("/form/pos-roll-binding/debug-dump", async (req, res) => {
   }
 });
 
-router.post("/form/pos-roll-binding", async (req, res) => {
+router.post("/form/pos-roll-binding", requireAuth, createLimiter, async (req, res) => {
   try {
     const { userId, posRollId } = req.body;
 
@@ -357,7 +359,7 @@ router.get("/pos-roll-binding/edit/:id", async (req, res) => {
 });
 
 /* POST : Update POS Roll Binding */
-router.post("/pos-roll-binding/edit/:id", async (req, res) => {
+router.post("/pos-roll-binding/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -414,7 +416,7 @@ router.post("/pos-roll-binding/edit/:id", async (req, res) => {
   }
 });
 
-router.post("/pos-roll-binding/delete/:id", async (req, res) => {
+router.post("/pos-roll-binding/delete/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const binding = await PosRollBinding.findById(id).select("userId").lean();

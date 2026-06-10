@@ -15,6 +15,8 @@ import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
 import VendorUser from "../../models/users/vendorUser.js";
 import PurchaseOrder from "../../models/inventory/PurchaseOrder.js";
 import PurchaseOrderLog from "../../models/inventory/PurchaseOrderLog.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -273,7 +275,7 @@ router.get("/reorder/select-vendor/:type/:id", async (req, res) => {
   }
 });
 
-router.post("/reorder/create-po", async (req, res) => {
+router.post("/reorder/create-po", requireAuth, createLimiter, async (req, res) => {
   try {
     let { orderId, itemId, itemType, vendorUserId, vendorBindingId, userLocation, quantity, poNumber, estimatedDate, remarks } = req.body;
 
@@ -381,7 +383,7 @@ router.post("/reorder/create-po", async (req, res) => {
   }
 });
 
-router.post("/purchase/status", async (req, res) => {
+router.post("/purchase/status", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { orderId, status, remarks } = req.body;
     
@@ -491,7 +493,7 @@ router.get("/reorder/select-vendor-multi", async (req, res) => {
   }
 });
 
-router.post("/reorder/create-po-multi", async (req, res) => {
+router.post("/reorder/create-po-multi", requireAuth, createLimiter, async (req, res) => {
   try {
     const { poNumber, estimatedDate, remarks } = req.body;
     const rawItems = req.body.items;

@@ -4,6 +4,8 @@ import Client from "../../models/users/client.js";
 import Employee from "../../models/hr/employee_model.js";
 import Username from "../../models/users/username.js";
 import { escapeRegex } from "../../utils/security.js";
+import { requireAuth } from "../../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
 const router = express.Router();
 
@@ -151,7 +153,7 @@ router.get("/edit/:id", async (req, res) => {
 });
 
 /* ================= UPDATE CLIENT ================= */
-router.post("/edit/:id", async (req, res) => {
+router.post("/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const currentClient = await Client.findById(req.params.id).select("clientId").lean();
 
@@ -364,7 +366,7 @@ router.get("/details/:userId", async (req, res) => {
 });
 
 /* ================= DELETE USER ================= */
-router.post("/details/:userId/delete", async (req, res) => {
+router.post("/details/:userId/delete", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await Username.findById(userId).lean();

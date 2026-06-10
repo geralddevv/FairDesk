@@ -1,15 +1,15 @@
 import { configDotenv } from "dotenv";
 import crypto from "crypto";
 import mongoose from "mongoose";
-import connectDB from "../config/db.js";
-import Client from "../models/users/client.js";
-import Username from "../models/users/username.js";
-import Vendor from "../models/users/vendor.js";
-import VendorUser from "../models/users/vendorUser.js";
-import Tape from "../models/inventory/tape.js";
-import PosRoll from "../models/inventory/posRoll.js";
-import Tafeta from "../models/inventory/tafeta.js";
-import Ttr from "../models/inventory/ttr.js";
+import connectDB from "../../config/db.js";
+import Client from "../../models/users/client.js";
+import Username from "../../models/users/username.js";
+import Vendor from "../../models/users/vendor.js";
+import VendorUser from "../../models/users/vendorUser.js";
+import Tape from "../../models/inventory/tape.js";
+import PosRoll from "../../models/inventory/posRoll.js";
+import Tafeta from "../../models/inventory/tafeta.js";
+import Ttr from "../../models/inventory/ttr.js";
 
 configDotenv({ quiet: true });
 

@@ -41,6 +41,8 @@ import Location from "../models/system/location.js";
 import Counter from "../models/system/counter.js";
 import Sample from "../models/inventory/sample.js";
 import { escapeRegex } from "../utils/security.js";
+import { requireAuth } from "../middleware/auth.js";
+import { createLimiter, updateLimiter, deleteLimiter } from "../utils/limiters.js";
 
 const router = express.Router();
 
@@ -583,7 +585,7 @@ router.get("/form/ratecalculator", async (req, res) => {
 });
 
 // Route to handle rate calculator form submission
-router.post("/form/ratecalculator", async (req, res) => {
+router.post("/form/ratecalculator", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Order.create(formData);
@@ -702,7 +704,7 @@ function buildUserSignature(source, userId) {
 }
 
 // Route to handle CLIENT form submission
-router.post("/form/client", async (req, res) => {
+router.post("/form/client", requireAuth, createLimiter, async (req, res) => {
   try {
     const generateClientId = async () => {
       const maxAttempts = 10000;
@@ -799,7 +801,7 @@ router.get("/form/client/:name", async (req, res) => {
 
 // ----------------------------------Username---------------------------------->
 // Route to handle USER form submission
-router.post("/form/user", async (req, res) => {
+router.post("/form/user", requireAuth, createLimiter, async (req, res) => {
   try {
     const { objectId } = req.body;
     let client = null;
@@ -936,7 +938,7 @@ router.get("/form/labels", async (req, res) => {
 });
 
 // Route to handle datasheet form submission.
-router.post("/form/labels", async (req, res) => {
+router.post("/form/labels", requireAuth, createLimiter, async (req, res) => {
   try {
     let { userObjId } = req.body;
     let savedLabel = await Label.create(req.body);
@@ -1037,7 +1039,7 @@ router.get("/form/samples", async (req, res) => {
   });
 });
 
-router.post("/form/samples", async (req, res) => {
+router.post("/form/samples", requireAuth, createLimiter, async (req, res) => {
   try {
     const activeTab = String(req.body.sampleCategory || "").trim().toLowerCase() === "client" ? "client" : "vendor";
 
@@ -1084,7 +1086,7 @@ router.get("/form/carelead", (req, res) => {
 });
 
 // Route to handle carelead form submission.
-router.post("/form/carelead", async (req, res) => {
+router.post("/form/carelead", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Carelead.create(formData);
@@ -1103,7 +1105,7 @@ router.get("/form/carecallreport", (req, res) => {
 });
 
 // Route to handle carecallreport form submission.
-router.post("/form/carecallreport", async (req, res) => {
+router.post("/form/carecallreport", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Carelead.create(formData);
@@ -1124,7 +1126,7 @@ router.get("/form/systemid", async (req, res) => {
 });
 
 // Route to handle systemid form submission.
-router.post("/form/systemid", async (req, res) => {
+router.post("/form/systemid", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await SystemId.create(formData);
@@ -1143,7 +1145,7 @@ router.get("/form/careworkshopreport", (req, res) => {
 });
 
 // Route to handle careworkshopreport form submission.
-router.post("/form/careworkshopreport", async (req, res) => {
+router.post("/form/careworkshopreport", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Carelead.create(formData);
@@ -1162,7 +1164,7 @@ router.get("/form/carequote", (req, res) => {
 });
 
 // Route to handle carequote form submission.
-router.post("/form/carequote", async (req, res) => {
+router.post("/form/carequote", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Carelead.create(formData);
@@ -1332,7 +1334,7 @@ router.get("/form/ttr/exists", async (req, res) => {
 });
 
 // POST: TTR Master submission
-router.post("/form/ttr", async (req, res) => {
+router.post("/form/ttr", requireAuth, createLimiter, async (req, res) => {
   console.log("TTR MASTER BODY", req.body);
   try {
     const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
@@ -1491,7 +1493,7 @@ router.get("/form/tape-master", async (req, res) => {
 });
 
 // POST: Tape Master submission
-router.post("/form/tape-master", async (req, res) => {
+router.post("/form/tape-master", requireAuth, createLimiter, async (req, res) => {
   console.log("TAPE MASTER BODY", req.body);
   try {
     const formatTapeId = (n) => `FS | Tape | ${String(n).padStart(6, "0")}`;
@@ -1609,7 +1611,7 @@ router.get("/form/edit/user/:userId", async (req, res) => {
 });
 
 // Route to handle Edit USER submission
-router.post("/form/edit/user/:userId", async (req, res) => {
+router.post("/form/edit/user/:userId", requireAuth, updateLimiter, async (req, res) => {
   try {
     let { userId } = req.params;
     const currentUser = await Username.findById(userId);
@@ -1739,7 +1741,7 @@ router.get("/form/pos-roll-master", async (req, res) => {
 });
 
 // POST: POS Roll Master submission
-router.post("/form/pos-roll-master", async (req, res) => {
+router.post("/form/pos-roll-master", requireAuth, createLimiter, async (req, res) => {
   console.log("POS ROLL MASTER BODY", req.body);
   try {
     const formatPosProductId = (n) => `FS | POS Roll | ${String(n).padStart(6, "0")}`;
@@ -1855,7 +1857,7 @@ router.get("/form/tafeta-master", async (req, res) => {
 });
 
 // POST: Tafeta Master submission
-router.post("/form/tafeta-master", async (req, res) => {
+router.post("/form/tafeta-master", requireAuth, createLimiter, async (req, res) => {
   console.log("TAFETA MASTER BODY", req.body);
   try {
     const formatTafetaProductId = (n) => `FS | Tafeta | ${String(n).padStart(6, "0")}`;
@@ -1960,7 +1962,7 @@ router.get("/form/location", async (req, res) => {
 });
 
 // POST: Location Master submission
-router.post("/form/location", async (req, res) => {
+router.post("/form/location", requireAuth, createLimiter, async (req, res) => {
   try {
     const locationName = String(req.body.locationName || "")
       .trim()
@@ -1993,7 +1995,7 @@ router.get("/api/locations", async (req, res) => {
 });
 
 // DELETE: Remove a location
-router.delete("/api/locations/:id", async (req, res) => {
+router.delete("/api/locations/:id", requireAuth, deleteLimiter, async (req, res) => {
   try {
     await Location.findByIdAndDelete(req.params.id);
     res.json({ success: true });
@@ -2407,7 +2409,7 @@ router.get("/tape/profile/:id", async (req, res) => {
   });
 });
 
-router.post("/tape/profile/:id/stock/edit", async (req, res) =>
+router.post("/tape/profile/:id/stock/edit", requireAuth, updateLimiter, async (req, res) =>
   handleProfileStockEdit(req, res, {
     itemType: "Tape",
     model: Tape,
@@ -2504,7 +2506,7 @@ router.get("/tape/edit/:id", async (req, res) => {
   });
 });
 
-router.post("/tape/edit/:id", async (req, res) => {
+router.post("/tape/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const widthRaw = req.body.tapeWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
@@ -2634,7 +2636,7 @@ router.get("/pos-roll/profile/:id", async (req, res) => {
   });
 });
 
-router.post("/pos-roll/profile/:id/stock/edit", async (req, res) =>
+router.post("/pos-roll/profile/:id/stock/edit", requireAuth, updateLimiter, async (req, res) =>
   handleProfileStockEdit(req, res, {
     itemType: "POS Roll",
     model: PosRoll,
@@ -2654,7 +2656,7 @@ router.get("/pos-roll/edit/:id", async (req, res) => {
   });
 });
 
-router.post("/pos-roll/edit/:id", async (req, res) => {
+router.post("/pos-roll/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const widthRaw = req.body.posWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
@@ -2784,7 +2786,7 @@ router.get("/tafeta/profile/:id", async (req, res) => {
   });
 });
 
-router.post("/tafeta/profile/:id/stock/edit", async (req, res) =>
+router.post("/tafeta/profile/:id/stock/edit", requireAuth, updateLimiter, async (req, res) =>
   handleProfileStockEdit(req, res, {
     itemType: "Tafeta",
     model: Tafeta,
@@ -2804,7 +2806,7 @@ router.get("/tafeta/edit/:id", async (req, res) => {
   });
 });
 
-router.post("/tafeta/edit/:id", async (req, res) => {
+router.post("/tafeta/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const widthRaw = req.body.tafetaWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
@@ -2941,7 +2943,7 @@ router.get("/ttr/profile/:id", async (req, res) => {
   });
 });
 
-router.post("/ttr/profile/:id/stock/edit", async (req, res) =>
+router.post("/ttr/profile/:id/stock/edit", requireAuth, updateLimiter, async (req, res) =>
   handleProfileStockEdit(req, res, {
     itemType: "TTR",
     model: Ttr,
@@ -3047,7 +3049,7 @@ function getVendorSnapshot(vendor, fallback = {}) {
 }
 
 // Route to handle VENDOR form submission
-router.post("/form/vendor", async (req, res) => {
+router.post("/form/vendor", requireAuth, createLimiter, async (req, res) => {
   try {
     const vendorId = String(req.body.vendorId || "").trim();
     const vendorName = String(req.body.vendorName || "").trim();
@@ -3128,7 +3130,7 @@ router.get("/vendor/edit/:id", async (req, res) => {
   }
 });
 
-router.post("/vendor/edit/:id", async (req, res) => {
+router.post("/vendor/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) {
@@ -3198,7 +3200,7 @@ router.post("/vendor/edit/:id", async (req, res) => {
 });
 
 // Route to handle VENDOR USER form submission
-router.post("/form/vendor-user", async (req, res) => {
+router.post("/form/vendor-user", requireAuth, createLimiter, async (req, res) => {
   try {
     const { objectId } = req.body;
     const vendor = await Vendor.findOne({ _id: objectId }).lean();
@@ -3297,7 +3299,7 @@ router.get("/ttr/edit/:id", async (req, res) => {
   });
 });
 
-router.post("/ttr/edit/:id", async (req, res) => {
+router.post("/ttr/edit/:id", requireAuth, updateLimiter, async (req, res) => {
   try {
     const widthRaw = req.body.ttrWidth;
     const widthTrim = typeof widthRaw === "string" ? widthRaw.trim() : widthRaw;
@@ -4304,7 +4306,7 @@ router.get("/sales/order/logs", async (req, res) => {
 });
 
 // ========== EDIT a Purchase Receipt Log (JSON API) ==========
-router.put("/purchase/log/:logId", async (req, res) => {
+router.put("/purchase/log/:logId", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { logId } = req.params;
     const { quantity: newQty, remarks: newRemarks } = req.body;
@@ -4423,7 +4425,7 @@ router.put("/purchase/log/:logId", async (req, res) => {
 });
 
 // ========== DELETE a Purchase Receipt Log (JSON API) ==========
-router.delete("/purchase/log/:logId", async (req, res) => {
+router.delete("/purchase/log/:logId", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { logId } = req.params;
     const log = await PurchaseOrderLog.findById(logId);
@@ -4540,7 +4542,7 @@ router.get("/purchase/order/logs", async (req, res) => {
 });
 
 // Update Order Status (with stock deduction / reversal + action logging)
-router.post("/sales/order/status", async (req, res) => {
+router.post("/sales/order/status", requireAuth, updateLimiter, async (req, res) => {
   try {
     const accepts = req.headers.accept || "";
     const wantsJson = req.xhr || accepts.includes("application/json") || accepts.includes("text/json");
@@ -4863,7 +4865,7 @@ router.post("/sales/order/status", async (req, res) => {
 });
 
 // ========== EDIT a Dispatch Log (JSON API) ==========
-router.put("/sales/order/log/:logId", async (req, res) => {
+router.put("/sales/order/log/:logId", requireAuth, updateLimiter, async (req, res) => {
   try {
     const { logId } = req.params;
     const { quantity: newQty, invoiceNumber, date } = req.body;
@@ -5000,7 +5002,7 @@ router.put("/sales/order/log/:logId", async (req, res) => {
 });
 
 // ========== DELETE a Dispatch Log (JSON API) ==========
-router.delete("/sales/order/log/:logId", async (req, res) => {
+router.delete("/sales/order/log/:logId", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { logId } = req.params;
 
@@ -5104,7 +5106,7 @@ router.get("/form/salescalc", async (req, res) => {
 });
 
 // Route to handle salescalc form submission.
-router.post("/form/salescalc", async (req, res) => {
+router.post("/form/salescalc", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Calculator.create(formData);
@@ -5134,7 +5136,7 @@ router.get("/form/prodcalc/data", async (req, res) => {
 });
 
 // Route to handle systemid form submission.
-router.post("/form/prodcalc", async (req, res) => {
+router.post("/form/prodcalc", requireAuth, createLimiter, async (req, res) => {
   let formData = req.body;
 
   await Calculator.create(formData);
@@ -5156,7 +5158,7 @@ router.get("/form/block", async (req, res) => {
 });
 
 // Route to handle systemid form submission.
-router.post("/form/block", async (req, res) => {
+router.post("/form/block", requireAuth, createLimiter, async (req, res) => {
   try {
     let formData = req.body;
     await Block.create(formData);
@@ -5183,7 +5185,7 @@ router.get("/form/die", async (req, res) => {
 });
 
 // Route to handle systemid form submission.
-router.post("/form/die", async (req, res) => {
+router.post("/form/die", requireAuth, createLimiter, async (req, res) => {
   try {
     await Die.create(req.body);
     req.flash("notification", "Die created successfully!");
@@ -5403,7 +5405,7 @@ router.get("/vendor/coordinator/details/:userId", async (req, res) => {
   }
 });
 
-router.post("/vendor/coordinator/details/:userId/delete", async (req, res) => {
+router.post("/vendor/coordinator/details/:userId/delete", requireAuth, deleteLimiter, async (req, res) => {
   try {
     const { userId } = req.params;
     const vendorUser = await VendorUser.findById(userId).lean();
@@ -5455,7 +5457,7 @@ router.get("/form/edit/vendor-user/:userId", async (req, res) => {
   }
 });
 
-router.post("/form/edit/vendor-user/:userId", async (req, res) => {
+router.post("/form/edit/vendor-user/:userId", requireAuth, updateLimiter, async (req, res) => {
   try {
     const userId = req.params.userId;
     const user = await VendorUser.findById(userId);

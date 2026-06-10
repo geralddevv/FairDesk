@@ -20,12 +20,15 @@ import tafetaBindingRoutes from "./routes/inventory/tafetaBinding.js";
 import ttrBindingRoutes from "./routes/inventory/ttrBinding.js";
 import vendorItemBindingRoutes from "./routes/inventory/vendorItemBinding.js";
 import reorderRoutes from "./routes/inventory/reorder.js";
+import { requireAuth, requireRole } from "./middleware/auth.js";
 import { configDotenv } from "dotenv";
 import { fileURLToPath } from "url";
 import path from "path";
 import os from "os";
 import fs from "fs";
 import sharp from "sharp";
+import bcrypt from "bcrypt";
+import { escapeRegex } from "./utils/security.js";
 import Employee from "./models/hr/employee_model.js";
 
 
@@ -37,6 +40,7 @@ import csrf from "csurf";
 import cookieParser from "cookie-parser";
 import MongoSessionStore from "./utils/mongoSessionStore.js";
 import { safeJson } from "./utils/security.js";
+import { loginLimiter, createLimiter, updateLimiter, deleteLimiter } from "./utils/limiters.js";
 
 const app = express();
 const port = 3000;
@@ -45,23 +49,53 @@ const port = 3000;
 configDotenv({ quiet: true });
 connectDB();
 
+// Validate required environment variables
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  console.error("❌ CRITICAL: SESSION_SECRET not set in .env");
+  process.exit(1);
+}
+
 /* SECURITY MIDDLEWARE (HELMET) */
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "cdn.jsdelivr.net"],
+        styleSrc: ["'self'", "cdnjs.cloudflare.com", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "cdnjs.cloudflare.com"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'self'"],
+      },
+    },
+    frameguard: { action: "deny" },
+    noSniff: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    strictTransportSecurity: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+    permissionsPolicy: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      usb: [],
+      magnetometer: [],
+      gyroscope: [],
+      accelerometer: [],
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: "unsafe-none" },
   }),
 );
 
 /* RATE LIMITING */
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 login requests per window
-  message: "Too many login attempts, please try again after 15 minutes",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Imported from utils/limiters.js: loginLimiter, createLimiter, updateLimiter, deleteLimiter
 
 /* PATH SETUP */
 const file_name = fileURLToPath(import.meta.url);
@@ -83,11 +117,84 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 /* STATIC FILES */
 app.use(express.static(path.join(dir_name, "public"), { maxAge: "1d" }));
 app.use("/bootstrap", express.static(dir_name + "/node_modules/bootstrap/dist", { maxAge: "1d" }));
-app.use("/images", express.static(path.join(dir_name, "images"), { maxAge: "1d" }));
 
-/* Image Thumbnail Route (Compression) */
-app.get("/images/thumb/:folder/:filename", async (req, res) => {
+/* Authenticated Image Serving */
+app.get("/images/:folder/:filename", requireAuth, async (req, res) => {
   const { folder, filename } = req.params;
+
+  // Validate folder
+  if (!["aadhaar", "pan", "empimg"].includes(folder)) {
+    return res.status(400).send("Invalid folder");
+  }
+
+  // Validate filename (prevent directory traversal and arbitrary uploads)
+  if (!/^[a-f0-9]{32}\.(jpg|jpeg|png|gif|webp)$/.test(filename)) {
+    return res.status(400).send("Invalid filename");
+  }
+
+  // Check ACL - user can only view own images
+  const fieldMap = {
+    empimg: "empPhoto",
+    aadhaar: "empAadhaarImg",
+    pan: "empPanImg",
+  };
+
+  const employee = await Employee.findOne({
+    [fieldMap[folder]]: filename,
+  });
+
+  if (!employee) return res.status(404).send("Not found");
+
+  // Only admin or the employee themselves can view
+  const isOwnData = req.session.authUser.empId === employee.empId;
+  const isAdmin = req.session.authUser.role === "admin";
+  if (!isOwnData && !isAdmin) {
+    return res.status(403).send("Forbidden");
+  }
+
+  // Serve with no-cache headers
+  const filePath = path.join(dir_name, "images", folder, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("Not found");
+  }
+
+  res.setHeader("Cache-Control", "private, no-cache, no-store");
+  res.sendFile(filePath);
+});
+
+/* Image Thumbnail Route (Authenticated + Compressed) */
+app.get("/images/thumb/:folder/:filename", requireAuth, async (req, res) => {
+  const { folder, filename } = req.params;
+
+  // Validate folder
+  if (!["aadhaar", "pan", "empimg"].includes(folder)) {
+    return res.status(400).send("Invalid folder");
+  }
+
+  // Validate filename
+  if (!/^[a-f0-9]{32}\.(jpg|jpeg|png|gif|webp)$/.test(filename)) {
+    return res.status(400).send("Invalid filename");
+  }
+
+  // Check ACL
+  const fieldMap = {
+    empimg: "empPhoto",
+    aadhaar: "empAadhaarImg",
+    pan: "empPanImg",
+  };
+
+  const employee = await Employee.findOne({
+    [fieldMap[folder]]: filename,
+  });
+
+  if (!employee) return res.status(404).send("Not found");
+
+  const isOwnData = req.session.authUser.empId === employee.empId;
+  const isAdmin = req.session.authUser.role === "admin";
+  if (!isOwnData && !isAdmin) {
+    return res.status(403).send("Forbidden");
+  }
+
   const filePath = path.join(dir_name, "images", folder, filename);
 
   if (!fs.existsSync(filePath)) {
@@ -99,9 +206,9 @@ app.get("/images/thumb/:folder/:filename", async (req, res) => {
       .resize(100, 100, { fit: "cover" })
       .jpeg({ quality: 80 })
       .toBuffer();
-    
+
     res.set("Content-Type", "image/jpeg");
-    res.set("Cache-Control", "public, max-age=86400"); // 1 day cache
+    res.set("Cache-Control", "private, max-age=3600"); // 1 hour, private cache
     res.send(data);
   } catch (err) {
     console.error("Image processing error:", err);
@@ -119,7 +226,7 @@ const sessionStore = new MongoSessionStore({
 app.use(
   session({
     name: "fairdesk.sid",
-    secret: process.env.SESSION_SECRET || "fd_k9#xP2$mR9Qz7wL5vN8uY3hB1jK4_production_fallback",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     rolling: true,
@@ -193,12 +300,8 @@ app.get("/check-session", (req, res) => {
   return res.status(401).json({ authenticated: false });
 });
 
-/* Apply CSRF protection to ALL routes EXCEPT login POST */
+/* Apply CSRF protection to ALL routes */
 app.use((req, res, next) => {
-  const isLoginPath = req.path.toLowerCase().replace(/\/$/, "") === "/login";
-  if (isLoginPath && req.method === "POST") {
-    return next();
-  }
   csrfProtection(req, res, next);
 });
 app.use((req, res, next) => {
@@ -219,17 +322,17 @@ app.get("/", (req, res) => {
   if (req.session?.authUser) {
     return res.redirect(redirectByRole(req.session.authUser.role));
   }
-  res.render("auth/login", { title: "Login", CSS: "login.css" });
+  res.render("auth/login", { title: "Login", CSS: "login.css", csrfToken: req.csrfToken() });
 });
 
 app.get("/login", (req, res) => {
   if (req.session?.authUser) {
     return res.redirect(redirectByRole(req.session.authUser.role));
   }
-  res.render("auth/login", { title: "Login", CSS: "login.css" });
+  res.render("auth/login", { title: "Login", CSS: "login.css", csrfToken: req.csrfToken() });
 });
 
-app.post("/login", loginLimiter, async (req, res) => {
+app.post("/login", csrfProtection, loginLimiter, async (req, res) => {
   const { profileCode, username, password } = req.body;
   const loginCode = String(profileCode || username || "").trim();
   const adminUser = process.env.ADMIN_USER;
@@ -241,6 +344,20 @@ app.post("/login", loginLimiter, async (req, res) => {
   const salesUser = process.env.SALES_USER;
   const salesPass = process.env.SALES_PASS;
 
+  // Prevent hardcoded backdoor credentials in production
+  if (process.env.NODE_ENV === "production") {
+    const hasAdminCreds = adminUser && adminPass;
+    const hasHrCreds = hrUser && hrPass;
+    const hasHodCreds = hodUser && hodPass;
+    const hasSalesCreds = salesUser && salesPass;
+
+    if (hasAdminCreds || hasHrCreds || hasHodCreds || hasSalesCreds) {
+      console.error("❌ SECURITY ERROR: Hardcoded backdoor credentials detected in production environment!");
+      console.error("❌ Remove ADMIN_USER, ADMIN_PASS, HR_USER, HR_PASS, HOD_USER, HOD_PASS, SALES_USER, SALES_PASS from .env");
+      process.exit(1);
+    }
+  }
+
   if (!loginCode || !password) {
     return res.status(400).render("auth/login", {
       title: "Login",
@@ -251,10 +368,11 @@ app.post("/login", loginLimiter, async (req, res) => {
     });
   }
 
-  const isAdmin = adminUser && adminPass && loginCode === adminUser && password === adminPass;
-  const isHr = hrUser && hrPass && loginCode === hrUser && password === hrPass;
-  const isHod = hodUser && hodPass && loginCode === hodUser && password === hodPass;
-  const isSales = salesUser && salesPass && loginCode === salesUser && password === salesPass;
+  // In production, skip backdoor checks (already validated they don't exist above)
+  const isAdmin = process.env.NODE_ENV !== "production" && adminUser && adminPass && loginCode === adminUser && password === adminPass;
+  const isHr = process.env.NODE_ENV !== "production" && hrUser && hrPass && loginCode === hrUser && password === hrPass;
+  const isHod = process.env.NODE_ENV !== "production" && hodUser && hodPass && loginCode === hodUser && password === hodPass;
+  const isSales = process.env.NODE_ENV !== "production" && salesUser && salesPass && loginCode === salesUser && password === salesPass;
 
   const processLogin = async (authUser) => {
     req.session.authUser = authUser;
@@ -285,14 +403,13 @@ app.post("/login", loginLimiter, async (req, res) => {
   // Fallback to database check
   try {
     const employee = await Employee.findOne({
-      empProfileCode: { $regex: new RegExp(`^${trimmedUser}$`, "i") },
-      password: trimmedPass,
+      empProfileCode: { $regex: new RegExp(`^${escapeRegex(trimmedUser)}$`, "i") },
       isActive: true
     });
 
     console.log(`[DEBUG] Database login attempt for profile code: "${trimmedUser}". Found: ${employee ? employee.empName : "NULL"}`);
 
-    if (employee) {
+    if (employee && await employee.comparePassword(trimmedPass)) {
       if (employee.role === "none") {
         return res.status(403).render("auth/login", {
           title: "Login",
