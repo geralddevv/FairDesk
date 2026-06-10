@@ -15,3 +15,5 @@
 12. Remove Images from Git - x
 13. Disable Hardcoded Admin Backdoor in Production - x
 14. Set Up Dependency Scanning - x
+
+structurize the file in the views dir
