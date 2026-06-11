@@ -30,6 +30,7 @@ import sharp from "sharp";
 import bcrypt from "bcrypt";
 import { escapeRegex } from "./utils/security.js";
 import Employee from "./models/hr/employee_model.js";
+import crypto from "crypto";
 
 
 import session from "express-session";
@@ -57,21 +58,10 @@ if (!sessionSecret) {
 }
 
 /* SECURITY MIDDLEWARE (HELMET) */
+// Let a per-request CSP header with nonces be applied later so inline scripts can be selectively allowed.
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "cdn.jsdelivr.net"],
-        styleSrc: ["'self'", "cdnjs.cloudflare.com", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'", "cdnjs.cloudflare.com"],
-        objectSrc: ["'none'"],
-        mediaSrc: ["'self'"],
-        frameSrc: ["'self'"],
-      },
-    },
+    contentSecurityPolicy: false,
     frameguard: { action: "deny" },
     noSniff: true,
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
@@ -117,6 +107,47 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 /* STATIC FILES */
 app.use(express.static(path.join(dir_name, "public"), { maxAge: "1d" }));
 app.use("/bootstrap", express.static(dir_name + "/node_modules/bootstrap/dist", { maxAge: "1d" }));
+
+// Per-request nonce + HTML post-processing middleware to inject nonce on inline scripts
+app.use((req, res, next) => {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  res.locals.cspNonce = nonce;
+
+  // Wrap res.render to inject nonce attributes into inline <script> tags and set CSP header
+  const _render = res.render.bind(res);
+  res.render = function (view, options = {}, callback) {
+    if (typeof options === "function") {
+      callback = options;
+      options = {};
+    }
+    options = Object.assign({}, options, { cspNonce: nonce });
+    _render(view, options, function (err, html) {
+      if (err) {
+        if (callback) return callback(err);
+        return next(err);
+      }
+      // Inject nonce into <script> tags that do NOT have a src attribute
+      html = html.replace(/<script(?![^>]*\bsrc=)([^>]*)>/gi, `<script nonce="${nonce}"$1>`);
+
+      // Set a robust per-response CSP including the nonce
+      const csp = [
+        `default-src 'self'`,
+        `script-src 'self' cdn.jsdelivr.net 'nonce-${nonce}'`,
+        `style-src 'self' cdn.jsdelivr.net 'unsafe-inline'`,
+        `img-src 'self' data:`,
+        `connect-src 'self'`,
+        `font-src 'self' cdn.jsdelivr.net`,
+        `object-src 'none'`,
+      ].join('; ');
+      res.setHeader('Content-Security-Policy', csp);
+
+      if (callback) return callback(null, html);
+      res.send(html);
+    });
+  };
+
+  next();
+});
 
 /* Authenticated Image Serving */
 app.get("/images/:folder/:filename", requireAuth, async (req, res) => {
@@ -447,47 +478,6 @@ app.get("/logout", (req, res) => {
     res.redirect("/login");
   });
 });
-const requireAuth = (req, res, next) => {
-  if (req.session?.authUser) {
-    if (req.session.authUser.role === "none") {
-      return res.status(403).render("auth/login", {
-        title: "Login",
-        CSS: "login.css",
-        username: "",
-        password: "",
-        error: ["Your account is disabled. Please contact admin."],
-      });
-    }
-    return next();
-  }
-  return res.redirect("/login?reason=session-ended");
-};
-
-const hasRoleAccess = (authUser, roleName) => {
-  if (!authUser) return false;
-  const role = String(authUser.role || "").toLowerCase();
-  const permissions = authUser.permissions || {};
-
-  if (roleName === "admin") return role === "admin";
-  if (roleName === "hod") return role === "hod";
-  if (roleName === "hr") return role === "hr" || Boolean(permissions.hr);
-  if (roleName === "sales") return role === "sales" || Boolean(permissions.sales);
-  if (roleName === "master") return Boolean(permissions.master);
-  if (roleName === "inventory") return Boolean(permissions.inventory);
-
-  return role === roleName;
-};
-
-const requireRole = (roles) => (req, res, next) => {
-  const authUser = req.session?.authUser;
-  if (authUser && roles.some((roleName) => hasRoleAccess(authUser, roleName))) return next();
-  
-  if (authUser) {
-    return res.status(403).send("Forbidden: You do not have permission to access this resource.");
-  }
-  return res.redirect("/login?reason=session-ended");
-};
-
 app.use("/fairdesk/payroll", requireAuth, requireRole(["admin", "hr"]), payrollRoute);
 
 /* PROFILE / ACCOUNT SECURITY - Accessible to all roles */
