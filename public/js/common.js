@@ -350,4 +350,10 @@
       window.location.href = target;
     });
   })();
+  // Shared helper to limit numeric input to two chars (moved from inline templates)
+  window.limitToTwoChars = function(elem) {
+    if (elem.value.length > 2) {
+      elem.value = elem.value.slice(0, 2);
+    }
+  };
 })();
