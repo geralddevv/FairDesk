@@ -126,21 +126,26 @@ app.use((req, res, next) => {
         if (callback) return callback(err);
         return next(err);
       }
-      // Convert inline event-handler attributes (onclick, onsubmit, etc.) into attached listeners.
+            // Convert inline event-handler attributes (onclick, onsubmit, etc.) into attached listeners.
+      const handlers = [];
       let idCounter = 0;
       html = html.replace(/\son([a-zA-Z]+)=["']([^"']*)["']/gi, (m, evt, code) => {
         const id = `ih_${idCounter++}`;
-              const encoded = encodeURIComponent(code);
-              return ` data-inline-handler-id="${id}" data-inline-handler-event="${evt.toLowerCase()}" data-inline-handler-code="${encoded}"`;
+        handlers.push({ id, evt: evt.toLowerCase(), code });
+        return ` data-inline-handler-id="${id}"`;
       });
 
       // If any handlers were added, append a script that attaches them after DOMContentLoaded
-            if (html.includes('data-inline-handler-code')) {
-              const attachScript = `\n<script>\ndocument.addEventListener("DOMContentLoaded", function(){\n  document.querySelectorAll('[data-inline-handler-code]').forEach(function(el){\n    try {\n      const evt = el.dataset.inlineHandlerEvent;\n      const code = decodeURIComponent(el.dataset.inlineHandlerCode || "");\n      if (!evt || !code) return;\n      const fn = new Function('event', code);\n      el.addEventListener(evt, function(e){ return fn.call(this, e); });\n    } catch (err) { console.error('inline handler attach error', err); }\n  });\n});\n</script>\n`;
-              html += attachScript;
-            }
-
-      // Inject nonce into <script> tags that do NOT have a src attribute
+      if (handlers.length > 0) {
+        let attachScript = '\n<script>\ndocument.addEventListener("DOMContentLoaded", function(){\n';
+        for (const h of handlers) {
+          // Sanitize closing script tags to avoid breaking the injected script
+          const safeCode = h.code.replace(/<\/script>/gi, '<\\/script>');
+          attachScript += `  document.querySelectorAll('[data-inline-handler-id="${h.id}"]').forEach(function(el){ el.addEventListener("${h.evt}", function(event){ ${safeCode} }); });\n`;
+        }
+        attachScript += '});\n</script>\n';
+        html += attachScript;
+      }// Inject nonce into <script> tags that do NOT have a src attribute
       html = html.replace(/<script(?![^>]*\bsrc=)([^>]*)>/gi, `<script nonce="${nonce}"$1>`);
 
       // Set a robust per-response CSP including the nonce (no 'unsafe-inline' for scripts)
@@ -580,3 +585,4 @@ const ip =
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server running on http://${ip}:${port}`);
 });
+
