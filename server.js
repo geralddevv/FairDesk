@@ -130,16 +130,17 @@ app.use((req, res, next) => {
       // (Consider refactoring to remove 'unsafe-inline' in future.)
       const csp = [
         `default-src 'self'`,
-        `script-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
-        // Permit font-awesome and other styles
-        `style-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
-        `style-src-elem 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
-        `img-src 'self' data:`,
-        `connect-src 'self'`,
-        `font-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
-        `object-src 'none'`,
-      ].join('; ');
-      res.setHeader('Content-Security-Policy', csp);
+  `script-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'`,
+  `script-src-elem 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'`,
+  // Permit font-awesome, tabulator and other styles
+  `style-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'`,
+  `style-src-elem 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com 'unsafe-inline'`,
+  `img-src 'self' data:`,
+  `connect-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`,
+  `font-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
+  `object-src 'none'`,
+].join('; ');
+res.setHeader('Content-Security-Policy', csp);
 
       if (callback) return callback(null, html);
       res.send(html);
