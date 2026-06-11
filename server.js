@@ -145,14 +145,12 @@ app.use((req, res, next) => {
         }
         attachScript += '});\n</script>\n';
         html += attachScript;
-      }// Inject nonce into <script> tags that do NOT have a src attribute
-      html = html.replace(/<script(?![^>]*\bsrc=)([^>]*)>/gi, `<script nonce="${nonce}"$1>`);
-
-      // Set a robust per-response CSP including the nonce (no 'unsafe-inline' for scripts)
+      }      // Allow inline scripts and existing inline event handlers for compatibility.
+      // (Consider refactoring to remove 'unsafe-inline' in future.)
       const csp = [
         `default-src 'self'`,
-        `script-src 'self' cdn.jsdelivr.net 'nonce-${nonce}'`,
-        // Permit font-awesome and other styles from cdnjs.cloudflare.com
+        `script-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
+        // Permit font-awesome and other styles
         `style-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
         `style-src-elem 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
         `img-src 'self' data:`,
