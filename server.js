@@ -126,26 +126,7 @@ app.use((req, res, next) => {
         if (callback) return callback(err);
         return next(err);
       }
-            // Convert inline event-handler attributes (onclick, onsubmit, etc.) into attached listeners.
-      const handlers = [];
-      let idCounter = 0;
-      html = html.replace(/\son([a-zA-Z]+)=["']([^"']*)["']/gi, (m, evt, code) => {
-        const id = `ih_${idCounter++}`;
-        handlers.push({ id, evt: evt.toLowerCase(), code });
-        return ` data-inline-handler-id="${id}"`;
-      });
-
-      // If any handlers were added, append a script that attaches them after DOMContentLoaded
-      if (handlers.length > 0) {
-        let attachScript = '\n<script>\ndocument.addEventListener("DOMContentLoaded", function(){\n';
-        for (const h of handlers) {
-          // Sanitize closing script tags to avoid breaking the injected script
-          const safeCode = h.code.replace(/<\/script>/gi, '<\\/script>');
-          attachScript += `  document.querySelectorAll('[data-inline-handler-id="${h.id}"]').forEach(function(el){ el.addEventListener("${h.evt}", function(event){ ${safeCode} }); });\n`;
-        }
-        attachScript += '});\n</script>\n';
-        html += attachScript;
-      }      // Allow inline scripts and existing inline event handlers for compatibility.
+// Allow inline scripts and existing inline event handlers for compatibility.
       // (Consider refactoring to remove 'unsafe-inline' in future.)
       const csp = [
         `default-src 'self'`,
