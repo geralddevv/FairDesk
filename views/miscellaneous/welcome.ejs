@@ -12,7 +12,7 @@
         
         <h1 class="welcome-title">
             Welcome,<br>
-            <span class="highlight-text"><%= authUser?.empName || authUser?.username %>!</span>
+            <span class="highlight-text"><%= authUser?.empName || authUser?.username %></span>
         </h1>
         <p class="welcome-subtitle">We're glad to see you back. Your dashboard is ready with all the latest updates.</p>
         
@@ -56,24 +56,24 @@
 
     .welcome-card {
         background: #ffffff;
-        padding: 90px 60px 50px;
-        border-radius: 32px;
+        padding: 50px 80px 40px;
+        border-radius: 12px;
         box-shadow: 0 25px 50px -12px rgba(4, 74, 120, 0.15);
         border: 1px solid rgba(4, 74, 120, 0.08);
-        max-width: 600px;
-        width: 100%;
+        max-width: 1000px;
+        width: 95%;
         text-align: center;
         position: relative;
-        margin-top: 80px;
+        margin-top: 60px;
     }
 
     .profile-circle {
         position: absolute;
-        top: -80px;
+        top: -70px;
         left: 50%;
         transform: translateX(-50%);
-        width: 160px;
-        height: 160px;
+        width: 140px;
+        height: 140px;
         background: #f0f7ff;
         border-radius: 50%;
         display: flex;
@@ -128,11 +128,15 @@
 
     .info-item {
         background: #f8fafc;
-        padding: 18px;
-        border-radius: 20px;
+        padding: 22px;
+        border-radius: 10px;
         border: 1px solid #f1f5f9;
         transition: all 0.2s ease;
         text-align: left;
+        min-height: 70px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .info-item:hover {
