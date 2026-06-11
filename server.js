@@ -132,11 +132,14 @@ app.use((req, res, next) => {
       // Set a robust per-response CSP including the nonce
       const csp = [
         `default-src 'self'`,
-        `script-src 'self' cdn.jsdelivr.net 'nonce-${nonce}'`,
-        `style-src 'self' cdn.jsdelivr.net 'unsafe-inline'`,
+        // Allow inline handlers for now to restore existing behavior; replace with safer patterns when possible
+        `script-src 'self' cdn.jsdelivr.net 'nonce-${nonce}' 'unsafe-inline'`,
+        // Permit font-awesome and other styles from cdnjs.cloudflare.com
+        `style-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
+        `style-src-elem 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
         `img-src 'self' data:`,
         `connect-src 'self'`,
-        `font-src 'self' cdn.jsdelivr.net`,
+        `font-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
         `object-src 'none'`,
       ].join('; ');
       res.setHeader('Content-Security-Policy', csp);
