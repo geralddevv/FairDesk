@@ -34,6 +34,7 @@ const vendorUserSchema = new mongoose.Schema({
   ownerEmail: { type: String },
   vendorGst: { type: String },
   vendorMsme: { type: String },
+  commodities: [String],
   vendorUserSignature: { type: String, unique: true, sparse: true, trim: true },
 
   ttr: [

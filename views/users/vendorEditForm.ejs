@@ -30,11 +30,19 @@
 
 <%
   const selectedCommodities = Array.isArray(vendor.commodities)
-    ? vendor.commodities.map((c) => String(c))
+    ? vendor.commodities.map((c) => String(c).toUpperCase())
     : typeof vendor.commodities === "string" && vendor.commodities
-      ? [String(vendor.commodities)]
+      ? [String(vendor.commodities).toUpperCase()]
       : [];
-  const isChecked = (value) => selectedCommodities.includes(value) ? "checked" : "";
+    
+  function isChecked(value) {
+    const val = String(value).toUpperCase();
+    return selectedCommodities.includes(val) ? "checked" : "";
+  }
+
+  // Find the 'Other' commodity if it's not in the predefined list
+  const predefined = ["FACE PAPER", "ADHESIVE", "RELEASE PAPER", "SL (PAPER)", "PACKAGING", "TTR", "TAPE", "POS ROLL", "TAFFETA", "IT"];
+  const otherValue = selectedCommodities.find(c => !predefined.includes(c)) || "";
 %>
 
 <div class="main-content" style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
@@ -53,7 +61,7 @@
 
       <div class="span-six">
         <label for="vendor-name">Vendor Name</label>
-        <input type="text" id="vendor-name" class="form-control input-tag" name="vendorName" value="<%= vendor.vendorName %>" required />
+        <input type="text" id="vendor-name" class="form-control input-tag" name="vendorName" value="<%= vendor.vendorName %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-six">
@@ -68,12 +76,12 @@
 
       <div class="span-seven">
         <label for="ho-location">H/O Location</label>
-        <input type="text" id="ho-location" class="form-control input-tag" name="hoLocation" value="<%= vendor.hoLocation %>" required />
+        <input type="text" id="ho-location" class="form-control input-tag" name="hoLocation" value="<%= vendor.hoLocation %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-eight">
         <label for="warehouse-location">Warehouse Location</label>
-        <input type="text" id="warehouse-location" class="form-control input-tag" name="warehouseLocation" value="<%= vendor.warehouseLocation %>" required />
+        <input type="text" id="warehouse-location" class="form-control input-tag" name="warehouseLocation" value="<%= vendor.warehouseLocation %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-full form-subheading">
@@ -83,23 +91,23 @@
       <div class="span-full">
         <div class="custom-scrollbar" style="display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; overflow-x: auto; padding: 8px 14px; background: #e9f0f6; border-radius: 8px; column-gap: 24px;">
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Face Paper" style="width: 16px; height: 16px;" <%= isChecked("Face Paper") %> />
+            <input type="checkbox" name="commodities" value="FACE PAPER" style="width: 16px; height: 16px;" <%= isChecked("FACE PAPER") %> />
             Face Paper
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Adhesive" style="width: 16px; height: 16px;" <%= isChecked("Adhesive") %> />
+            <input type="checkbox" name="commodities" value="ADHESIVE" style="width: 16px; height: 16px;" <%= isChecked("ADHESIVE") %> />
             Adhesive
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Release Paper" style="width: 16px; height: 16px;" <%= isChecked("Release Paper") %> />
+            <input type="checkbox" name="commodities" value="RELEASE PAPER" style="width: 16px; height: 16px;" <%= isChecked("RELEASE PAPER") %> />
             Release Paper
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="SL (Paper)" style="width: 16px; height: 16px;" <%= isChecked("SL (Paper)") %> />
+            <input type="checkbox" name="commodities" value="SL (PAPER)" style="width: 16px; height: 16px;" <%= isChecked("SL (PAPER)") %> />
             SL (Paper)
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Packaging" style="width: 16px; height: 16px;" <%= isChecked("Packaging") %> />
+            <input type="checkbox" name="commodities" value="PACKAGING" style="width: 16px; height: 16px;" <%= isChecked("PACKAGING") %> />
             Packaging
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
@@ -107,15 +115,15 @@
             TTR
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Tape" style="width: 16px; height: 16px;" <%= isChecked("Tape") %> />
+            <input type="checkbox" name="commodities" value="TAPE" style="width: 16px; height: 16px;" <%= isChecked("TAPE") %> />
             Tape
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="POS Roll" style="width: 16px; height: 16px;" <%= isChecked("POS Roll") %> />
+            <input type="checkbox" name="commodities" value="POS ROLL" style="width: 16px; height: 16px;" <%= isChecked("POS ROLL") %> />
             POS Roll
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Taffeta" style="width: 16px; height: 16px;" <%= isChecked("Taffeta") %> />
+            <input type="checkbox" name="commodities" value="TAFFETA" style="width: 16px; height: 16px;" <%= isChecked("TAFFETA") %> />
             Taffeta
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
@@ -123,30 +131,31 @@
             IT
           </label>
           <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="Others" style="width: 16px; height: 16px;" <%= isChecked("Others") %> />
+            <input type="checkbox" name="commodities" value="<%= otherValue || 'OTHERS' %>" id="commodity-others" style="width: 16px; height: 16px;" <%= otherValue ? 'checked' : '' %> />
             Others
+            <input type="text" id="other-commodity-input" placeholder="Please specify" value="<%= otherValue %>" style="display: <%= otherValue ? 'inline-block' : 'none' %>; height: 26px; border: 1px solid #044A78; border-radius: 4px; padding: 0 8px; margin-left: 5px; font-size: 12px; width: 120px;">
           </label>
         </div>
       </div>
 
       <div class="span-dual">
         <label for="vendor-gst">GST</label>
-        <input type="text" maxlength="15" id="vendor-gst" class="form-control" name="vendorGst" value="<%= vendor.vendorGst %>" required />
+        <input type="text" maxlength="15" id="vendor-gst" class="form-control" name="vendorGst" value="<%= vendor.vendorGst %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-dual">
         <label for="vendor-msme">MSME</label>
-        <input type="text" maxlength="15" id="vendor-msme" class="form-control" name="vendorMsme" value="<%= vendor.vendorMsme %>" required />
+        <input type="text" maxlength="15" id="vendor-msme" class="form-control" name="vendorMsme" value="<%= vendor.vendorMsme %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-dual">
         <label for="vendor-gumasta">Gumasta</label>
-        <input type="text" id="vendor-gumasta" class="form-control" name="vendorGumasta" value="<%= vendor.vendorGumasta %>" required />
+        <input type="text" id="vendor-gumasta" class="form-control" name="vendorGumasta" value="<%= vendor.vendorGumasta %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-dual">
         <label for="vendor-pan">PAN</label>
-        <input type="text" maxlength="10" id="vendor-pan" class="form-control" name="vendorPan" value="<%= vendor.vendorPan %>" required />
+        <input type="text" maxlength="10" id="vendor-pan" class="form-control" name="vendorPan" value="<%= vendor.vendorPan %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
       <div class="span-full btn-grp" style="flex-direction: row-reverse;">
@@ -195,4 +204,26 @@
       if (window.showToast) window.showToast("Failed to update vendor", true);
     }
   });
+
+  // Others Commodity Toggle Logic
+  const otherCommodityCheckbox = document.getElementById("commodity-others");
+  const otherCommodityInput = document.getElementById("other-commodity-input");
+
+  if (otherCommodityCheckbox && otherCommodityInput) {
+    otherCommodityCheckbox.addEventListener("change", function() {
+      if (this.checked) {
+        otherCommodityInput.style.display = "inline-block";
+        otherCommodityInput.focus();
+      } else {
+        otherCommodityInput.style.display = "none";
+        otherCommodityInput.value = "";
+        this.value = "OTHERS";
+      }
+    });
+
+    otherCommodityInput.addEventListener("input", function() {
+      this.value = this.value.toUpperCase();
+      otherCommodityCheckbox.value = this.value.trim() || "OTHERS";
+    });
+  }
 </script>

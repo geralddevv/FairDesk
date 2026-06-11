@@ -106,7 +106,7 @@
     </div>      
     <div class="span-six">
       <label for="client-name">Vendor Name</label>
-      <input type="text" id="client-name" class="form-control input-tag" name="vendorName" placeholder="Enter Vendor Name" required />
+      <input type="text" id="client-name" class="form-control input-tag" name="vendorName" placeholder="Enter Vendor Name" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-six">
@@ -122,12 +122,12 @@
 
     <div class="span-seven">
       <label for="ho-location">H/O Location</label>
-      <input type="text" id="ho-location" class="form-control input-tag" name="hoLocation" placeholder="Enter H/O Location" required />
+      <input type="text" id="ho-location" class="form-control input-tag" name="hoLocation" placeholder="Enter H/O Location" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-eight">
       <label for="warehouse-location">Warehouse Location</label>
-      <input type="text" id="warehouse-location" class="form-control input-tag" name="warehouseLocation" placeholder="Enter Warehouse Location" required />
+      <input type="text" id="warehouse-location" class="form-control input-tag" name="warehouseLocation" placeholder="Enter Warehouse Location" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-full form-subheading">
@@ -137,23 +137,23 @@
     <div class="span-full">
       <div class="custom-scrollbar" style="display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; overflow-x: auto; padding: 8px 14px; background: #e9f0f6; border-radius: 8px; column-gap: 24px;">
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="Face Paper" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="FACE PAPER" style="width: 16px; height: 16px;">
           Face Paper
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="Adhesive" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="ADHESIVE" style="width: 16px; height: 16px;">
           Adhesive
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="Release Paper" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="RELEASE PAPER" style="width: 16px; height: 16px;">
           Release Paper
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="SL (Paper)" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="SL (PAPER)" style="width: 16px; height: 16px;">
           SL (Paper)
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="Packaging" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="PACKAGING" style="width: 16px; height: 16px;">
           Packaging
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
@@ -161,15 +161,15 @@
           TTR
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="Tape" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="TAPE" style="width: 16px; height: 16px;">
           Tape
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="POS Roll" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="POS ROLL" style="width: 16px; height: 16px;">
           POS Roll
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-          <input type="checkbox" name="commodities" value="Taffeta" style="width: 16px; height: 16px;">
+          <input type="checkbox" name="commodities" value="TAFFETA" style="width: 16px; height: 16px;">
           Taffeta
         </label>
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
@@ -179,6 +179,7 @@
         <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
           <input type="checkbox" name="commodities" value="Others" id="commodity-others" style="width: 16px; height: 16px;">
           Others
+          <input type="text" id="other-commodity-input" placeholder="Please specify" style="display: none; height: 26px; border: 1px solid #044A78; border-radius: 4px; padding: 0 8px; margin-left: 5px; font-size: 12px; width: 120px;">
         </label>
       </div>
     </div>
@@ -202,20 +203,20 @@
 
     <div class="span-dual">
       <label for="client-gst">GST</label>
-      <input type="text" maxlength="15" id="client-gst" class="form-control" name="vendorGst" placeholder="Enter GST" required />
+      <input type="text" maxlength="15" id="client-gst" class="form-control" name="vendorGst" placeholder="Enter GST" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-dual">
       <label for="client-msme">MSME</label>
-      <input type="text" maxlength="15" id="client-msme" class="form-control" name="vendorMsme" placeholder="Enter MSME" required />
+      <input type="text" maxlength="15" id="client-msme" class="form-control" name="vendorMsme" placeholder="Enter MSME" oninput="this.value = this.value.toUpperCase()" required />
     </div> 
     <div class="span-dual">
       <label for="client-gumasta">Gumasta</label>
-      <input type="text" id="client-gumasta" class="form-control" name="vendorGumasta" placeholder="Enter GUMASTA" required />
+      <input type="text" id="client-gumasta" class="form-control" name="vendorGumasta" placeholder="Enter GUMASTA" oninput="this.value = this.value.toUpperCase()" required />
     </div> 
     <div class="span-dual">
       <label for="client-pan">PAN</label>
-      <input type="text" maxlength="10" id="client-pan" class="form-control" name="vendorPan" placeholder="Enter PAN" required />
+      <input type="text" maxlength="10" id="client-pan" class="form-control" name="vendorPan" placeholder="Enter PAN" oninput="this.value = this.value.toUpperCase()" required />
     </div> 
 
     <div class="span-full btn-grp">
@@ -230,7 +231,7 @@
     </div>
     <!-- Username -->
 
-    <div class="span-dual">
+    <div class="span-five">
       <label for="userform-client-name">Vendor Name</label>
       <select name="vendorName" id="userform-client-name">
         <option value="" disabled <%= !vendorName ? 'selected' : '' %> hidden>Search</option>        
@@ -240,12 +241,12 @@
       </select>
     </div>
 
-    <div class="span-five">
+    <div class="span-four">
       <label for="user-client-id">Vendor Id</label>
       <input id="user-client-id" class="form-control input-tag" name="vendorId" placeholder="Enter Vendor ID" readonly required />
     </div>
     
-    <div class="span-five">
+    <div class="span-four">
       <label for="coordinator-vendor-status">Vendor Status</label>
       <select id="coordinator-vendor-status" class="form-control select-tag" disabled>
         <option value="" selected disabled hidden>Select</option>
@@ -257,22 +258,22 @@
       <input type="hidden" name="vendorStatus" id="coordinator-vendor-status-hidden" />
     </div>    
 
-    <div class="span-seven">
+    <div class="span-four">
       <label for="coordinator-ho-location">H/O Location</label>
       <input type="text" id="coordinator-ho-location" class="form-control input-tag" name="hoLocation" placeholder="Enter H/O Location" readonly required />
     </div>
 
-    <div class="span-seven">
+    <div class="span-five">
       <label for="coordinator-warehouse-location">Warehouse Location</label>
       <input type="text" id="coordinator-warehouse-location" class="form-control input-tag" name="warehouseLocation" placeholder="Enter Warehouse Location" readonly required />
     </div>
 
-    <div class="span-six">
+    <div class="span-five">
       <label for="coordinator-vendor-gst">Vendor GST</label>
       <input type="text" id="coordinator-vendor-gst" class="form-control input-tag" name="vendorGst" placeholder="Vendor GST" readonly />
     </div>
 
-    <div class="span-six">
+    <div class="span-five">
       <label for="coordinator-vendor-msme">Vendor MSME</label>
       <input type="text" id="coordinator-vendor-msme" class="form-control input-tag" name="vendorMsme" placeholder="Vendor MSME" readonly />
     </div>
@@ -283,17 +284,17 @@
 
     <div class="span-seven">
       <label for="user-name">Coordinator Name</label>
-      <input type="text" id="user-name" class="form-control input-tag" name="userName" placeholder="Enter Coordinator Name" required />
+      <input type="text" id="user-name" class="form-control input-tag" name="userName" placeholder="Enter Coordinator Name" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-six">
       <label for="user-location">Location</label>
-      <input type="text" id="user-location" class="form-control input-tag" name="userLocation" placeholder="Enter Location" required />
+      <input type="text" id="user-location" class="form-control input-tag" name="userLocation" placeholder="Enter Location" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-six">
       <label for="user-department">Department</label>
-      <input type="text" id="user-department" class="form-control input-tag" name="userDepartment" placeholder="Enter Department" required />
+      <input type="text" id="user-department" class="form-control input-tag" name="userDepartment" placeholder="Enter Department" oninput="this.value = this.value.toUpperCase()" required />
     </div>
 
     <div class="span-six">
@@ -459,6 +460,28 @@
 
       vendorUserSubmitting = true;
       if (vendorUserSubmitBtn) vendorUserSubmitBtn.disabled = true;
+    });
+  }
+
+  // Others Commodity Toggle Logic
+  const otherCommodityCheckbox = document.getElementById("commodity-others");
+  const otherCommodityInput = document.getElementById("other-commodity-input");
+
+  if (otherCommodityCheckbox && otherCommodityInput) {
+    otherCommodityCheckbox.addEventListener("change", function() {
+      if (this.checked) {
+        otherCommodityInput.style.display = "inline-block";
+        otherCommodityInput.focus();
+      } else {
+        otherCommodityInput.style.display = "none";
+        otherCommodityInput.value = "";
+        this.value = "Others"; // Reset value
+      }
+    });
+
+    otherCommodityInput.addEventListener("input", function() {
+      this.value = this.value.toUpperCase();
+      otherCommodityCheckbox.value = this.value.trim() || "OTHERS";
     });
   }
 </script>

@@ -3045,6 +3045,7 @@ function getVendorSnapshot(vendor, fallback = {}) {
     warehouseLocation: String(vendor?.warehouseLocation ?? fallback.warehouseLocation ?? "").trim(),
     vendorGst: String(vendor?.vendorGst ?? fallback.vendorGst ?? "").trim(),
     vendorMsme: String(vendor?.vendorMsme ?? fallback.vendorMsme ?? "").trim(),
+    commodities: vendor?.commodities || fallback.commodities || [],
   };
 }
 
@@ -3072,9 +3073,9 @@ router.post("/form/vendor", requireAuth, createLimiter, async (req, res) => {
       hoLocation: String(req.body.hoLocation || "").trim(),
       warehouseLocation: String(req.body.warehouseLocation || "").trim(),
       commodities: Array.isArray(req.body.commodities)
-        ? req.body.commodities.map((c) => String(c).trim()).filter(Boolean)
+        ? req.body.commodities.map((c) => String(c).trim().toUpperCase()).filter(Boolean)
         : req.body.commodities
-          ? [String(req.body.commodities).trim()].filter(Boolean)
+          ? [String(req.body.commodities).trim().toUpperCase()].filter(Boolean)
           : [],
       vendorGst,
       vendorMsme: String(req.body.vendorMsme || "").trim(),
@@ -5320,9 +5321,27 @@ router.get("/vendor/user/view", async (req, res) => {
 // ----------------------------------Vendor coordinator display----------------------------------
 router.get("/vendor/coordinator/view", async (req, res) => {
   try {
-    const jsonData = await VendorUser.find()
-      .sort({ vendorName: 1, userName: 1 })
-      .lean();
+    const jsonData = await VendorUser.aggregate([
+      {
+        $lookup: {
+          from: "vendors",
+          localField: "vendorId",
+          foreignField: "vendorId",
+          as: "vendorInfo",
+        },
+      },
+      {
+        $addFields: {
+          commodities: { $ifNull: [{ $arrayElemAt: ["$vendorInfo.commodities", 0] }, []] },
+        },
+      },
+      {
+        $project: {
+          vendorInfo: 0, // Remove the lookup array
+        },
+      },
+      { $sort: { vendorName: 1, userName: 1 } },
+    ]);
 
     jsonData.forEach((row) => {
       row.dispatchType = row.SelfDispatch ? "Self Dispatch" : "Transport";

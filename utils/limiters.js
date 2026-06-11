@@ -1,4 +1,4 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 // Per-IP limiter for login (unauthenticated users)
 export const loginLimiter = rateLimit({
@@ -16,7 +16,7 @@ export const createLimiter = rateLimit({
   message: "Too many create requests. Please try again later.",
   keyGenerator: (req, res) => {
     // Use authenticated user ID, fallback to IP if not authenticated
-    return req.session?.authUser?.empId || req.ip;
+    return req.session?.authUser?.empId || ipKeyGenerator(req, res);
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -28,7 +28,7 @@ export const updateLimiter = rateLimit({
   message: "Too many update requests. Please try again later.",
   keyGenerator: (req, res) => {
     // Use authenticated user ID, fallback to IP if not authenticated
-    return req.session?.authUser?.empId || req.ip;
+    return req.session?.authUser?.empId || ipKeyGenerator(req, res);
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -40,7 +40,7 @@ export const deleteLimiter = rateLimit({
   message: "Too many delete requests. Please try again later.",
   keyGenerator: (req, res) => {
     // Use authenticated user ID, fallback to IP if not authenticated
-    return req.session?.authUser?.empId || req.ip;
+    return req.session?.authUser?.empId || ipKeyGenerator(req, res);
   },
   standardHeaders: true,
   legacyHeaders: false,
