@@ -126,14 +126,27 @@ app.use((req, res, next) => {
         if (callback) return callback(err);
         return next(err);
       }
+      // Convert inline event-handler attributes (onclick, onsubmit, etc.) into attached listeners.
+      let idCounter = 0;
+      html = html.replace(/\son([a-zA-Z]+)=["']([^"']*)["']/gi, (m, evt, code) => {
+        const id = `ih_${idCounter++}`;
+              const encoded = encodeURIComponent(code);
+              return ` data-inline-handler-id="${id}" data-inline-handler-event="${evt.toLowerCase()}" data-inline-handler-code="${encoded}"`;
+      });
+
+      // If any handlers were added, append a script that attaches them after DOMContentLoaded
+            if (html.includes('data-inline-handler-code')) {
+              const attachScript = `\n<script>\ndocument.addEventListener("DOMContentLoaded", function(){\n  document.querySelectorAll('[data-inline-handler-code]').forEach(function(el){\n    try {\n      const evt = el.dataset.inlineHandlerEvent;\n      const code = decodeURIComponent(el.dataset.inlineHandlerCode || "");\n      if (!evt || !code) return;\n      const fn = new Function('event', code);\n      el.addEventListener(evt, function(e){ return fn.call(this, e); });\n    } catch (err) { console.error('inline handler attach error', err); }\n  });\n});\n</script>\n`;
+              html += attachScript;
+            }
+
       // Inject nonce into <script> tags that do NOT have a src attribute
       html = html.replace(/<script(?![^>]*\bsrc=)([^>]*)>/gi, `<script nonce="${nonce}"$1>`);
 
-      // Set a robust per-response CSP including the nonce
+      // Set a robust per-response CSP including the nonce (no 'unsafe-inline' for scripts)
       const csp = [
         `default-src 'self'`,
-        // Allow inline handlers for now to restore existing behavior; replace with safer patterns when possible
-        `script-src 'self' cdn.jsdelivr.net 'nonce-${nonce}' 'unsafe-inline'`,
+        `script-src 'self' cdn.jsdelivr.net 'nonce-${nonce}'`,
         // Permit font-awesome and other styles from cdnjs.cloudflare.com
         `style-src 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
         `style-src-elem 'self' cdn.jsdelivr.net https://cdnjs.cloudflare.com 'unsafe-inline'`,
