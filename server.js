@@ -81,6 +81,7 @@ app.use(
     },
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: "unsafe-none" },
+    originAgentCluster: true,
   }),
 );
 

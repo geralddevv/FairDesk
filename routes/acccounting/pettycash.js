@@ -1,6 +1,7 @@
 import express from "express";
 import PettyCash from "../../models/accounting/PettyCash.js";
 import PettyCashLog from "../../models/accounting/PettyCashLog.js";
+import Employee from "../../models/hr/employee_model.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { createLimiter, updateLimiter, deleteLimiter } from "../../utils/limiters.js";
 
@@ -164,11 +165,14 @@ async function recomputeLogsAndBalance(location, { overrideId = null, overrideDo
 
 /* SHOW ENTRY FORM */
 router.get("/create", async (req, res) => {
+  const employees = await Employee.find({ isActive: true }).select("empName").sort({ empName: 1 }).lean();
+
   res.render("accounting/pettycash", {
     title: "Petty Cash",
     navigator: "pettycash",
     CSS: false,
     JS: false,
+    employees,
     notification: req.flash("notification"),
     error: req.flash("error"),
   });
