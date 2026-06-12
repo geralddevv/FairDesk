@@ -17,10 +17,13 @@
     locationContainer: document.getElementById("locations-details"),
     locationMinusBtn: document.getElementById("locations-minus"),
     locationPlusBtn: document.getElementById("locations-plus"),
+    commoditiesSelect: document.getElementById("commodities-select"),
+    otherCommodityInput: document.getElementById("other-commodity-input"),
   };
 
   // Initialize Choices only once
   let choicesInstance = null;
+  let commoditiesChoices = null;
   let isHandlingChange = false; // Guard against multiple triggers
 
   // Function to toggle disabled state based on visibility
@@ -70,6 +73,10 @@
 
     if (dom.locationCountInput && dom.locationContainer) {
       initLocationRepeater();
+    }
+
+    if (dom.commoditiesSelect) {
+      initCommoditiesSelect();
     }
 
     // Set up MutationObserver to watch for display changes
@@ -262,6 +269,45 @@
       .replace(/'/g, "&#39;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
+  }
+
+  function initCommoditiesSelect() {
+    if (!dom.commoditiesSelect) return;
+
+    try {
+      commoditiesChoices = new Choices(dom.commoditiesSelect, {
+        removeItemButton: true,
+        searchEnabled: true,
+        shouldSort: false,
+        placeholder: true,
+        placeholderValue: "Select Commodities",
+        itemSelectText: "",
+      });
+
+      if (dom.otherCommodityInput) {
+        dom.commoditiesSelect.addEventListener("change", () => {
+          const selectedValues = commoditiesChoices.getValue(true);
+          const isOthersSelected = selectedValues.includes("Others");
+
+          if (isOthersSelected) {
+            dom.otherCommodityInput.style.display = "block";
+            dom.otherCommodityInput.required = true;
+            dom.otherCommodityInput.disabled = false;
+          } else {
+            dom.otherCommodityInput.style.display = "none";
+            dom.otherCommodityInput.required = false;
+            dom.otherCommodityInput.disabled = true;
+            dom.otherCommodityInput.value = "";
+          }
+        });
+
+        dom.otherCommodityInput.addEventListener("input", function () {
+          this.value = this.value.toUpperCase();
+        });
+      }
+    } catch (e) {
+      console.error("Commodities Choices initialization failed:", e);
+    }
   }
 
   function handleVendorChange(vendorName) {

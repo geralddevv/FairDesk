@@ -26,6 +26,131 @@
   .custom-scrollbar input[type="checkbox"] {
     accent-color: #044A78;
   }
+
+  /* Choices.js Custom Styling */
+  .choices {
+    margin-bottom: 0;
+  }
+
+  .choices__inner {
+    border: 1px solid #044A78 !important;
+    border-radius: 5px !important;
+    background-color: #ffffff !important;
+    min-height: 42px !important;
+    padding: 4px 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px;
+    flex-direction: row !important;
+    text-transform: uppercase !important;
+  }
+
+  .choices__input, .choices__input--cloned {
+    order: 1 !important;
+    margin: 4px 2px !important;
+    min-height: 32px !important;
+    font-size: 14px !important;
+    background-color: transparent !important;
+    flex: 0 1 auto !important;
+    width: 200px !important;
+    min-width: 40px !important;
+    text-transform: uppercase !important;
+  }
+
+  .choices__input::placeholder {
+    text-transform: none !important;
+  }
+
+  .choices__list--multiple {
+    order: 2 !important;
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .choices__list--multiple .choices__item {
+    background-color: #044A78 !important;
+    border: 1px solid #042e4a !important;
+    border-radius: 4px !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    margin: 4px 2px !important;
+    min-height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-transform: uppercase !important;
+  }
+
+  .choices__list--multiple .choices__item.is-highlighted {
+    background-color: #055a91 !important;
+  }
+
+  .choices__list--multiple .choices__item[data-deletable] {
+    padding-right: 28px !important;
+  }
+
+  .choices__button {
+    border-left: 1px solid rgba(255, 255, 255, 0.3) !important;
+    margin-right: -8px !important;
+    margin-left: 8px !important;
+    opacity: 0.8;
+  }
+
+  .choices__button:hover {
+    opacity: 1;
+  }
+
+
+
+  .choices__list--dropdown {
+    border: 1px solid #044A78 !important;
+    border-radius: 5px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    margin-top: 4px !important;
+    z-index: 100 !important;
+  }
+
+  .choices__list--dropdown .choices__item--selectable {
+    padding: 10px 14px !important;
+    min-height: 42px !important;
+    display: flex;
+    align-items: center;
+    font-size: 14px !important;
+    text-transform: uppercase !important;
+  }
+
+  .choices__list--dropdown .choices__item--selectable.is-highlighted {
+    background-color: #f0f7ff !important;
+    color: #044A78 !important;
+  }
+
+  .choices__placeholder {
+    color: #6c757d !important;
+    text-transform: none !important;
+    padding-left: 12px !important;
+    font-weight: normal !important;
+  }
+
+  #other-commodity-input {
+    border: 1px solid #044A78;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    margin-top: -2px;
+    padding: 10px 14px;
+    background-color: #f8fafc;
+    transition: all 0.2s ease;
+  }
+
+  #other-commodity-input:focus {
+    outline: none;
+    background-color: #ffffff;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
 </style>
 
 <%
@@ -41,7 +166,7 @@
   }
 
   // Find the 'Other' commodity if it's not in the predefined list
-  const predefined = ["FACE PAPER", "ADHESIVE", "RELEASE PAPER", "SL (PAPER)", "PACKAGING", "TTR", "TAPE", "POS ROLL", "TAFFETA", "IT"];
+  const predefined = ["FACE PAPER", "ADHESIVE", "RELEASE PAPER", "SL (PAPER)", "PACKAGING", "TTR", "TAPE", "POS ROLL", "TAFFETA", "IT", "DIE", "BLOCK", "COLOR"];
   const otherValue = selectedCommodities.find(c => !predefined.includes(c)) || "";
 %>
 
@@ -84,58 +209,15 @@
         <input type="text" id="warehouse-location" class="form-control input-tag" name="warehouseLocation" value="<%= vendor.warehouseLocation %>" oninput="this.value = this.value.toUpperCase()" required />
       </div>
 
-      <div class="span-full form-subheading">
-        <h1>Commodities</h1>
-      </div>
-
-      <div class="span-full">
-        <div class="custom-scrollbar" style="display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; width: 100%; white-space: nowrap; overflow-x: auto; padding: 8px 14px; background: #e9f0f6; border-radius: 8px; column-gap: 24px;">
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="FACE PAPER" style="width: 16px; height: 16px;" <%= isChecked("FACE PAPER") %> />
-            Face Paper
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="ADHESIVE" style="width: 16px; height: 16px;" <%= isChecked("ADHESIVE") %> />
-            Adhesive
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="RELEASE PAPER" style="width: 16px; height: 16px;" <%= isChecked("RELEASE PAPER") %> />
-            Release Paper
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="SL (PAPER)" style="width: 16px; height: 16px;" <%= isChecked("SL (PAPER)") %> />
-            SL (Paper)
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="PACKAGING" style="width: 16px; height: 16px;" <%= isChecked("PACKAGING") %> />
-            Packaging
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="TTR" style="width: 16px; height: 16px;" <%= isChecked("TTR") %> />
-            TTR
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="TAPE" style="width: 16px; height: 16px;" <%= isChecked("TAPE") %> />
-            Tape
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="POS ROLL" style="width: 16px; height: 16px;" <%= isChecked("POS ROLL") %> />
-            POS Roll
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="TAFFETA" style="width: 16px; height: 16px;" <%= isChecked("TAFFETA") %> />
-            Taffeta
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="IT" style="width: 16px; height: 16px;" <%= isChecked("IT") %> />
-            IT
-          </label>
-          <label style="display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 8px; background: transparent;">
-            <input type="checkbox" name="commodities" value="<%= otherValue || 'OTHERS' %>" id="commodity-others" style="width: 16px; height: 16px;" <%= otherValue ? 'checked' : '' %> />
-            Others
-            <input type="text" id="other-commodity-input" placeholder="Please specify" value="<%= otherValue %>" style="display: <%= otherValue ? 'inline-block' : 'none' %>; height: 26px; border: 1px solid #044A78; border-radius: 4px; padding: 0 8px; margin-left: 5px; font-size: 12px; width: 120px;">
-          </label>
-        </div>
+      <div class="span-full" style="margin-top: 10px;">
+        <label for="commodities-select" style="display: block; font-weight: 600; color: #044A78;">Commodities</label>
+        <select name="commodities" id="commodities-select" multiple>
+          <% predefined.forEach(p => { %>
+            <option value="<%= p %>" <%= selectedCommodities.includes(p) ? 'selected' : '' %>><%= p %></option>
+          <% }) %>
+          <option value="Others" <%= otherValue ? 'selected' : '' %>>Others</option>
+        </select>
+        <input type="text" name="commodities" id="other-commodity-input" placeholder="Please specify Others" value="<%= otherValue %>" style="display: <%= otherValue ? 'block' : 'none' %>; width: 100%;" <%= otherValue ? '' : 'disabled' %>>
       </div>
 
       <div class="span-dual">
@@ -205,25 +287,41 @@
     }
   });
 
-  // Others Commodity Toggle Logic
-  const otherCommodityCheckbox = document.getElementById("commodity-others");
-  const otherCommodityInput = document.getElementById("other-commodity-input");
+  // Initialize Choices.js for Commodities
+  window.addEventListener('DOMContentLoaded', () => {
+    let commoditiesChoices;
+    const commoditiesSelect = document.getElementById("commodities-select");
+    const otherCommodityInput = document.getElementById("other-commodity-input");
 
-  if (otherCommodityCheckbox && otherCommodityInput) {
-    otherCommodityCheckbox.addEventListener("change", function() {
-      if (this.checked) {
-        otherCommodityInput.style.display = "inline-block";
-        otherCommodityInput.focus();
-      } else {
-        otherCommodityInput.style.display = "none";
-        otherCommodityInput.value = "";
-        this.value = "OTHERS";
-      }
-    });
+    if (commoditiesSelect) {
+      commoditiesChoices = new Choices(commoditiesSelect, {
+        removeItemButton: true,
+        searchEnabled: true,
+        shouldSort: false,
+        placeholder: true,
+        placeholderValue: "Select Commodities",
+        itemSelectText: "",
+      });
 
-    otherCommodityInput.addEventListener("input", function() {
-      this.value = this.value.toUpperCase();
-      otherCommodityCheckbox.value = this.value.trim() || "OTHERS";
-    });
-  }
+      commoditiesSelect.addEventListener("change", () => {
+        const selectedValues = commoditiesChoices.getValue(true);
+        const isOthersSelected = selectedValues.includes("Others");
+
+        if (isOthersSelected) {
+          otherCommodityInput.style.display = "block";
+          otherCommodityInput.required = true;
+          otherCommodityInput.disabled = false;
+        } else {
+          otherCommodityInput.style.display = "none";
+          otherCommodityInput.required = false;
+          otherCommodityInput.disabled = true;
+          otherCommodityInput.value = "";
+        }
+      });
+
+      otherCommodityInput.addEventListener("input", function() {
+        this.value = this.value.toUpperCase();
+      });
+    }
+  });
 </script>
