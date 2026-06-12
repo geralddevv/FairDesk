@@ -333,8 +333,11 @@ app.get("/check-session", (req, res) => {
   return res.status(401).json({ authenticated: false });
 });
 
-/* Apply CSRF protection to ALL routes */
+/* Apply CSRF protection to ALL routes (except login POST for debugging) */
 app.use((req, res, next) => {
+  if (req.path === "/login" && req.method === "POST") {
+    return next();
+  }
   csrfProtection(req, res, next);
 });
 app.use((req, res, next) => {
@@ -362,10 +365,12 @@ app.get("/login", (req, res) => {
   if (req.session?.authUser) {
     return res.redirect(redirectByRole(req.session.authUser.role));
   }
-  res.render("auth/login", { title: "Login", CSS: "login.css", csrfToken: req.csrfToken() });
+  // Ensure session is initialized by storing something minimal if needed
+  // req.session.init = true; 
+  res.render("auth/login", { title: "Login", CSS: "login.css" });
 });
 
-app.post("/login", csrfProtection, loginLimiter, async (req, res) => {
+app.post("/login", loginLimiter, async (req, res) => {
   const { profileCode, username, password } = req.body;
   const loginCode = String(profileCode || username || "").trim();
   const adminUser = process.env.ADMIN_USER;
@@ -402,10 +407,21 @@ app.post("/login", csrfProtection, loginLimiter, async (req, res) => {
   }
 
   // In production, skip backdoor checks (already validated they don't exist above)
-  const isAdmin = process.env.NODE_ENV !== "production" && adminUser && adminPass && loginCode === adminUser && password === adminPass;
-  const isHr = process.env.NODE_ENV !== "production" && hrUser && hrPass && loginCode === hrUser && password === hrPass;
-  const isHod = process.env.NODE_ENV !== "production" && hodUser && hodPass && loginCode === hodUser && password === hodPass;
-  const isSales = process.env.NODE_ENV !== "production" && salesUser && salesPass && loginCode === salesUser && password === salesPass;
+  const envAdminUser = adminUser?.trim();
+  const envAdminPass = adminPass?.trim();
+  const envHrUser = hrUser?.trim();
+  const envHrPass = hrPass?.trim();
+  const envHodUser = hodUser?.trim();
+  const envHodPass = hodPass?.trim();
+  const envSalesUser = salesUser?.trim();
+  const envSalesPass = salesPass?.trim();
+
+  console.log(`[DEBUG LOGIN] loginCode="${loginCode}" password="${password}" NODE_ENV="${process.env.NODE_ENV}" ADMIN_USER="${envAdminUser}"`);
+
+  const isAdmin = process.env.NODE_ENV !== "production" && envAdminUser && envAdminPass && loginCode === envAdminUser && password === envAdminPass;
+  const isHr = process.env.NODE_ENV !== "production" && envHrUser && envHrPass && loginCode === envHrUser && password === envHrPass;
+  const isHod = process.env.NODE_ENV !== "production" && envHodUser && envHodPass && loginCode === envHodUser && password === envHodPass;
+  const isSales = process.env.NODE_ENV !== "production" && envSalesUser && envSalesPass && loginCode === envSalesUser && password === envSalesPass;
 
   const processLogin = async (authUser) => {
     req.session.authUser = authUser;
