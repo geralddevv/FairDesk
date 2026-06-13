@@ -55,5 +55,3 @@ ask: add select in the others field in vendor create
 extra stock can come when inward
 po and billing rate
 in client page show details of user and items in the same page
-
-add opt printers, scanners, spares, core, foil

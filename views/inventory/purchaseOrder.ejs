@@ -1,0 +1,540 @@
+<% layout('/layout/boilerplate') -%>
+
+<div class="main-content" style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
+  <form id="purchase-order-form" action="/fairdesk/inventory/purchase/order" method="post" class="needs-validation" autocomplete="off" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <input type="hidden" name="orderId" value="<%= typeof orderToEdit !== 'undefined' && orderToEdit ? orderToEdit._id : '' %>" />
+
+    <div class="span-full form-heading">
+      <h1><%= typeof orderToEdit !== 'undefined' && orderToEdit ? 'Edit Purchase Order' : 'Purchase Order' %></h1>
+    </div>
+
+    <!-- Stock Status Bar (Informational only for PO) -->
+    <div id="stock-display" class="span-full" style="display: flex; padding: 10px 15px; background: #fff; border: 1px solid #044A78; border-radius: 0.5rem; transition: all 0.3s ease; overflow-x: auto; overflow-y: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: nowrap; width: max-content; min-width: 100%;">
+        <div style="display: flex; flex-wrap: nowrap; align-items: center; white-space: nowrap;">
+          <div style="font-weight: 700; color: #044A78; font-size: 14px; margin-right: 15px; border-right: 1px solid #cdd6e0; padding-right: 15px;">
+            <i class="fa-solid fa-warehouse"></i> OUR STOCK:
+          </div>
+          <span id="stock-placeholder" style="font-size: 13px; color: #9ca3af; font-style: italic;">Select an item to see stock levels</span>
+          <div id="stock-locations" style="display: flex; flex-wrap: nowrap; align-items: center;"></div>
+        </div>
+        <div id="stock-stats" style="display: flex; gap: 14px; align-items: center; flex-wrap: nowrap; white-space: nowrap;">
+          <div style="font-weight: 700; color: #044A78; font-size: 16px;">
+            <i class="fa-solid fa-box-open"></i> Total: <span id="stat-total">—</span>
+          </div>
+          <div style="font-weight: 700; color: #d97706; font-size: 16px;">
+            <i class="fa-regular fa-clock"></i> Booked: <span id="stat-booked">—</span>
+          </div>
+          <div style="font-weight: 700; color: #059669; font-size: 16px;">
+            <i class="fa-solid fa-scale-balanced"></i> Balance: <span id="stat-balance">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PURCHASE DETAILS ================= -->
+    <div class="span-full form-subheading">
+      <h1>Purchase Details</h1>
+    </div>
+
+    <div class="span-seven">
+      <label for="vendor-name">Vendor Name</label>
+      <select name="vendorName" id="vendor-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Select Vendor</option>
+        <% vendors?.forEach(v => { %>
+          <option value="<%= v.vendorId %>"><%= v.vendorName %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="coordinator-name">Coordinator</label>
+      <select name="vendorUserId" id="coordinator-name" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Select Coordinator</option>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-location">Location</label>
+      <select id="vendor-location" name="userLocation" class="form-control select-tag">
+        <option value="" disabled selected hidden>Select Location</option>
+      </select>
+    </div>
+
+    <div class="span-six">
+      <label for="vendor-contact">Contact</label>
+      <input type="text" id="vendor-contact" class="form-control" placeholder="Coordinator contact" readonly />
+    </div>
+
+    <div class="span-seven">
+      <label for="item-type">Item Type</label>
+      <select name="itemType" id="item-type" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Select Item Type</option>
+        <option value="Tape">Tape</option>
+        <option value="PosRoll">POS Roll</option>
+        <option value="Tafeta">Tafeta</option>
+        <option value="Ttr">TTR</option>
+      </select>
+    </div>
+
+    <div class="span-seven">
+      <label for="item-select">Select Item (Reorder)</label>
+      <select name="itemId" id="item-select" class="form-control select-tag" required>
+        <option value="" disabled selected hidden>Select Item</option>
+      </select>
+      <input type="hidden" name="vendorBindingId" id="vendor-binding-id" value="" />
+    </div>
+
+    <div id="selected-item-details" class="span-full" style="padding: 8px 12px; background: #fff; border: 1px solid #044A78; border-radius: 4px; display: none;"></div>
+
+    <!-- Shortage/Reorder Info Banner -->
+    <div id="reorder-banner" class="span-full" style="display: none; padding: 10px 15px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; color: #991b1b;">
+      <i class="fa-solid fa-triangle-exclamation" style="margin-right: 6px;"></i>
+      <span id="reorder-banner-text"></span>
+    </div>
+
+    <!-- ================= QUANTITY & DATE ================= -->
+    <div class="span-full form-subheading">
+      <h1>Order Info</h1>
+    </div>
+
+    <div class="span-five">
+      <label for="quantity">Purchase Quantity</label>
+      <input type="number" id="quantity" name="quantity" class="form-control" min="1" placeholder="Enter quantity" required />
+    </div>
+
+    <div class="span-five">
+      <label for="po-number">PO Number</label>
+      <input type="text" id="po-number" name="poNumber" class="form-control" placeholder="Enter PO number" required />
+    </div>
+
+    <div class="span-four">
+      <label for="item-rate">Vendor Rate</label>
+      <input type="text" id="item-rate" class="form-control" placeholder="Rate" readonly />
+    </div>
+
+    <div class="span-six">
+      <label for="estimated-date">Est Arrival Date</label>
+      <input type="date" id="estimated-date" name="estimatedDate" class="form-control" required />
+    </div>
+
+    <div class="span-half" style="grid-column: span 8;">
+      <label for="remarks">Remarks (Optional)</label>
+      <input type="text" id="remarks" name="remarks" class="form-control" placeholder="Any special instructions..." />
+    </div>
+
+    <!-- ================= SUBMIT ================= -->
+    <div class="span-full btn-grp">
+      <button type="submit" id="po-submit-btn">
+        <i class="fa-solid fa-check"></i> <%= typeof orderToEdit !== 'undefined' && orderToEdit ? 'Update PO' : 'Create PO' %>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+  .location-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 5px;
+    padding: 5px 8px;
+    border-radius: 0.4rem;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    user-select: none;
+    opacity: 0.85;
+  }
+  .location-option.selected {
+    border-color: #044A78;
+    background: #eef0ff;
+    opacity: 1;
+  }
+  .location-label {
+    color: #044A78;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .location-qty {
+    font-weight: 700;
+    color: #044A78;
+    font-size: 15px;
+  }
+</style>
+
+<script type="application/json" id="order-to-edit-data">
+  <%- typeof orderToEdit !== 'undefined' && orderToEdit ? JSON.stringify(orderToEdit) : 'null' %>
+</script>
+
+<script type="application/json" id="vendors-data">
+  <%- JSON.stringify(vendors || []) %>
+</script>
+
+<script type="application/json" id="prefill-data">
+  <%- typeof prefill !== 'undefined' ? JSON.stringify(prefill) : 'null' %>
+</script>
+
+<script>
+  const orderToEdit = JSON.parse(document.getElementById('order-to-edit-data')?.textContent || 'null');
+  const prefill     = JSON.parse(document.getElementById('prefill-data')?.textContent || 'null');
+  const vendorsRaw  = JSON.parse(document.getElementById('vendors-data')?.textContent || '[]');
+
+  const vendorSelect      = document.getElementById('vendor-name');
+  const coordinatorSelect = document.getElementById('coordinator-name');
+  const locationSelect    = document.getElementById('vendor-location');
+  const contactInput      = document.getElementById('vendor-contact');
+  const itemTypeSelect    = document.getElementById('item-type');
+  const itemSelect        = document.getElementById('item-select');
+  const bindingIdInput    = document.getElementById('vendor-binding-id');
+  const rateInput         = document.getElementById('item-rate');
+  const quantityInput     = document.getElementById('quantity');
+  const estimatedDateInput= document.getElementById('estimated-date');
+  const remarksInput      = document.getElementById('remarks');
+
+  let vendorChoices, coordinatorChoices, locationChoices, itemTypeChoices, itemChoices;
+
+  // ─── Choices helpers ───────────────────────────────────────────────────────
+  function setChoicesOptions(instance, options, placeholder = 'Select') {
+    if (!instance) return;
+    instance.clearStore();
+    instance.setChoices(
+      [{ value: '', label: placeholder, disabled: true, selected: true, placeholder: true }, ...options],
+      'value', 'label', true
+    );
+  }
+
+  function resetCoordinators() {
+    setChoicesOptions(coordinatorChoices, [], 'Select Coordinator');
+    resetLocations();
+    resetItems();
+  }
+
+  function resetLocations() {
+    setChoicesOptions(locationChoices, [], 'Select Location');
+    if (contactInput) contactInput.value = '';
+  }
+
+  function resetItems() {
+    setChoicesOptions(itemChoices, [], 'Select Item');
+    if (bindingIdInput) bindingIdInput.value = '';
+    if (rateInput) rateInput.value = '';
+    clearItemDetails();
+    clearReorderBanner();
+    clearStockDisplay();
+  }
+
+  // ─── Stock display ──────────────────────────────────────────────────────────
+  function clearStockDisplay() {
+    document.getElementById('stat-total').textContent = '—';
+    document.getElementById('stat-booked').textContent = '—';
+    document.getElementById('stat-balance').textContent = '—';
+    document.getElementById('stock-placeholder').style.display = '';
+    document.getElementById('stock-locations').innerHTML = '';
+  }
+
+  function updateStockDisplay(stock) {
+    if (!stock) { clearStockDisplay(); return; }
+    document.getElementById('stat-total').textContent  = stock.totalStock ?? 0;
+    document.getElementById('stat-booked').textContent = stock.booked ?? 0;
+    document.getElementById('stat-balance').textContent= stock.balance ?? 0;
+    document.getElementById('stock-placeholder').style.display = 'none';
+
+    const container = document.getElementById('stock-locations');
+    container.innerHTML = '';
+    (stock.locations || []).forEach(loc => {
+      const el = document.createElement('label');
+      el.className = 'location-option';
+      el.innerHTML = `<span class="location-label">${loc.location}:</span> <span class="location-qty">${loc.qty ?? 0}</span>`;
+      container.appendChild(el);
+    });
+  }
+
+  // ─── Item details panel ─────────────────────────────────────────────────────
+  function clearItemDetails() {
+    const el = document.getElementById('selected-item-details');
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+
+  function showItemDetails(details) {
+    const el = document.getElementById('selected-item-details');
+    if (!details) { clearItemDetails(); return; }
+    el.style.display = 'block';
+    const entries = [];
+    const push = (label, val) => { if (val !== null && val !== undefined && String(val).trim()) entries.push([label, val]); };
+
+    if (details.type === 'Tape' || details.type === 'TAPE') {
+      push('Product ID', details.productId); push('Paper Code', details.paperCode);
+      push('GSM', details.gsm); push('Width', details.width); push('Meters', details.mtrs);
+      push('Finish', details.finish); push('Vendor Paper Code', details.vendorPaperCode);
+      push('Vendor GSM', details.vendorGsm); push('Min Qty', details.minQty);
+    } else if (details.type === 'PosRoll' || details.type === 'POS_ROLL') {
+      push('Product ID', details.productId); push('Paper Code', details.paperCode);
+      push('GSM', details.gsm); push('Width', details.width); push('Meters', details.mtrs);
+      push('Vendor Paper Code', details.vendorPaperCode); push('Min Qty', details.minQty);
+    } else if (details.type === 'Tafeta' || details.type === 'TAFETA') {
+      push('Product ID', details.productId); push('Material Code', details.materialCode);
+      push('GSM', details.gsm); push('Width', details.width); push('Meters', details.mtrs);
+      push('Vendor Material Code', details.vendorPaperCode); push('Min Qty', details.minQty);
+    } else if (details.type === 'Ttr' || details.type === 'TTR') {
+      push('Product ID', details.productId); push('Type', details.ttrType);
+      push('Width', details.width); push('Meters', details.mtrs);
+      push('Color', details.color); push('Ink Face', details.inkFace); push('Min Qty', details.minQty);
+    }
+
+    el.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:4px 8px;">
+      ${entries.map(([l, v]) => `<div style="display:grid; grid-template-columns:140px 1fr; gap:6px; padding:4px 6px; border-bottom:1px solid #eef2f7;">
+        <div style="font-size:12px; color:#6b7280;">${l}</div>
+        <div style="font-size:12px; color:#111827; font-weight:600;">${v}</div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // ─── Reorder banner ─────────────────────────────────────────────────────────
+  function clearReorderBanner() {
+    document.getElementById('reorder-banner').style.display = 'none';
+    document.getElementById('reorder-banner-text').textContent = '';
+  }
+
+  function showReorderBanner(shortage, minQty, stock) {
+    const el    = document.getElementById('reorder-banner');
+    const text  = document.getElementById('reorder-banner-text');
+    if (shortage > 0) {
+      text.textContent = `Reorder needed — Stock: ${stock} | Min Required: ${minQty} | Shortage: ${shortage}`;
+      el.style.display = 'block';
+    } else clearReorderBanner();
+  }
+
+  // ─── API Calls ──────────────────────────────────────────────────────────────
+  async function loadCoordinators(vendorId) {
+    if (!vendorId) return;
+    resetCoordinators();
+    setChoicesOptions(coordinatorChoices, [{ value: '', label: 'Loading...', disabled: true }], 'Loading...');
+
+    try {
+      const res  = await fetch(`/fairdesk/inventory/purchase/coordinators/${encodeURIComponent(vendorId)}`);
+      const data = await res.json();
+      const options = data.map(c => ({
+        value: String(c._id),
+        label: c.userName,
+        customProperties: { contact: c.userContact || '', locations: buildLocationList(c) }
+      }));
+      setChoicesOptions(coordinatorChoices, options, 'Select Coordinator');
+      if (options.length === 1) {
+        coordinatorChoices.setChoiceByValue(options[0].value);
+        coordinatorSelect.value = options[0].value;
+        applyCoordinatorDetails(options[0]);
+      }
+    } catch (err) {
+      console.error('loadCoordinators error:', err);
+      setChoicesOptions(coordinatorChoices, [], 'Error loading coordinators');
+    }
+  }
+
+  function buildLocationList(coordinator) {
+    const locs = [];
+    if (coordinator.userLocation) locs.push(coordinator.userLocation);
+    if (Array.isArray(coordinator.locationDetails)) {
+      coordinator.locationDetails.forEach(ld => {
+        const l = ld.userLocation || ld.location || ld.dispatchAddress;
+        if (l && !locs.includes(l)) locs.push(l);
+      });
+    }
+    return locs;
+  }
+
+  function applyCoordinatorDetails(option) {
+    const props = option?.customProperties || {};
+    if (contactInput) contactInput.value = props.contact || '';
+    const locs = props.locations || [];
+    const locOptions = locs.map(l => ({ value: l, label: l }));
+    setChoicesOptions(locationChoices, locOptions, 'Select Location');
+    if (locOptions.length === 1) {
+      locationChoices.setChoiceByValue(locOptions[0].value);
+      locationSelect.value = locOptions[0].value;
+    }
+    // Reload items if type already selected
+    const type = itemTypeChoices?.getValue(true);
+    const userId = coordinatorChoices?.getValue(true);
+    if (type && userId) loadItems(type, userId);
+    else resetItems();
+  }
+
+  async function loadItems(type, vendorUserId) {
+    if (!type || !vendorUserId) { resetItems(); return; }
+    setChoicesOptions(itemChoices, [{ value: '', label: 'Loading items...', disabled: true }], 'Loading...');
+
+    try {
+      const res  = await fetch(`/fairdesk/inventory/purchase/items/${encodeURIComponent(type)}/${encodeURIComponent(vendorUserId)}`);
+      const data = await res.json();
+      if (!data.length) {
+        setChoicesOptions(itemChoices, [], 'No items found');
+        return;
+      }
+      const options = data.map(item => ({
+        value: String(item._id),
+        label: item.displayName,
+        customProperties: {
+          rate:      item.rate,
+          bindingId: item.bindingId,
+          minQty:    item.minQty,
+          shortage:  item.shortage,
+          stock:     item.stock,
+          details:   item.details
+        }
+      }));
+      setChoicesOptions(itemChoices, options, 'Select Item');
+      if (options.length === 1) {
+        itemChoices.setChoiceByValue(options[0].value);
+        itemSelect.value = options[0].value;
+        applyItemDetails(options[0]);
+      }
+    } catch (err) {
+      console.error('loadItems error:', err);
+      setChoicesOptions(itemChoices, [], 'Error loading items');
+    }
+  }
+
+  function applyItemDetails(option) {
+    if (!option?.customProperties) return;
+    const p = option.customProperties;
+    if (rateInput) rateInput.value = p.rate ?? '';
+    if (bindingIdInput) bindingIdInput.value = p.bindingId ?? '';
+    if (quantityInput && (!quantityInput.dataset.userEdited)) {
+      if (p.shortage > 0) quantityInput.value = p.shortage;
+      else if (p.minQty > 0) quantityInput.value = p.minQty;
+    }
+    updateStockDisplay(p.stock);
+    showItemDetails(p.details);
+    showReorderBanner(p.shortage, p.minQty, p.stock?.totalStock ?? 0);
+  }
+
+  // ─── DOMContentLoaded ───────────────────────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    // Init Choices
+    vendorChoices      = new Choices(vendorSelect,      { searchEnabled: true,  itemSelectText: '', shouldSort: false });
+    coordinatorChoices = new Choices(coordinatorSelect, { searchEnabled: true,  itemSelectText: '', shouldSort: false });
+    locationChoices    = new Choices(locationSelect,    { searchEnabled: false, itemSelectText: '', shouldSort: false });
+    itemTypeChoices    = new Choices(itemTypeSelect,    { searchEnabled: false, itemSelectText: '', shouldSort: false });
+    itemChoices        = new Choices(itemSelect,        { searchEnabled: true,  itemSelectText: '', shouldSort: false });
+
+    // Default estimated date: 7 days out
+    if (!estimatedDateInput.value) {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      estimatedDateInput.value = d.toISOString().split('T')[0];
+    }
+
+    // Track user quantity edits
+    quantityInput?.addEventListener('input', () => { quantityInput.dataset.userEdited = 'true'; });
+
+    // Vendor change
+    vendorSelect.addEventListener('change', () => {
+      const vendorId = vendorChoices.getValue(true);
+      resetCoordinators();
+      resetItems();
+      if (vendorId) loadCoordinators(vendorId);
+    });
+
+    // Coordinator change
+    coordinatorSelect.addEventListener('change', () => {
+      const selected = coordinatorChoices.getValue();
+      if (selected) applyCoordinatorDetails(selected);
+      else { resetLocations(); resetItems(); }
+    });
+
+    // Item type change — reload items for current coordinator
+    itemTypeSelect.addEventListener('change', () => {
+      resetItems();
+      const type   = itemTypeChoices.getValue(true);
+      const userId = coordinatorChoices?.getValue(true);
+      if (type && userId) loadItems(type, userId);
+    });
+
+    // Item select change
+    itemSelect.addEventListener('change', () => {
+      const selected = itemChoices.getValue();
+      if (selected) applyItemDetails(selected);
+      else {
+        clearItemDetails(); clearReorderBanner(); clearStockDisplay();
+        if (bindingIdInput) bindingIdInput.value = '';
+        if (rateInput) rateInput.value = '';
+      }
+    });
+
+    // ── Edit/Prefill Mode ──────────────────────────────────────────────────────
+    if (orderToEdit) initEditMode();
+    else if (prefill) initPrefillMode();
+  });
+
+  async function initPrefillMode() {
+    if (!prefill) return;
+
+    // Prefill Vendor/Coordinator if both provided
+    if (prefill.vendorUserId) {
+      // We need to find the vendorId for this vendorUserId
+      // For now, if only vendorUserId is provided, we might need an extra API or just wait for loadCoordinators
+      // If we have a lot of vendors, this might be slow. 
+      // Let's assume we might eventually get vendorId too, but for now let's try to find it in the first vendor as a guess or just ignore vendor prefill if vendorId is missing.
+    }
+
+    if (prefill.itemType) {
+      itemTypeChoices.setChoiceByValue(prefill.itemType);
+    }
+
+    // If we have vendorUserId and itemType, we can load items immediately
+    if (prefill.vendorUserId && prefill.itemType) {
+      // Find the vendorId first (unfortunately prefill only has vendorUserId)
+      // Attempt to load coordinators for all vendors until we find the one? No.
+      // Better to just let the user select the vendor if vendorId is missing.
+    }
+    
+    // Most common case: itemType and itemId prefilled from Reorder List
+    if (prefill.itemType && prefill.itemId) {
+       // Item will load once coordinator is selected
+    }
+  }
+
+  async function initEditMode() {
+    // Set vendor
+    const vendorId = orderToEdit.vendorUserId?.vendorId || '';
+    if (vendorId) {
+      vendorChoices.setChoiceByValue(vendorId);
+      await loadCoordinators(vendorId);
+    }
+    // Set coordinator
+    const coordId = String(orderToEdit.vendorUserId?._id || orderToEdit.vendorUserId || '');
+    if (coordId) {
+      coordinatorChoices.setChoiceByValue(coordId);
+      const selected = coordinatorChoices.getValue();
+      if (selected) applyCoordinatorDetails(selected);
+    }
+    // Set location
+    if (orderToEdit.userLocation) {
+      locationChoices.setChoiceByValue(orderToEdit.userLocation);
+    }
+    // Set item type
+    const onModel = orderToEdit.onModel || '';
+    itemTypeChoices.setChoiceByValue(onModel);
+    // Load and set item
+    const userId = String(orderToEdit.vendorUserId?._id || orderToEdit.vendorUserId || '');
+    if (onModel && userId) {
+      await loadItems(onModel, userId);
+      const bindingId = String(orderToEdit.vendorBinding?._id || orderToEdit.vendorBinding || '');
+      // Find item that matches
+      const allOpts = Array.from(itemSelect.options).filter(o => o.value);
+      // Try to match by binding
+      for (const opt of allOpts) {
+        itemChoices.setChoiceByValue(opt.value);
+        const sel = itemChoices.getValue();
+        if (sel?.customProperties?.bindingId === bindingId) break;
+      }
+    }
+    // Fill form fields
+    if (orderToEdit.quantity)       quantityInput.value      = orderToEdit.quantity;
+    if (orderToEdit.poNumber)       document.getElementById('po-number').value = orderToEdit.poNumber;
+    if (orderToEdit.estimatedDate)  estimatedDateInput.value = new Date(orderToEdit.estimatedDate).toISOString().split('T')[0];
+    if (orderToEdit.remarks)        remarksInput.value       = orderToEdit.remarks || '';
+  }
+</script>

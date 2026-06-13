@@ -165,10 +165,20 @@
     const commodities = Array.isArray(row.commodities) && row.commodities.length > 0 ? row.commodities : ["-"];
     
     commodities.forEach((commodity) => {
+      const dispatchType = row.dispatchType || (row.SelfDispatch ? "Self Dispatch" : "Transport");
+      let displayCommodity = commodity;
+      let filterCommodity = commodity;
+
+      if (typeof commodity === "string" && commodity.startsWith("OTHERS - ")) {
+        displayCommodity = commodity;
+        filterCommodity = "OTHERS";
+      }
+
       flattenedData.push({
         ...row,
         dispatchType,
-        displayCommodity: commodity,
+        displayCommodity: displayCommodity,
+        filterCommodity: filterCommodity,
       });
     });
   });
@@ -204,34 +214,16 @@
       columns: [
         withSelectFilter({
           title: "Commodities",
-          field: "displayCommodity",
+          field: "filterCommodity",
           minWidth: 200,
           headerSort: true,
           sorter: "string",
           formatter: (cell) => {
-            const val = cell.getValue();
-            if (!val || val === "-") return "-";
-            const row = cell.getRow().getData();
-            const upperVal = String(val).toUpperCase();
-            let url = "";
-
-            if (upperVal === "TTR") {
-              url = `/fairdesk/ttr-vendor/view?userId=${encodeURIComponent(row._id)}`;
-            } else if (upperVal === "TAPE") {
-              url = `/fairdesk/vendor-item/view/tape?userId=${encodeURIComponent(row._id)}`;
-            } else if (upperVal === "POS ROLL") {
-              url = `/fairdesk/vendor-item/view/pos?userId=${encodeURIComponent(row._id)}`;
-            } else if (upperVal === "Tafeta" || upperVal === "TAFFETA" || upperVal === "TAFETA") {
-              url = `/fairdesk/vendor-item/view/tafeta?userId=${encodeURIComponent(row._id)}`;
-            }
-
-            if (url) {
-              return `<a href="${url}" class="count-link" style="text-decoration: underline; color: #044a78; font-weight: 600;">${val}</a>`;
-            }
-            return val;
-          },
+            const data = cell.getRow().getData();
+            return data.displayCommodity;
+          }
         }, (() => {
-          const distinct = Array.from(new Set(tableData.map(r => r.displayCommodity))).filter(c => c && c !== "-").sort();
+          const distinct = Array.from(new Set(tableData.map(r => r.filterCommodity))).filter(c => c && c !== "-").sort();
           const obj = {"": "All"};
           distinct.forEach(c => { obj[c] = c; });
           return obj;

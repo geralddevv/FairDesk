@@ -13,6 +13,7 @@ import VendorPosRollBinding from "../../models/inventory/vendorPosRollBinding.js
 import VendorTafetaBinding from "../../models/inventory/vendorTafetaBinding.js";
 import VendorTtrBinding from "../../models/inventory/vendorTtrBinding.js";
 import VendorUser from "../../models/users/vendorUser.js";
+import Vendor from "../../models/users/vendor.js";
 import PurchaseOrder from "../../models/inventory/PurchaseOrder.js";
 import PurchaseOrderLog from "../../models/inventory/PurchaseOrderLog.js";
 import { requireAuth } from "../../middleware/auth.js";
@@ -565,6 +566,242 @@ router.post("/reorder/create-po-multi", requireAuth, createLimiter, async (req, 
   } catch (err) {
     console.error("CREATE MULTI PO ERROR:", err);
     req.flash("notification", "Error: " + (err.message || "Failed to create Purchase Orders."));
+    res.redirect("back");
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PURCHASE ORDER PAGE (Vendor-first flow — mirrors /sales/order)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /purchase/order
+ * Render the purchase order form. Loads all active vendors.
+ */
+router.get("/purchase/order", async (req, res) => {
+  try {
+    const { orderId, itemType, itemId, vendorUserId } = req.query;
+
+    const [vendors, orderToEdit] = await Promise.all([
+      Vendor.find().select("vendorId vendorName").sort({ vendorName: 1 }).lean(),
+      orderId
+        ? PurchaseOrder.findById(orderId)
+            .populate("vendorUserId")
+            .populate("itemId")
+            .populate("vendorBinding")
+            .lean()
+        : Promise.resolve(null),
+    ]);
+
+    // If no orderToEdit but we have prefill data, we can pack it into a mock object or just pass it as extra variables.
+    // For simplicity, let's pass them as variables.
+    const prefill = {
+      itemType: itemType || "",
+      itemId: itemId || "",
+      vendorUserId: vendorUserId || ""
+    };
+
+    res.render("inventory/purchaseOrder.ejs", {
+      title: orderToEdit ? "Edit Purchase Order" : "Purchase Order",
+      vendors,
+      orderToEdit,
+      prefill,
+      CSS: false,
+      JS: false,
+      notification: req.flash("notification"),
+    });
+  } catch (err) {
+    console.error("PURCHASE ORDER PAGE ERROR:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+/**
+ * GET /purchase/coordinators/:vendorId
+ * Returns all vendor users (coordinators) for a vendor.
+ */
+router.get("/purchase/coordinators/:vendorId", async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const coordinators = await VendorUser.find({ vendorId })
+      .select("_id vendorId vendorName userName userContact userLocation locationDetails")
+      .lean();
+    res.json(coordinators);
+  } catch (err) {
+    console.error("PURCHASE COORDINATORS API ERROR:", err);
+    res.status(500).json([]);
+  }
+});
+
+/**
+ * GET /purchase/items/:type/:vendorUserId
+ * Returns items bound to the given coordinator, enriched with stock & shortage info.
+ * type: Tape | PosRoll | Tafeta | Ttr
+ */
+router.get("/purchase/items/:type/:vendorUserId", async (req, res) => {
+  try {
+    const { type, vendorUserId } = req.params;
+
+    let bindingModel, stockModel, stockRef, itemRef, minQtyField;
+    if      (type === "Tape")    { bindingModel = VendorTapeBinding;    stockModel = TapeStock;    stockRef = "tape";    itemRef = "tapeId";    minQtyField = "tapeMinQty"; }
+    else if (type === "PosRoll") { bindingModel = VendorPosRollBinding; stockModel = PosRollStock; stockRef = "posRoll"; itemRef = "posRollId"; minQtyField = "posMinQty"; }
+    else if (type === "Tafeta")  { bindingModel = VendorTafetaBinding;  stockModel = TafetaStock;  stockRef = "tafeta"; itemRef = "tafetaId"; minQtyField = "tafetaMinQty"; }
+    else if (type === "Ttr")     { bindingModel = VendorTtrBinding;     stockModel = TtrStock;     stockRef = "ttr";    itemRef = "ttrId";    minQtyField = "ttrMinQty"; }
+    else return res.status(400).json([]);
+
+    const bindings = await bindingModel
+      .find({ vendorUserId })
+      .populate(itemRef)
+      .lean();
+
+    if (!bindings.length) return res.json([]);
+
+    const itemIds = bindings.map(b => b[itemRef]?._id).filter(Boolean);
+
+    // Stock per item
+    const stockAgg = await stockModel.aggregate([
+      { $match: { [stockRef]: { $in: itemIds } } },
+      { $group: { _id: `$${stockRef}`, total: { $sum: "$quantity" },
+        locations: { $push: { location: "$location", qty: "$quantity" } } } }
+    ]);
+    const stockMap = {};
+    stockAgg.forEach(s => stockMap[String(s._id)] = { total: s.total, locations: s.locations });
+
+    // Booked per item (pending sales)
+    const bookedAgg = await TapeSalesOrder.aggregate([
+      { $match: { tapeId: { $in: itemIds }, status: { $in: ["PENDING", "CONFIRMED"] }, onModel: type } },
+      { $project: { tapeId: 1, balance: { $max: [0, { $subtract: ["$quantity", { $ifNull: ["$dispatchedQuantity", 0] }] }] } } },
+      { $group: { _id: "$tapeId", totalBooked: { $sum: "$balance" } } }
+    ]);
+    const bookedMap = {};
+    bookedAgg.forEach(s => bookedMap[String(s._id)] = s.totalBooked);
+
+    const items = bindings.map(b => {
+      const item = b[itemRef];
+      if (!item) return null;
+      const idStr     = String(item._id);
+      const stockRaw  = stockMap[idStr]  || { total: 0, locations: [] };
+      const booked    = bookedMap[idStr] || 0;
+      const stock     = stockRaw.total;
+      const minQty    = item[minQtyField] || 0;
+      const effective = stock - booked;
+      const shortage  = Math.max(0, minQty - effective);
+
+      let displayName, rate, details;
+
+      if (type === "Tape") {
+        displayName = `${item.tapeProductId || "N/A"} — ${item.tapePaperCode || ""} ${item.tapeGsm || ""}gsm`;
+        rate    = b.tapeRatePerRoll;
+        details = { type: "Tape", productId: item.tapeProductId, paperCode: item.tapePaperCode, gsm: item.tapeGsm,
+          paperType: item.tapePaperType, width: item.tapeWidth, mtrs: item.tapeMtrs, finish: item.tapeFinish,
+          vendorPaperCode: b.vendorTapePaperCode, vendorGsm: b.vendorTapeGsm, minQty };
+      } else if (type === "PosRoll") {
+        displayName = `${item.posProductId || "N/A"} — ${item.posPaperCode || ""} ${item.posGsm || ""}gsm`;
+        rate    = b.posRatePerRoll;
+        details = { type: "PosRoll", productId: item.posProductId, paperCode: item.posPaperCode, gsm: item.posGsm,
+          width: item.posWidth, mtrs: item.posMtrs, vendorPaperCode: b.vendorPosPaperCode, minQty };
+      } else if (type === "Tafeta") {
+        displayName = `${item.tafetaProductId || "N/A"} — ${item.tafetaMaterialCode || ""} ${item.tafetaGsm || ""}gsm`;
+        rate    = b.tafetaRatePerRoll;
+        details = { type: "Tafeta", productId: item.tafetaProductId, materialCode: item.tafetaMaterialCode,
+          gsm: item.tafetaGsm, width: item.tafetaWidth, mtrs: item.tafetaMtrs,
+          vendorPaperCode: b.vendorTafetaMaterialCode, minQty };
+      } else if (type === "Ttr") {
+        displayName = `${item.ttrType || ""} ${item.ttrWidth || ""}mm × ${item.ttrMtrs || ""}m`;
+        rate    = b.ttrRatePerRoll;
+        details = { type: "Ttr", productId: item.ttrProductId, ttrType: item.ttrType,
+          width: item.ttrWidth, mtrs: item.ttrMtrs, color: item.ttrColor, inkFace: item.ttrInkFace, minQty };
+      }
+
+      return {
+        _id:         String(item._id),
+        bindingId:   String(b._id),
+        displayName,
+        rate:        rate || 0,
+        minQty,
+        shortage,
+        stock: {
+          totalStock: stock,
+          booked,
+          balance:    effective,
+          locations:  stockRaw.locations,
+        },
+        details,
+      };
+    }).filter(Boolean);
+
+    res.json(items);
+  } catch (err) {
+    console.error("PURCHASE ITEMS API ERROR:", err);
+    res.status(500).json([]);
+  }
+});
+
+/**
+ * POST /purchase/order
+ * Create or update a purchase order from the vendor-first form.
+ */
+router.post("/purchase/order", requireAuth, createLimiter, async (req, res) => {
+  try {
+    let { orderId, itemId, itemType, vendorUserId, vendorBindingId, userLocation,
+          quantity, poNumber, estimatedDate, remarks } = req.body;
+
+    let bindingModel, onBindingModel;
+    if      (itemType === "Tape")    { bindingModel = VendorTapeBinding;    onBindingModel = "VendorTapeBinding"; }
+    else if (itemType === "PosRoll") { bindingModel = VendorPosRollBinding; onBindingModel = "VendorPosRollBinding"; }
+    else if (itemType === "Tafeta")  { bindingModel = VendorTafetaBinding;  onBindingModel = "VendorTafetaBinding"; }
+    else if (itemType === "Ttr")     { bindingModel = VendorTtrBinding;     onBindingModel = "VendorTtrBinding"; }
+    else { return res.status(400).json({ success: false, message: "Invalid item type." }); }
+
+    let binding = null;
+    if (vendorBindingId) binding = await bindingModel.findById(vendorBindingId);
+    if (!binding && vendorUserId && itemId) {
+      const refField = itemType === "Tape" ? "tapeId" : itemType === "PosRoll" ? "posRollId" : itemType === "Tafeta" ? "tafetaId" : "ttrId";
+      binding = await bindingModel.findOne({ [refField]: itemId, vendorUserId });
+    }
+    if (!binding) {
+      req.flash("notification", "Vendor binding not found for selected item.");
+      return res.redirect("/fairdesk/inventory/purchase/order");
+    }
+
+    const parsedDate = new Date(estimatedDate);
+    const resolvedDate = Number.isNaN(parsedDate.getTime())
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      : parsedDate;
+
+    const poData = {
+      onBindingModel,
+      vendorBinding:  binding._id,
+      vendorUserId:   vendorUserId || binding.vendorUserId,
+      onModel:        itemType,
+      itemId,
+      userLocation,
+      quantity:       Number(quantity),
+      poNumber:       String(poNumber || "").trim(),
+      estimatedDate:  resolvedDate,
+      remarks,
+      status:         "PENDING",
+    };
+
+    const performer = req.session?.authUser?.username || "SYSTEM";
+
+    if (orderId) {
+      const updated = await PurchaseOrder.findByIdAndUpdate(orderId, poData, { new: true });
+      await PurchaseOrderLog.create({ orderId: updated._id, action: "EDITED",
+        poNumber: updated.poNumber, quantity: updated.quantity, performedBy: performer });
+      req.flash("notification", "Purchase Order updated successfully.");
+    } else {
+      poData.createdBy = performer;
+      const po = await PurchaseOrder.create(poData);
+      await PurchaseOrderLog.create({ orderId: po._id, action: "CREATED",
+        poNumber: po.poNumber, quantity: po.quantity, performedBy: performer });
+      req.flash("notification", "Purchase Order created successfully.");
+    }
+
+    res.redirect("/fairdesk/purchase/pending");
+  } catch (err) {
+    console.error("CREATE PURCHASE ORDER ERROR:", err);
+    req.flash("notification", "Error: " + (err.message || "Failed to create Purchase Order."));
     res.redirect("back");
   }
 });

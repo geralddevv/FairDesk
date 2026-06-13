@@ -537,7 +537,7 @@
         formatter: (cell) => {
           const row = cell.getRow().getData();
           // Adjust URLs for Edit and Confirm as needed
-          const editUrl = `/fairdesk/inventory/reorder/select-vendor/${row.onModel.toLowerCase()}/${row.itemId?._id || row.itemId}?poId=${row._id}`;
+          const editUrl = `/fairdesk/inventory/purchase/order?orderId=${row._id}`;
 
           return `
             <div style="display:flex; gap:6px; justify-content:center; align-items:center;">

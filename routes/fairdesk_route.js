@@ -727,10 +727,23 @@ router.post("/form/client", requireAuth, createLimiter, async (req, res) => {
     const clientStatus = String(req.body.clientStatus || "").trim();
     const hoLocation = String(req.body.hoLocation || "").trim();
     const accountHead = String(req.body.accountHead || "").trim();
-    const clientGst = String(req.body.clientGst || "").trim();
-    const clientMsme = String(req.body.clientMsme || "").trim();
-    const clientGumasta = String(req.body.clientGumasta || "").trim();
-    const clientPan = String(req.body.clientPan || "").trim();
+    const clientGst = String(req.body.clientGst || "").trim().toUpperCase();
+    const clientPan = String(req.body.clientPan || "").trim().toUpperCase();
+
+    // GST and PAN Validation
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
+    if (clientGst && !gstRegex.test(clientGst)) {
+      return res.status(400).json({ success: false, message: "Invalid GST number format" });
+    }
+    if (clientPan && !panRegex.test(clientPan)) {
+      return res.status(400).json({ success: false, message: "Invalid PAN number format" });
+    }
+    if (clientGst && clientPan && clientGst.substring(2, 12) !== clientPan) {
+      return res.status(400).json({ success: false, message: "PAN does not match GST number" });
+    }
+
     const clientSignature = hashSignature(buildClientSignature(req.body));
 
     // Prevent duplicates only when the full logical client entity matches.
@@ -1335,7 +1348,6 @@ router.get("/form/ttr/exists", async (req, res) => {
 
 // POST: TTR Master submission
 router.post("/form/ttr", requireAuth, createLimiter, async (req, res) => {
-  console.log("TTR MASTER BODY", req.body);
   try {
     const formatTtrProductId = (n) => `FS | TTR | ${String(n).padStart(6, "0")}`;
     const parseTtrSeq = (productId) => {
@@ -1493,8 +1505,7 @@ router.get("/form/tape-master", async (req, res) => {
 });
 
 // POST: Tape Master submission
-router.post("/form/tape-master", requireAuth, createLimiter, async (req, res) => {
-  console.log("TAPE MASTER BODY", req.body);
+router.post("/form/tape", requireAuth, createLimiter, async (req, res) => {
   try {
     const formatTapeId = (n) => `FS | Tape | ${String(n).padStart(6, "0")}`;
     const parseTapeSeq = (productId) => {
@@ -3054,8 +3065,23 @@ router.post("/form/vendor", requireAuth, createLimiter, async (req, res) => {
   try {
     const vendorId = String(req.body.vendorId || "").trim();
     const vendorName = String(req.body.vendorName || "").trim();
-    const vendorGst = String(req.body.vendorGst || "").trim();
-    const vendorPan = String(req.body.vendorPan || "").trim();
+    const vendorGst = String(req.body.vendorGst || "").trim().toUpperCase();
+    const vendorPan = String(req.body.vendorPan || "").trim().toUpperCase();
+
+    // GST and PAN Validation
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
+    if (vendorGst && !gstRegex.test(vendorGst)) {
+      return res.status(400).json({ success: false, message: "Invalid GST number format" });
+    }
+    if (vendorPan && !panRegex.test(vendorPan)) {
+      return res.status(400).json({ success: false, message: "Invalid PAN number format" });
+    }
+    if (vendorGst && vendorPan && vendorGst.substring(2, 12) !== vendorPan) {
+      return res.status(400).json({ success: false, message: "PAN does not match GST number" });
+    }
+
     const vendorSignature = hashSignature(buildVendorSignature(req.body));
 
     // Prevent duplicates only by full vendor signature.
@@ -3069,14 +3095,30 @@ router.post("/form/vendor", requireAuth, createLimiter, async (req, res) => {
     const formData = {
       vendorId,
       vendorName,
-      vendorStatus: String(req.body.vendorStatus || "").trim(),
+      vendorStatus: req.body.vendorStatus === "OTHERS" && req.body.otherStatus
+        ? `OTHERS - ${String(req.body.otherStatus).trim().toUpperCase().replace(/^(OTHERS - )+/, "")}`
+        : String(req.body.vendorStatus || "").trim(),
       hoLocation: String(req.body.hoLocation || "").trim(),
       warehouseLocation: String(req.body.warehouseLocation || "").trim(),
-      commodities: Array.isArray(req.body.commodities)
-        ? req.body.commodities.map((c) => String(c).trim().toUpperCase()).filter(Boolean)
-        : req.body.commodities
-          ? [String(req.body.commodities).trim().toUpperCase()].filter(Boolean)
-          : [],
+      commodities: (() => {
+        let comms = Array.isArray(req.body.commodities)
+          ? req.body.commodities.map((c) => String(c).trim().toUpperCase()).filter(Boolean)
+          : req.body.commodities
+            ? [String(req.body.commodities).trim().toUpperCase()].filter(Boolean)
+            : [];
+        
+        const othersIndex = comms.indexOf("OTHERS");
+        if (othersIndex !== -1) {
+          const predefined = ["FACE PAPER", "ADHESIVE", "RELEASE PAPER", "SL (PAPER)", "PACKAGING", "TTR", "TAPE", "POS ROLL", "TAFFETA", "PRINTERS", "SCANNERS", "SPARES", "CORE", "FOIL", "IT", "DIE", "BLOCK", "COLOR", "OTHERS"];
+          const otherVal = comms.find(c => c !== "OTHERS" && !predefined.includes(c));
+          if (otherVal) {
+            comms = comms.filter(c => c !== "OTHERS" && c !== otherVal);
+            const cleanOtherVal = otherVal.replace(/^(OTHERS - )+/, "");
+            comms.push(`OTHERS - ${cleanOtherVal}`);
+          }
+        }
+        return comms;
+      })(),
       vendorGst,
       vendorMsme: String(req.body.vendorMsme || "").trim(),
       vendorGumasta: String(req.body.vendorGumasta || "").trim(),
@@ -3142,21 +3184,54 @@ router.post("/vendor/edit/:id", requireAuth, updateLimiter, async (req, res) => 
       .select("_id userName userEmail userContact")
       .lean();
 
+    const vendorGst = String(req.body.vendorGst || "").trim().toUpperCase();
+    const vendorPan = String(req.body.vendorPan || "").trim().toUpperCase();
+
+    // GST and PAN Validation
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
+    if (vendorGst && !gstRegex.test(vendorGst)) {
+      return res.status(400).json({ success: false, message: "Invalid GST number format" });
+    }
+    if (vendorPan && !panRegex.test(vendorPan)) {
+      return res.status(400).json({ success: false, message: "Invalid PAN number format" });
+    }
+    if (vendorGst && vendorPan && vendorGst.substring(2, 12) !== vendorPan) {
+      return res.status(400).json({ success: false, message: "PAN does not match GST number" });
+    }
+
     const updatedData = {
       vendorId: String(req.body.vendorId || "").trim(),
       vendorName: String(req.body.vendorName || "").trim(),
-      vendorStatus: String(req.body.vendorStatus || "").trim(),
+      vendorStatus: req.body.vendorStatus === "OTHERS" && req.body.otherStatus
+        ? `OTHERS - ${String(req.body.otherStatus).trim().toUpperCase().replace(/^(OTHERS - )+/, "")}`
+        : String(req.body.vendorStatus || "").trim(),
       hoLocation: String(req.body.hoLocation || "").trim(),
       warehouseLocation: String(req.body.warehouseLocation || "").trim(),
-      commodities: Array.isArray(req.body.commodities)
-        ? req.body.commodities.map((c) => String(c).trim()).filter(Boolean)
-        : req.body.commodities
-          ? [String(req.body.commodities).trim()].filter(Boolean)
-          : [],
-      vendorGst: String(req.body.vendorGst || "").trim(),
+      commodities: (() => {
+        let comms = Array.isArray(req.body.commodities)
+          ? req.body.commodities.map((c) => String(c).trim().toUpperCase()).filter(Boolean)
+          : req.body.commodities
+            ? [String(req.body.commodities).trim().toUpperCase()].filter(Boolean)
+            : [];
+        
+        const othersIndex = comms.indexOf("OTHERS");
+        if (othersIndex !== -1) {
+          const predefined = ["FACE PAPER", "ADHESIVE", "RELEASE PAPER", "SL (PAPER)", "PACKAGING", "TTR", "TAPE", "POS ROLL", "TAFFETA", "PRINTERS", "SCANNERS", "SPARES", "CORE", "FOIL", "IT", "DIE", "BLOCK", "COLOR", "OTHERS"];
+          const otherVal = comms.find(c => c !== "OTHERS" && !predefined.includes(c));
+          if (otherVal) {
+            comms = comms.filter(c => c !== "OTHERS" && c !== otherVal);
+            const cleanOtherVal = otherVal.replace(/^(OTHERS - )+/, "");
+            comms.push(`OTHERS - ${cleanOtherVal}`);
+          }
+        }
+        return comms;
+      })(),
+      vendorGst,
       vendorMsme: String(req.body.vendorMsme || "").trim(),
       vendorGumasta: String(req.body.vendorGumasta || "").trim(),
-      vendorPan: String(req.body.vendorPan || "").trim(),
+      vendorPan,
     };
 
     updatedData.vendorSignature = hashSignature(buildVendorSignature(updatedData));

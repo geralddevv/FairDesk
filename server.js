@@ -506,8 +506,6 @@ app.post("/login", loginLimiter, async (req, res) => {
   const envSalesUser = salesUser?.trim();
   const envSalesPass = salesPass?.trim();
 
-  console.log(`[DEBUG LOGIN] loginCode="${loginCode}" password="${password}" NODE_ENV="${process.env.NODE_ENV}" ADMIN_USER="${envAdminUser}"`);
-
   const isAdmin = process.env.NODE_ENV !== "production" && envAdminUser && envAdminPass && loginCode === envAdminUser && password === envAdminPass;
   const isHr = process.env.NODE_ENV !== "production" && envHrUser && envHrPass && loginCode === envHrUser && password === envHrPass;
   const isHod = process.env.NODE_ENV !== "production" && envHodUser && envHodPass && loginCode === envHodUser && password === envHodPass;
@@ -545,8 +543,6 @@ app.post("/login", loginLimiter, async (req, res) => {
       empProfileCode: { $regex: new RegExp(`^${escapeRegex(trimmedUser)}$`, "i") },
       isActive: true
     });
-
-    console.log(`[DEBUG] Database login attempt for profile code: "${trimmedUser}". Found: ${employee ? employee.empName : "NULL"}`);
 
     if (employee && await employee.comparePassword(trimmedPass)) {
       if (employee.role === "none") {

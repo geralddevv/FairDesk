@@ -201,7 +201,27 @@
   });
 
   /* ===== Table ===== */
-  const tableData = <%- safeJson(jsonData) %>;
+  const rawData = <%- safeJson(jsonData) %>;
+  const tableData = [];
+
+  rawData.forEach(row => {
+    const commodities = Array.isArray(row.commodities) && row.commodities.length > 0 ? row.commodities : ["-"];
+    commodities.forEach(commodity => {
+      let displayCommodity = commodity;
+      let filterCommodity = commodity;
+
+      if (typeof commodity === "string" && commodity.startsWith("OTHERS - ")) {
+        displayCommodity = commodity;
+        filterCommodity = "OTHERS";
+      }
+
+      tableData.push({
+        ...row,
+        displayCommodity,
+        filterCommodity
+      });
+    });
+  });
 
   function normalizeStatus(value) {
     return String(value ?? "").trim().toUpperCase();
@@ -262,18 +282,22 @@
           return `<span style="font-weight:600;color:#044a78">${value}</span>`;
         },
       }),
-      withTextFilter({
+      withSelectFilter({
         title: "Commodities",
-        field: "commodities",
+        field: "filterCommodity",
         minWidth: 200,
         headerSort: true,
         sorter: "string",
         formatter: (cell) => {
-          const values = cell.getValue();
-          if (!Array.isArray(values) || values.length === 0) return "-";
-          return values.join(", ");
+          const data = cell.getRow().getData();
+          return data.displayCommodity;
         }
-      }),
+      }, (() => {
+        const distinct = Array.from(new Set(tableData.map(r => r.filterCommodity))).filter(c => c && c !== "-").sort();
+        const obj = {"": "All"};
+        distinct.forEach(c => { obj[c] = c; });
+        return obj;
+      })()),
       withTextFilter({ title: "HO Location", field: "hoLocation" }),
       withTextFilter({ title: "Warehouse Location", field: "warehouseLocation" }),
       withSelectFilter({
@@ -289,7 +313,9 @@
       }, {
         "": "All",
         "ACTIVE": "ACTIVE",
-        "INACTIVE": "INACTIVE"
+        "INACTIVE": "INACTIVE",
+        "BLACKLISTED": "BLACKLISTED",
+        "OTHERS": "OTHERS"
       }),
     ],
   });

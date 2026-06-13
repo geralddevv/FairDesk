@@ -76,6 +76,47 @@
       initLocationRepeater();
     }
 
+    const gstInput = document.getElementById("client-gst");
+    const panInput = document.getElementById("client-pan");
+
+    if (gstInput) {
+      gstInput.addEventListener("input", function () {
+        const gst = this.value.toUpperCase();
+        this.value = gst;
+
+        if (gst.length >= 12) {
+          const pan = gst.substring(2, 12);
+          if (panInput) {
+            panInput.value = pan;
+            panInput.dispatchEvent(new Event("input"));
+          }
+        } else if (panInput) {
+          panInput.value = "";
+          panInput.dispatchEvent(new Event("input"));
+        }
+
+        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        if (gst.length > 0 && !gstRegex.test(gst)) {
+          this.setCustomValidity("Invalid GST format (e.g., 22AAAAA0000A1Z5)");
+        } else {
+          this.setCustomValidity("");
+        }
+      });
+    }
+
+    if (panInput) {
+      panInput.addEventListener("input", function () {
+        const pan = this.value.toUpperCase();
+        this.value = pan;
+        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+        if (pan.length > 0 && !panRegex.test(pan)) {
+          this.setCustomValidity("Invalid PAN format (e.g., ABCDE1234F)");
+        } else {
+          this.setCustomValidity("");
+        }
+      });
+    }
+
     // Set up MutationObserver to watch for display changes
     const observer = new MutationObserver(function (mutations) {
       mutations.forEach(function (mutation) {

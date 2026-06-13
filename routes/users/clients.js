@@ -169,10 +169,23 @@ router.post("/edit/:id", requireAuth, updateLimiter, async (req, res) => {
     const clientStatus = String(req.body.clientStatus || "").trim();
     const hoLocation = String(req.body.hoLocation || "").trim();
     const accountHead = String(req.body.accountHead || "").trim();
-    const clientGst = String(req.body.clientGst || "").trim();
-    const clientMsme = String(req.body.clientMsme || "").trim();
-    const clientGumasta = String(req.body.clientGumasta || "").trim();
-    const clientPan = String(req.body.clientPan || "").trim();
+    const clientGst = String(req.body.clientGst || "").trim().toUpperCase();
+    const clientPan = String(req.body.clientPan || "").trim().toUpperCase();
+
+    // GST and PAN Validation
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
+    if (clientGst && !gstRegex.test(clientGst)) {
+      return res.status(400).json({ success: false, message: "Invalid GST number format" });
+    }
+    if (clientPan && !panRegex.test(clientPan)) {
+      return res.status(400).json({ success: false, message: "Invalid PAN number format" });
+    }
+    if (clientGst && clientPan && clientGst.substring(2, 12) !== clientPan) {
+      return res.status(400).json({ success: false, message: "PAN does not match GST number" });
+    }
+
     const clientSignature = hashSignature(
       buildClientSignature({
         clientName,
