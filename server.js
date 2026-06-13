@@ -151,104 +151,6 @@ res.setHeader('Content-Security-Policy', csp);
   next();
 });
 
-/* Authenticated Image Serving */
-app.get("/images/:folder/:filename", requireAuth, async (req, res) => {
-  const { folder, filename } = req.params;
-
-  // Validate folder
-  if (!["aadhaar", "pan", "empimg"].includes(folder)) {
-    return res.status(400).send("Invalid folder");
-  }
-
-  // Validate filename (prevent directory traversal and arbitrary uploads)
-  if (!/^[a-f0-9]{32}\.(jpg|jpeg|png|gif|webp)$/.test(filename)) {
-    return res.status(400).send("Invalid filename");
-  }
-
-  // Check ACL - user can only view own images
-  const fieldMap = {
-    empimg: "empPhoto",
-    aadhaar: "empAadhaarImg",
-    pan: "empPanImg",
-  };
-
-  const employee = await Employee.findOne({
-    [fieldMap[folder]]: filename,
-  });
-
-  if (!employee) return res.status(404).send("Not found");
-
-  // Only admin or the employee themselves can view
-  const isOwnData = req.session.authUser.empId === employee.empId;
-  const isAdmin = req.session.authUser.role === "admin";
-  if (!isOwnData && !isAdmin) {
-    return res.status(403).send("Forbidden");
-  }
-
-  // Serve with no-cache headers
-  const filePath = path.join(dir_name, "images", folder, filename);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send("Not found");
-  }
-
-  res.setHeader("Cache-Control", "private, no-cache, no-store");
-  res.sendFile(filePath);
-});
-
-/* Image Thumbnail Route (Authenticated + Compressed) */
-app.get("/images/thumb/:folder/:filename", requireAuth, async (req, res) => {
-  const { folder, filename } = req.params;
-
-  // Validate folder
-  if (!["aadhaar", "pan", "empimg"].includes(folder)) {
-    return res.status(400).send("Invalid folder");
-  }
-
-  // Validate filename
-  if (!/^[a-f0-9]{32}\.(jpg|jpeg|png|gif|webp)$/.test(filename)) {
-    return res.status(400).send("Invalid filename");
-  }
-
-  // Check ACL
-  const fieldMap = {
-    empimg: "empPhoto",
-    aadhaar: "empAadhaarImg",
-    pan: "empPanImg",
-  };
-
-  const employee = await Employee.findOne({
-    [fieldMap[folder]]: filename,
-  });
-
-  if (!employee) return res.status(404).send("Not found");
-
-  const isOwnData = req.session.authUser.empId === employee.empId;
-  const isAdmin = req.session.authUser.role === "admin";
-  if (!isOwnData && !isAdmin) {
-    return res.status(403).send("Forbidden");
-  }
-
-  const filePath = path.join(dir_name, "images", folder, filename);
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send("Not found");
-  }
-
-  try {
-    const data = await sharp(filePath)
-      .resize(100, 100, { fit: "cover" })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-
-    res.set("Content-Type", "image/jpeg");
-    res.set("Cache-Control", "private, max-age=3600"); // 1 hour, private cache
-    res.send(data);
-  } catch (err) {
-    console.error("Image processing error:", err);
-    res.sendFile(filePath); // Fallback to original
-  }
-});
-
 /* SESSION */
 const SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes 
 
@@ -343,6 +245,194 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   res.locals.csrfToken = typeof req.csrfToken === "function" ? req.csrfToken() : "";
   next();
+});
+
+
+/* Authenticated Image Serving */
+app.get("/debug-image/:folder/:filename", async (req, res) => {
+  const { folder, filename } = req.params;
+  const filePath = path.join(dir_name, "images", folder, filename);
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  
+  // Try alternate extension
+  if (filename.toLowerCase().endsWith(".jpg") || filename.toLowerCase().endsWith(".jpeg")) {
+    const base = filename.substring(0, filename.lastIndexOf("."));
+    const altExt = filename.toLowerCase().endsWith(".jpg") ? ".jpeg" : ".jpg";
+    const altPath = path.join(dir_name, "images", folder, base + altExt);
+    if (fs.existsSync(altPath)) {
+      return res.sendFile(altPath);
+    }
+  }
+  
+  res.status(404).send(`Not found on disk. Tried: ${filePath}`);
+});
+
+app.get("/images/:folder/:filename", requireAuth, async (req, res) => {
+  const { folder, filename } = req.params;
+
+  // Validate folder
+  if (!["aadhaar", "pan", "empimg"].includes(folder)) {
+    return res.status(400).send("Invalid folder");
+  }
+
+  // Validate filename (prevent directory traversal and arbitrary uploads)
+  // Loosened to allow different naming conventions while still being safe
+  if (!/^[\w\-. ]+\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) {
+    return res.status(400).send("Invalid filename");
+  }
+
+  // Check ACL - user can only view own images
+  const fieldMap = {
+    empimg: "empPhoto",
+    aadhaar: "empAadhaarImg",
+    pan: "empPanImg",
+  };
+
+  let employee = await Employee.findOne({
+    [fieldMap[folder]]: filename,
+  });
+
+  // Handle common extension mismatch (.jpg vs .jpeg)
+  if (!employee && (filename.toLowerCase().endsWith(".jpg") || filename.toLowerCase().endsWith(".jpeg"))) {
+    const base = filename.substring(0, filename.lastIndexOf("."));
+    const altExts = filename.toLowerCase().endsWith(".jpg") ? [".jpeg", ".JPG", ".JPEG"] : [".jpg", ".JPG", ".JPEG"];
+    
+    for (const ext of altExts) {
+      employee = await Employee.findOne({ [fieldMap[folder]]: base + ext });
+      if (employee) break;
+    }
+  }
+
+  if (!employee) {
+    console.warn(`[IMAGE] Not found in DB: ${folder}/${filename}`);
+    return res.status(404).send("Not found");
+  }
+
+  // ACL - allow admin and HR to see everything. 
+  // Allow management (HOD, Sales) to see employee photos (empimg).
+  // Everyone can see their own data.
+  const authUser = req.session.authUser;
+  const isAdmin = authUser.role === "admin";
+  const isHR = authUser.role === "hr";
+  const isManagement = ["admin", "hr", "hod", "sales"].includes(authUser.role);
+  const isOwnData = authUser.empId && authUser.empId === employee.empId;
+
+  let allowed = false;
+  if (isAdmin || isHR) {
+    allowed = true;
+  } else if (folder === "empimg" && isManagement) {
+    allowed = true;
+  } else if (isOwnData) {
+    allowed = true;
+  }
+
+  if (!allowed) {
+    console.warn(`[IMAGE] Access denied: user=${authUser.username} role=${authUser.role} folder=${folder} file=${filename}`);
+    return res.status(403).send("Forbidden");
+  }
+
+  // Serve with no-cache headers
+  let filePath = path.join(dir_name, "images", folder, filename);
+  
+  if (!fs.existsSync(filePath)) {
+    // Try alternate extension on disk if not found
+    if (filename.toLowerCase().endsWith(".jpg") || filename.toLowerCase().endsWith(".jpeg")) {
+      const base = filename.substring(0, filename.lastIndexOf("."));
+      const altExt = filename.toLowerCase().endsWith(".jpg") ? ".jpeg" : ".jpg";
+      const altPath = path.join(dir_name, "images", folder, base + altExt);
+      
+      if (fs.existsSync(altPath)) {
+        filePath = altPath;
+      } else {
+        console.warn(`[IMAGE] File not on disk: ${filePath} (also tried ${altPath})`);
+        return res.status(404).send("Not found");
+      }
+    } else {
+      console.warn(`[IMAGE] File not on disk: ${filePath}`);
+      return res.status(404).send("Not found");
+    }
+  }
+
+  res.setHeader("Cache-Control", "private, no-cache, no-store");
+  res.sendFile(filePath);
+});
+
+/* Image Thumbnail Route (Authenticated + Compressed) */
+app.get("/images/thumb/:folder/:filename", requireAuth, async (req, res) => {
+  const { folder, filename } = req.params;
+
+  // Validate folder
+  if (!["aadhaar", "pan", "empimg"].includes(folder)) {
+    return res.status(400).send("Invalid folder");
+  }
+
+  // Validate filename
+  if (!/^[\w\-. ]+\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) {
+    return res.status(400).send("Invalid filename");
+  }
+
+  // Check ACL
+  const fieldMap = {
+    empimg: "empPhoto",
+    aadhaar: "empAadhaarImg",
+    pan: "empPanImg",
+  };
+
+  let employee = await Employee.findOne({
+    [fieldMap[folder]]: filename,
+  });
+
+  // Handle common extension mismatch (.jpg vs .jpeg)
+  if (!employee && (filename.toLowerCase().endsWith(".jpg") || filename.toLowerCase().endsWith(".jpeg"))) {
+    const base = filename.substring(0, filename.lastIndexOf("."));
+    const altExts = filename.toLowerCase().endsWith(".jpg") ? [".jpeg", ".JPG", ".JPEG"] : [".jpg", ".JPG", ".JPEG"];
+    
+    for (const ext of altExts) {
+      employee = await Employee.findOne({ [fieldMap[folder]]: base + ext });
+      if (employee) break;
+    }
+  }
+
+  if (!employee) return res.status(404).send("Not found");
+
+  const authUser = req.session.authUser;
+  const isAdmin = authUser.role === "admin";
+  const isHR = authUser.role === "hr";
+  const isManagement = ["admin", "hr", "hod", "sales"].includes(authUser.role);
+  const isOwnData = authUser.empId && authUser.empId === employee.empId;
+
+  let allowed = false;
+  if (isAdmin || isHR) {
+    allowed = true;
+  } else if (folder === "empimg" && isManagement) {
+    allowed = true;
+  } else if (isOwnData) {
+    allowed = true;
+  }
+
+  if (!allowed) return res.status(403).send("Forbidden");
+
+  const filePath = path.join(dir_name, "images", folder, filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("Not found");
+  }
+
+  try {
+    const data = await sharp(filePath)
+      .resize(100, 100, { fit: "cover" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "private, max-age=3600"); // 1 hour, private cache
+    res.send(data);
+  } catch (err) {
+    console.error("Image processing error:", err);
+    res.sendFile(filePath); // Fallback to original
+  }
 });
 
 
